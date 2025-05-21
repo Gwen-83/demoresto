@@ -496,6 +496,26 @@ function fetchAndRenderProducts() {
     });
 }
 
+document.addEventListener('DOMContentLoaded', function () {
+  const dropdown = document.querySelector('.dropdown-filter');
+  const button = dropdown.querySelector('.dropdown-button');
+
+  button.addEventListener('click', function (e) {
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
+
+  // Fermer si on clique ailleurs
+  document.addEventListener('click', function () {
+    dropdown.classList.remove('open');
+  });
+
+  // Ne pas fermer si on clique dans le menu
+  dropdown.querySelector('.dropdown-content').addEventListener('click', function (e) {
+    e.stopPropagation();
+  });
+});
+
 document.addEventListener('DOMContentLoaded', fetchAndRenderProducts);
 
 document.querySelectorAll('.filter-tag, .filter-allergen').forEach(cb => {
