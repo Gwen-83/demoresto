@@ -1196,7 +1196,7 @@ form#register-form a:hover {
 }
 
 .dropdown-content {
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: flex-start;
   background-color: #fff;
