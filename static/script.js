@@ -289,18 +289,26 @@ async function loginUser(username, password, redirectAfterLogin = true) {
 }
 
 function getActiveFilters() {
-  const tagFilters = Array.from(document.querySelectorAll('.filter-tag:checked')).map(cb => cb.value.toLowerCase());
-  const allergenFilters = Array.from(document.querySelectorAll('.filter-allergen:checked')).map(cb => cb.value.toLowerCase());
-  return { tagFilters, allergenFilters };
+  const allergenCheckboxes = document.querySelectorAll('.filter-allergen');
+  const allergens = Array.from(allergenCheckboxes)
+    .filter(cb => cb.checked)
+    .map(cb => cb.value.toLowerCase());
+  return { allergens };
 }
 
 function productMatchesFilters(product, filters) {
-  const productTags = (product.tags || []).map(t => t.toLowerCase());
-  const productAllergens = (product.allergens || []).map(a => a.toLowerCase());
+  if (!filters.allergens || filters.allergens.length === 0) {
+    return true;
+  }
 
-  const matchesTags = filters.tagFilters.every(tag => productTags.includes(tag));
-  const matchesAllergens = filters.allergenFilters.every(all => !productAllergens.includes(all));
-  return matchesTags && matchesAllergens;
+  const productAllergens = (product.allergens || []).map(a => a.toLowerCase());
+  for (const allergen of filters.allergens) {
+    if (productAllergens.includes(allergen)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 document.querySelectorAll('.filter-tag, .filter-allergen').forEach(cb => {
