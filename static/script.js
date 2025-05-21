@@ -330,6 +330,18 @@ function fetchAndRenderProducts() {
           categories[cat].push(product);
         }
       });
+      
+      const hasProducts = Object.values(categories).some(items => items.length > 0);
+
+      if (!hasProducts) {
+        const msg = document.createElement('p');
+        msg.textContent = "Aucun produit ne correspond à vos filtres.";
+        msg.style.textAlign = "center";
+        msg.style.margin = "20px 0";
+        msg.style.fontWeight = "bold";
+        menuContainer.appendChild(msg);
+        return; // stop ici, pas besoin de construire les sections
+      }
 
       const menuContainer = document.getElementById('menu-container');
       menuContainer.innerHTML = ''; // important : vide le menu avant de re-rendre
