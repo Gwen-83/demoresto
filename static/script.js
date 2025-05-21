@@ -310,175 +310,183 @@ document.querySelectorAll('.filter-tag, .filter-allergen').forEach(cb => {
   });
 });
 
-fetch('https://demoresto.onrender.com/api/products')
-  .then(response => response.json())
-  .then(products => {
-    const categories = {
-      entree: [],
-      plat: [],
-      dessert: [],
-      boisson: []
-    };
+function fetchAndRenderProducts() {
+  fetch('https://demoresto.onrender.com/api/products')
+    .then(response => response.json())
+    .then(products => {
+      const categories = {
+        entree: [],
+        plat: [],
+        dessert: [],
+        boisson: []
+      };
 
-    const filters = getActiveFilters();
-    products.forEach(product => {
-      if (!productMatchesFilters(product, filters)) return;
+      const filters = getActiveFilters();
+      products.forEach(product => {
+        if (!productMatchesFilters(product, filters)) return;
 
-      const cat = product.category?.toLowerCase();
-      if (cat && categories[cat]) {
-        categories[cat].push(product);
+        const cat = product.category?.toLowerCase();
+        if (cat && categories[cat]) {
+          categories[cat].push(product);
+        }
+      });
+
+      const menuContainer = document.getElementById('menu-container');
+      menuContainer.innerHTML = ''; // important : vide le menu avant de re-rendre
+
+      for (const [category, items] of Object.entries(categories)) {
+        const section = document.createElement('section');
+        section.id = category + 's';
+        section.classList.add('menu-section');
+
+        const title = document.createElement('h2');
+        title.textContent = capitalize(category);
+        section.appendChild(title);
+
+        const itemsContainer = document.createElement('div');
+        itemsContainer.classList.add('menu-items');
+
+        items.forEach(product => {
+          const itemDiv = document.createElement('div');
+          itemDiv.classList.add('menu-item');
+
+          const img = document.createElement('img');
+          img.src = product.image || 'public/placeholder.jpg';
+          img.alt = product.name;
+          itemDiv.appendChild(img);
+
+          const name = document.createElement('h3');
+          name.textContent = product.name;
+          itemDiv.appendChild(name);
+
+          const desc = document.createElement('p');
+          desc.textContent = product.description;
+          itemDiv.appendChild(desc);
+
+          const price = document.createElement('span');
+          price.classList.add('prix');
+          price.textContent = `${product.price.toFixed(2)}€`;
+          itemDiv.appendChild(price);
+
+          const actionDiv = document.createElement('div');
+          actionDiv.classList.add('product-action');
+
+          const qtyInput = document.createElement('input');
+          qtyInput.type = 'number';
+          qtyInput.min = '1';
+          qtyInput.value = '1';
+          qtyInput.classList.add('product-qty');
+          actionDiv.appendChild(qtyInput);
+
+          const button = document.createElement('button');
+          button.classList.add('add-to-cart');
+          button.textContent = 'Ajouter au panier';
+          button.setAttribute('data-name', product.name);
+          button.setAttribute('data-price', product.price);
+          actionDiv.appendChild(button);
+
+          itemDiv.appendChild(actionDiv);
+          itemsContainer.appendChild(itemDiv);
+        });
+
+        section.appendChild(itemsContainer);
+        menuContainer.appendChild(section);
       }
-    });
 
+      // ✅ Attache les gestionnaires de clic sur les boutons
+      document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', () => {
+          const name = button.dataset.name;
+          const price = parseFloat(button.dataset.price);
+          const qtyInput = button.previousElementSibling;
+          let quantity = parseInt(qtyInput.value);
 
-    const menuContainer = document.getElementById('menu-container');
-
-    for (const [category, items] of Object.entries(categories)) {
-      const section = document.createElement('section');
-      section.id = category + 's'; // pour correspondre à #entrees, #plats, etc.
-      section.classList.add('menu-section');
-
-      const title = document.createElement('h2');
-      title.textContent = capitalize(category);
-      section.appendChild(title);
-
-      const itemsContainer = document.createElement('div');
-      itemsContainer.classList.add('menu-items');
-
-      items.forEach(product => {
-        const itemDiv = document.createElement('div');
-        itemDiv.classList.add('menu-item');
-
-        const img = document.createElement('img');
-        img.src = product.image || 'public/placeholder.jpg';
-        img.alt = product.name;
-        itemDiv.appendChild(img);
-
-        const name = document.createElement('h3');
-        name.textContent = product.name;
-        itemDiv.appendChild(name);
-
-        const desc = document.createElement('p');
-        desc.textContent = product.description;
-        itemDiv.appendChild(desc);
-
-        const price = document.createElement('span');
-        price.classList.add('prix');
-        price.textContent = `${product.price.toFixed(2)}€`;
-        itemDiv.appendChild(price);
-
-        // Conteneur pour quantité + bouton
-        const actionDiv = document.createElement('div');
-        actionDiv.classList.add('product-action');
-
-        const qtyInput = document.createElement('input');
-        qtyInput.type = 'number';
-        qtyInput.min = '1';
-        qtyInput.value = '1';
-        qtyInput.classList.add('product-qty');
-        actionDiv.appendChild(qtyInput);
-
-        const button = document.createElement('button');
-        button.classList.add('add-to-cart');
-        button.textContent = 'Ajouter au panier';
-        button.setAttribute('data-name', product.name);
-        button.setAttribute('data-price', product.price);
-        actionDiv.appendChild(button);
-
-        itemDiv.appendChild(actionDiv);
-        itemsContainer.appendChild(itemDiv);
-      });
-
-      section.appendChild(itemsContainer);
-      menuContainer.appendChild(section);
-    }
-
-    // ✅ AJOUT ICI des gestionnaires d'événements UNE SEULE FOIS
-    document.querySelectorAll('.add-to-cart').forEach(button => {
-      button.addEventListener('click', () => {
-        const name = button.dataset.name;
-        const price = parseFloat(button.dataset.price);
-        const qtyInput = button.previousElementSibling;
-        let quantity = parseInt(qtyInput.value);
-
-        if (isNaN(quantity) || quantity < 1) {
-          showNotification("La quantité minimale est 1.", "error");
-          qtyInput.value = 1;
-          return;
-        }
-
-        if (quantity > 30) {
-          showNotification("La quantité maximale autorisée est 30.", "error");
-          qtyInput.value = 30;
-          return;
-        }
-
-        if (!getToken()) {
-          showNotification("Veuillez vous connecter pour ajouter un produit au panier.", "error");
-          return;
-        }
-
-        fetch('https://demoresto.onrender.com/api/products', {
-          headers: {
-            'Authorization': 'Bearer ' + getToken()
+          if (isNaN(quantity) || quantity < 1) {
+            showNotification("La quantité minimale est 1.", "error");
+            qtyInput.value = 1;
+            return;
           }
-        })
-          .then(res => {
-            if (!res.ok) {
-              if (res.status === 401) {
-                showNotification("Veuillez vous connecter pour voir les produits.", "error");
-                return Promise.reject();
+
+          if (quantity > 30) {
+            showNotification("La quantité maximale autorisée est 30.", "error");
+            qtyInput.value = 30;
+            return;
+          }
+
+          if (!getToken()) {
+            showNotification("Veuillez vous connecter pour ajouter un produit au panier.", "error");
+            return;
+          }
+
+          fetch('https://demoresto.onrender.com/api/products', {
+            headers: {
+              'Authorization': 'Bearer ' + getToken()
+            }
+          })
+            .then(res => {
+              if (!res.ok) {
+                if (res.status === 401) {
+                  showNotification("Veuillez vous connecter pour voir les produits.", "error");
+                  return Promise.reject();
+                }
+                return Promise.reject('Erreur ' + res.status);
               }
-              return Promise.reject('Erreur ' + res.status);
-            }
-            return res.json();
-          })
-          .then(products => {
-            const product = products.find(p => p.name === name && p.price === price);
-            if (!product) {
-              showNotification("Produit introuvable.", "error");
-              return;
-            }
-
-            const productId = product.id;
-
-            fetch('https://demoresto.onrender.com/api/cart', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + getToken()
-              },
-              body: JSON.stringify({ product_id: productId, quantity })
+              return res.json();
             })
-              .then(async res => {
-                if (!res.ok) {
-                  let errorMsg = "Erreur lors de l'ajout au panier.";
-                  try {
-                    const err = await res.json();
-                    if (err.error) errorMsg = err.error;
-                  } catch { }
-                  if (res.status === 401) {
-                    showNotification("Veuillez vous connecter ou créer un compte pour ajouter un produit au panier.");
-                  } else {
-                    showNotification(errorMsg, "error");
-                  }
-                  return;
-                }
+            .then(products => {
+              const product = products.find(p => p.name === name && p.price === price);
+              if (!product) {
+                showNotification("Produit introuvable.", "error");
+                return;
+              }
 
-                const data = await res.json();
-                if (data.message) {
-                  showNotification(data.message, "success");
-                } else {
-                  showNotification("Produit ajouté au panier !", "success");
-                }
-              });
-          })
-          .catch(error => {
-            console.error(error);
-          });
+              const productId = product.id;
+
+              fetch('https://demoresto.onrender.com/api/cart', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer ' + getToken()
+                },
+                body: JSON.stringify({ product_id: productId, quantity })
+              })
+                .then(async res => {
+                  if (!res.ok) {
+                    let errorMsg = "Erreur lors de l'ajout au panier.";
+                    try {
+                      const err = await res.json();
+                      if (err.error) errorMsg = err.error;
+                    } catch { }
+                    if (res.status === 401) {
+                      showNotification("Veuillez vous connecter ou créer un compte pour ajouter un produit au panier.");
+                    } else {
+                      showNotification(errorMsg, "error");
+                    }
+                    return;
+                  }
+
+                  const data = await res.json();
+                  if (data.message) {
+                    showNotification(data.message, "success");
+                  } else {
+                    showNotification("Produit ajouté au panier !", "success");
+                  }
+                });
+            })
+            .catch(error => {
+              console.error(error);
+            });
+        });
       });
     });
-  });
+}
+
+document.addEventListener('DOMContentLoaded', fetchAndRenderProducts);
+
+document.querySelectorAll('.filter-tag, .filter-allergen').forEach(cb => {
+  cb.addEventListener('change', fetchAndRenderProducts);
+});
+
 
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -524,7 +532,8 @@ function addProduct() {
     description: document.getElementById('description').value,
     price: parseFloat(document.getElementById('price').value),
     image: document.getElementById('image').value,
-    category: document.getElementById('category').value
+    category: document.getElementById('category').value,
+    allergens: document.getElementById('allergens').value,
   };
 
   const url = isEditing ? `/api/products/${currentEditId}` : '/api/products';
@@ -580,6 +589,7 @@ function startEdit(product) {
   document.getElementById('price').value = product.price;
   document.getElementById('image').value = product.image;
   document.getElementById('category').value = product.category;
+  document.getElementById('allergens').value = product.allergens || '';
 
   document.getElementById('form-button').textContent = 'Modifier';
   document.getElementById('cancel-button').style.display = 'inline-block';
@@ -594,6 +604,7 @@ function cancelEdit() {
   document.getElementById('price').value = '';
   document.getElementById('image').value = '';
   document.getElementById('category').value = '';
+  document.getElementById('allergens').value = '';
 
   document.getElementById('form-button').textContent = 'Ajouter';
   document.getElementById('cancel-button').style.display = 'none';
