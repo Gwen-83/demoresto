@@ -533,8 +533,7 @@ function addProduct() {
     price: parseFloat(document.getElementById('price').value),
     image: document.getElementById('image').value,
     category: document.getElementById('category').value,
-    allergens: document.getElementById('allergens').value, // ajout
-    tags: document.getElementById('tags').value           // ajout
+    allergens: document.getElementById('allergens').value,
   };
 
   const url = isEditing ? `/api/products/${currentEditId}` : '/api/products';
@@ -591,7 +590,6 @@ function startEdit(product) {
   document.getElementById('image').value = product.image;
   document.getElementById('category').value = product.category;
   document.getElementById('allergens').value = product.allergens || '';
-  document.getElementById('tags').value = product.tags || '';
 
   document.getElementById('form-button').textContent = 'Modifier';
   document.getElementById('cancel-button').style.display = 'inline-block';
@@ -607,7 +605,6 @@ function cancelEdit() {
   document.getElementById('image').value = '';
   document.getElementById('category').value = '';
   document.getElementById('allergens').value = '';
-  document.getElementById('tags').value = '';
 
   document.getElementById('form-button').textContent = 'Ajouter';
   document.getElementById('cancel-button').style.display = 'none';
