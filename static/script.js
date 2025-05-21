@@ -564,7 +564,7 @@ function loadProducts() {
           <td>${p.price}</td>
           <td>
             <button onclick="deleteProduct(${p.id})">Supprimer</button>
-            <button class="edit-button" data-product='${encodeURIComponent(JSON.stringify(p))}'>Modifier</button>
+            <button class="edit-button" data-product="${encodeURIComponent(JSON.stringify(p))}">Modifier</button>
           </td>
         `;
         table.appendChild(tr);
