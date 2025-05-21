@@ -10,7 +10,6 @@ class Product(db.Model):
     image = db.Column(db.String(255))
     category = db.Column(db.String(50))  # entrée, plat, dessert, boisson
     allergens = db.Column(db.String(255))  # ex: "gluten,lactose"
-    tags = db.Column(db.String(255))       # ex: "végétarien,sans gluten"
 
     def to_dict(self):
         return {
