@@ -590,6 +590,8 @@ function getSelectedAllergens() {
   return selected.join(",");
 }
 
+const productMap = new Map();
+
 function addProduct() {
   const token = localStorage.getItem('token');
   const product = {
@@ -690,6 +692,15 @@ function cancelEdit() {
 }
 
 window.onload = loadProducts;
+
+function startEditFromMap(id) {
+  const product = productMap.get(id);
+  if (product) {
+    startEdit(product);
+  } else {
+    console.error("Produit introuvable pour l'ID :", id);
+  }
+}
 
 function loadCart() {
   const token = getToken();
