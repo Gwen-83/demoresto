@@ -54,7 +54,19 @@
         <input id="image" placeholder="URL de l’image">
         <input id="category" placeholder="Catégorie">
       
-        <input id="allergens" placeholder="Allergènes (ex: gluten,lait,noix)">
+        <select id="allergens" multiple style="height: 120px;">
+          <option value="Gluten">Gluten</option>
+          <option value="Lactose">Lactose</option>
+          <option value="Oeuf">Oeuf</option>
+          <option value="Fruits à coques">Fruits à coques</option>
+          <option value="Arachides">Arachides</option>
+          <option value="Soja">Soja</option>
+          <option value="Poissons">Poissons</option>
+          <option value="Crustacés">Crustacés</option>
+          <option value="Mollusques">Mollusques</option>
+          <option value="Sésame">Sésame</option>
+        </select>
+
       
         <button type="submit" class="map-button" id="form-button">Ajouter</button>
         <button type="button" id="cancel-button" class="map-button" style="background-color: #666; margin-top: 10px; display: none;" onclick="cancelEdit()">Annuler</button>

@@ -570,6 +570,12 @@ function loadProducts() {
     });
 }
 
+function getSelectedAllergens() {
+  const select = document.getElementById("allergens");
+  const selected = Array.from(select.selectedOptions).map(option => option.value);
+  return selected.join(",");
+}
+
 function addProduct() {
   const token = localStorage.getItem('token');
   const product = {
@@ -578,7 +584,7 @@ function addProduct() {
     price: parseFloat(document.getElementById('price').value),
     image: document.getElementById('image').value,
     category: document.getElementById('category').value,
-    allergens: document.getElementById('allergens').value,
+    allergens: getSelectedAllergens(),
   };
 
   const url = isEditing ? `/api/products/${currentEditId}` : '/api/products';
@@ -634,7 +640,12 @@ function startEdit(product) {
   document.getElementById('price').value = product.price;
   document.getElementById('image').value = product.image;
   document.getElementById('category').value = product.category;
-  document.getElementById('allergens').value = product.allergens || '';
+  const allergenSelect = document.getElementById('allergens');
+  const allergenArray = (product.allergens || '').split(',');
+  Array.from(allergenSelect.options).forEach(option => {
+    option.selected = allergenArray.includes(option.value);
+  });
+
 
   document.getElementById('form-button').textContent = 'Modifier';
   document.getElementById('cancel-button').style.display = 'inline-block';
@@ -649,7 +660,10 @@ function cancelEdit() {
   document.getElementById('price').value = '';
   document.getElementById('image').value = '';
   document.getElementById('category').value = '';
-  document.getElementById('allergens').value = '';
+  const allergenSelect = document.getElementById('allergens');
+  Array.from(allergenSelect.options).forEach(option => {
+    option.selected = false;
+  });
 
   document.getElementById('form-button').textContent = 'Ajouter';
   document.getElementById('cancel-button').style.display = 'none';
