@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Réserver une table</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<div id="notification" class="notification hidden">
+  <p id="notification-message"></p>
+  <button class="close-btn" onclick="hideNotification()">×</button>
+</div>
+<header>
+  <h1>Chez Mario</h1>
+  <button class="menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html">Accueil</a>
+      <a href="menu.html">Menu</a>
+      <a href="reservation.html">Réservation</a>
+      <a href="contact.html">Contact</a>
+      <a href="panier.html">Voir le panier</a>
+      <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
+      <button id="auth-button"></button>
+    </div>
+    <div id="user-status"></div>
+  </nav>
+</header>
+<h1 class="title-book">Réserver une table</h1>
+<section id="reservation-section">
+  <form id="reservation-form">
+    <label for="adresse">Votre adresse mail :</label>
+    <input type="email" name="adresse" id="adresse" required placeholder="exemple@exemple.Com">
+
+    <label>Numéro de téléphone :</label>
+    <input type="tel" name="telephone" id="telephone" required pattern="^0[1-9][0-9]{8}$" placeholder="06XXXXXXXX">
+
+    <label for="couverts">Nombre de couverts :</label>
+    <input type="number" name="couverts" id="couverts" min="1" max="20" required placeholder="max 20, pour plus, veuillez nous contacter">
+
+    <label for="date">Date :</label>
+    <input type="date" name="date" id="date" required>
+
+    <label for="heure">Heure :</label>
+    <input type="time" name="heure" id="heure" required>
+
+    <label for="commentaire">Commentaire :</label>
+    <textarea name="commentaire" id="commentaire" rows="4" cols="50" maxlength="500"></textarea>
+
+    <input type="text" name="website" style="display:none">
+
+    <button type="submit">Réserver</button>
+    <button type="button" id="reset-button">Vider le formulaire</button>
+    <p class="avertissement">Les données de ce formulaires ne sont utilisé que dans le but de traiter votre demande. En cas d'annulation ou de modification, merci de nous prévenir au  04 68 12 34 56.</p>
+  </form>
+</section>
+<footer>
+  <div class="footer-logo">
+    <img src="public/logo.png" alt="Logo Chez Mario">
+  </div>
+  <div class="footer-infos">
+    <p>Chez Mario <span class="sep">|</span> 12 Rue des Oliviers, 66000 Perpignan <span class="sep">|</span> 04 68 12 34 56 <span class="sep">|</span> email: contact@chezmario.fr</p>
+  </div>
+  <div class="footer-credit">
+    <p>Réalisation : GD</p>
+  </div>
+  <div class="footer-map">
+    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d’accès</a>
+  </div>
+</footer>
+<script src="script.js"></script>
+<script>
+document.getElementById("reservation-form").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const lastSubmission = parseInt(localStorage.getItem("lastReservationTime"), 10);
+  const nowTimestamp = Date.now();
+  const spamTimeout = 5 * 60 * 1000; // 5 minutes en ms
+
+  if (lastSubmission && nowTimestamp - lastSubmission < spamTimeout) {
+    const remainingTime = spamTimeout - (nowTimestamp - lastSubmission);
+    const minutes = Math.floor(remainingTime / 60000);
+    const seconds = Math.floor((remainingTime % 60000) / 1000);
+
+    showNotification(
+      `Veuillez attendre encore ${minutes} minute${minutes !== 1 ? "s" : ""} et ${seconds} seconde${seconds !== 1 ? "s" : ""} avant de réserver à nouveau.`,
+      "info"
+    );
+    return;
+  }
+
+
+  const form = this;
+  const formData = new FormData(form);
+  const couverts = parseInt(formData.get("couverts"), 10);
+
+  if (couverts > 20) {
+    showNotification("Le nombre de couverts est limité à 20.", "error");
+    return;
+  }
+
+  const selectedDate = formData.get("date");
+  const selectedTime = formData.get("heure");
+
+  if (!selectedDate || !selectedTime) {
+    showNotification("Veuillez sélectionner une date et une heure.", "error");
+    return;
+  }
+
+  const selectedDateTime = new Date(`${selectedDate}T${selectedTime}`);
+  const now = new Date();
+  const minReservationTime = new Date(now.getTime() + 2 * 60 * 60 * 1000); // +2h
+
+  const todayDate = now.toISOString().split("T")[0];
+
+  // 🟥 Cas 1 : date entière dans le passé
+  if (selectedDate < todayDate) {
+    showNotification("La date sélectionnée est déjà passée.", "error");
+    return;
+  }
+
+  // 🟧 Cas 2 : aujourd'hui mais heure déjà passée
+  if (selectedDate === todayDate && selectedDateTime < now) {
+    showNotification("L'heure sélectionnée est déjà passée.", "error");
+    return;
+  }
+
+  // 🟨 Cas 3 : pas assez de préavis
+  if (selectedDateTime < minReservationTime) {
+    showNotification("Les réservations doivent être faites au moins 2 heures à l'avance.", "error");
+    return;
+  }
+
+  // ✅ Tout est bon
+  showNotification("Envoi en cours...", "info");
+
+  fetch("/api/reservation", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      adresse: formData.get("adresse"),
+      telephone: formData.get("telephone"),
+      couverts: couverts,
+      date: selectedDate,
+      heure: selectedTime,
+      commentaire: formData.get("commentaire")
+    })
+  })
+  .then(res => res.json().then(data => {
+    if (res.ok) {
+      localStorage.setItem("lastReservationTime", Date.now().toString());
+      showNotification(data.message || "Réservation réussie !");
+      form.reset();
+    } else {
+      showNotification(data.error || "Une erreur est survenue.", "error");
+    }
+  }))
+  .catch(err => {
+    console.error(err);
+    showNotification("Erreur lors de l'envoi de la réservation.", "error");
+  });
+});
+
+document.getElementById("reset-button").addEventListener("click", function () {
+  const form = document.getElementById("reservation-form");
+  form.reset();
+  showNotification("Le formulaire a été vidé.", "info");
+});
+</script>
+</body>
+</html>

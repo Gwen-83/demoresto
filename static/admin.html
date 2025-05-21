@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestion des produits - Chez Mario</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<div id="notification" class="notification hidden">
+  <p id="notification-message"></p>
+  <button class="close-btn" onclick="hideNotification()">×</button>
+</div>
+<header>
+  <h1>Chez Mario</h1>
+  <button class="menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html">Accueil</a>
+      <a href="menu.html">Menu</a>
+      <a href="reservation.html">Réservation</a>
+      <a href="contact.html">Contact</a>
+      <a href="panier.html">Voir le panier</a>
+      <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
+      <button id="auth-button"></button>
+    </div>
+    <div id="user-status"></div>
+    <div id"role"></div>
+  </nav>
+</header>
+
+<section class="presentation">
+  <div class="presentation-container" style="flex-direction: column; align-items: center;">
+    <div class="presentation-texte" style="text-align: center;">
+      <h2>Gestion des produits</h2>
+      <p>Ajoutez, modifiez ou supprimez les produits du menu.</p>
+    </div>
+
+    <div class="produit-table-container" style="overflow-x: auto; margin-top: 40px; width: 100%;">
+      <table id="productTable" class="styled-table">
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="presentation" style="background-color: #fafafa;">
+  <div class="presentation-container" style="flex-direction: column; align-items: center;">
+    <div class="presentation-texte" style="max-width: 600px; text-align: center;">
+      <h2 id="form-title">Ajouter un produit</h2>
+      <form onsubmit="addProduct(); return false;" class="form-produit">
+        <input id="name" placeholder="Nom" required>
+        <input id="description" placeholder="Description">
+        <input id="price" type="number" placeholder="Prix" required>
+        <input id="image" placeholder="URL de l’image">
+        <input id="category" placeholder="Catégorie">
+        <button type="submit" class="map-button" id="form-button">Ajouter</button>
+        <button type="button" id="cancel-button" class="map-button" style="background-color: #666; margin-top: 10px; display: none;" onclick="cancelEdit()">Annuler</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">
+    <img src="public/logo.png" alt="Logo Chez Mario">
+  </div>
+  <div class="footer-infos">
+    <p>Chez Mario <span class="sep">|</span> 12 Rue des Oliviers, 66000 Perpignan <span class="sep">|</span> 04 68 12 34 56 <span class="sep">|</span> email: contact@chezmario.fr</p>
+  </div>
+  <div class="footer-credit">
+    <p>Réalisation : GD</p>
+  </div>
+  <div class="footer-map">
+    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d’accès</a>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

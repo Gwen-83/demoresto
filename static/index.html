@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chez Mario - Accueil</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="notification" class="notification hidden">
+  <p id="notification-message"></p>
+  <button class="close-btn" onclick="hideNotification()">×</button>
+</div>
+<header>
+  <h1>Chez Mario</h1>
+  <button class="menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
+  <nav role="navigation">
+    <div class="nav-left">
+      <a href="index.html">Accueil</a>
+      <a href="menu.html">Menu</a>
+      <a href="reservation.html">Réservation</a>
+      <a href="contact.html">Contact</a>
+      <a href="panier.html">Voir le panier</a>
+      <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
+      <button id="auth-button"></button>
+    </div>
+    <div id="user-status"></div>
+  </nav>
+</header>
+
+<section class="carousel">
+  <div class="slides">
+    <div class="slide active">
+      <img src="public/bruschetta_0.webp" alt="Plat 1">
+      <a href="menu.html" class="btn">Voir le menu</a>
+    </div>
+    <div class="slide">
+      <img src="public/salle_resto.webp" alt="Salle">
+      <a href="reservation.html" class="btn">Réserver une table</a>
+    </div>
+    <div class="slide">
+      <img src="public/contact.webp" alt="Chef">
+      <a href="contact.html" class="btn">Nous contacter</a>
+    </div>
+  </div>
+</section>
+
+<section class="presentation">
+  <div class="presentation-container">
+    <div class="presentation-texte">
+      <h2>Bienvenue chez Mario</h2>
+      <p>
+        Depuis plus de 20 ans, Chez Mario régale les papilles des Perpignanais avec des plats faits maison, préparés avec passion et des produits locaux de qualité. 
+        Notre chef Mario perpétue les traditions italiennes transmises de génération en génération. Venez partager un moment chaleureux en famille ou entre amis.
+      </p>
+    </div>
+    <div class="presentation-image">
+      <img src="public/chef_mario.jpg" alt="Chef Mario en cuisine">
+    </div>
+  </div>
+</section>
+
+
+<section class="produits">
+  <h2>Nos plats phares</h2>
+  <div class="grid-produits">
+    <div class="produit">
+      <img src="public/lasagne.webp" alt="Lasagnes maison">
+      <h3>Lasagnes maison</h3>
+      <p>Une recette authentique italienne préparée avec notre sauce tomate mijotée et une béchamel onctueuse.</p>
+    </div>
+    <div class="produit">
+      <img src="public/pizza_napoli.webp" alt="Pizza Napoli">
+      <h3>Pizza Napoli</h3>
+      <p>Base tomate, anchois, câpres et olives noires, cuite au feu de bois pour un goût unique.</p>
+    </div>
+    <div class="produit">
+      <img src="public/tiramisu.webp" alt="Tiramisu">
+      <h3>Tiramisu</h3>
+      <p>Notre dessert phare, préparé chaque jour avec amour selon la recette de la nonna.</p>
+    </div>
+  </div>
+</section>
+
+<section class="avis">
+  <h2>Ce que pensent nos clients</h2>
+  <div class="avis-container">
+    <div class="avis-item">
+      <div class="stars">★★★★☆ <span class="note">4.5/5</span></div>
+      <p>"Accueil chaleureux, plats savoureux. Une vraie découverte !"</p>
+      <span class="auteur">– Camille</span>
+    </div>
+    <div class="avis-item">
+      <div class="stars">★★★★★ <span class="note">5/5</span></div>
+      <p>"Service impeccable et pizza comme en Italie. Bravo !"</p>
+      <span class="auteur">– Jean-Paul</span>
+    </div>
+    <div class="avis-item">
+      <div class="stars">★★★★☆ <span class="note">4.5/5</span></div>
+      <p>"Ambiance sympa, tiramisu incroyable. On reviendra !"</p>
+      <span class="auteur">– Sarah</span>
+    </div>
+  </div>
+</section>
+
+<section class="valeurs">
+  <div class="valeur">
+    <img src="public/produits_frais.webp" alt="Produits frais">
+    <h3>Produits frais</h3>
+    <p>Nous sélectionnons chaque jour nos ingrédients chez les producteurs locaux.</p>
+  </div>
+  <div class="valeur">
+    <img src="public/four_pizza.jpg" alt="Cuisson parfaite">
+    <h3>Cuisson parfaite</h3>
+    <p>Notre chef ajuste chaque cuisson pour sublimer les saveurs de chaque plat.</p>
+  </div>
+  <div class="valeur">
+    <img src="public/respect_environnement.jpg" alt="Respect de l'environnement">
+    <h3>Respect de l’environnement</h3>
+    <p>Nous réduisons nos déchets et favorisons les emballages recyclables.</p>
+  </div>
+</section>
+
+<section class="horaires">
+  <h2>Horaires</h2>
+  <p>Lundi - Vendredi : 12h – 14h / 19h – 22h30<br>
+     Samedi : 12h – 23h<br>
+     Dimanche : fermé</p>
+</section>
+
+<footer>
+  <div class="footer-logo">
+    <img src="public/logo.png" alt="Logo Chez Mario">
+  </div>
+  <div class="footer-infos">
+    <p>Chez Mario <span class="sep">|</span> 12 Rue des Oliviers, 66000 Perpignan <span class="sep">|</span> 04 68 12 34 56 <span class="sep">|</span> email: contact@chezmario.fr</p>
+  </div>
+  <div class="footer-credit">
+    <p>Réalisation : GD</p>
+  </div>
+  <div class="footer-map">
+    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d’accès</a>
+  </div>
+</footer>
+<script src="script.js" defer></script>
+</body>
+</html>

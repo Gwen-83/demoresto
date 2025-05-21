@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chez Mario - Accueil</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="notification" class="notification hidden">
+  <p id="notification-message"></p>
+  <button class="close-btn" onclick="hideNotification()">×</button>
+</div>
+<header>
+  <h1>Chez Mario</h1>
+  <button class="menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html">Accueil</a>
+      <a href="menu.html">Menu</a>
+      <a href="reservation.html">Réservation</a>
+      <a href="contact.html">Contact</a>
+      <a href="panier.html">Voir le panier</a>
+      <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
+      <button id="auth-button"></button>
+    </div>
+    <div id="user-status"></div>
+  </nav>
+</header>
+<div class="confirmation-message">
+  <h1 class="cancel-title">Paiement annulé !</h1>
+  <p>Votre commande n’a pas été finalisée</p>
+</div>
+<footer>
+  <div class="footer-logo">
+    <img src="public/logo.png" alt="Logo Chez Mario">
+  </div>
+  <div class="footer-infos">
+    <p>Chez Mario <span class="sep">|</span> 12 Rue des Oliviers, 66000 Perpignan <span class="sep">|</span> 04 68 12 34 56 <span class="sep">|</span> email: contact@chezmario.fr</p>
+  </div>
+  <div class="footer-credit">
+    <p>Réalisation : GD</p>
+  </div>
+  <div class="footer-map">
+    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d’accès</a>
+  </div>
+</footer>
+<script src="script.js" defer></script>
+</body>
+</html>

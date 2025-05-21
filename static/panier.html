@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Votre Panier</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<div id="notification" class="notification hidden">
+  <p id="notification-message"></p>
+  <button class="close-btn" onclick="hideNotification()">×</button>
+</div>
+<header>
+  <h1>Chez Mario</h1>
+  <button class="menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html">Accueil</a>
+      <a href="menu.html">Menu</a>
+      <a href="reservation.html">Réservation</a>
+      <a href="contact.html">Contact</a>
+      <a href="panier.html">Voir le panier</a>
+      <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
+      <button id="auth-button"></button>
+    </div>
+    <div id="user-status"></div>
+  </nav>
+</header>
+
+<section class="menu-header">
+  <h2>Votre Panier</h2>
+  <p>Voici les produits de votre choix que vous êtes sur le point de commander.<br>Attention, le nombre minimal de produit est 1 et le nombre maximal est 30.</p>
+</section>
+
+<main id="cart-container">
+  <table>
+    <thead>
+      <tr>
+        <th>Produit</th>
+        <th>Quantité</th>
+        <th>Prix</th>
+        <th>Total</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="cart-body">
+    </tbody>
+  </table>
+  <p id="empty-cart-message" style="text-align:center; margin-top: 20px; display: none;">
+    Votre panier est vide, rendez vous à l'onglet menu pour commencer vos achat
+  </p>
+
+  <h2 id="cart-total">Total : 0.00€</h2>
+</main>
+<div class="confirm-button-container">
+  <button id="confirm-order-button" class="confirm-button">Confirmer la commande</button>
+</div>
+<script src="script.js"></script>
+<script>
+  window.onload = function() {
+    const params = new URLSearchParams(window.location.search);
+    const errorType = params.get("error");
+    if (errorType === "unauthorized") {
+      showNotification("Veuillez vous connecter et ajouter des articles au panier avant de passer au paiement.", "error");
+    }
+  };
+</script>
+</body>
+</html>
