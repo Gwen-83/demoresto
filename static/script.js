@@ -342,16 +342,12 @@ function fetchAndRenderProducts() {
       });
 
       const hasProducts = Object.values(categories).some(items => items.length > 0);
-
+      const noProductsMessage = document.getElementById('no-products-message');
       if (!hasProducts) {
-        const msg = document.createElement('p');
-        msg.textContent = "Aucun produit ne correspond à vos filtres.";
-        msg.style.textAlign = "center";
-        msg.style.margin = "20px 0";
-        msg.style.fontWeight = "bold";
-        msg.style.color = "red";
-        menuContainer.appendChild(msg);
-        return; // Stop ici si aucun produit
+        noProductsMessage.style.display = 'block'; // Affiche le message
+        return;
+      } else {
+        noProductsMessage.style.display = 'none'; // Cache le message
       }
 
       for (const [category, items] of Object.entries(categories)) {
@@ -413,7 +409,6 @@ function fetchAndRenderProducts() {
         menuContainer.appendChild(section);
       }
 
-      // Ajoute les listeners pour les boutons "Ajouter au panier"
       document.querySelectorAll('.add-to-cart').forEach(button => {
         button.addEventListener('click', () => {
           const name = button.dataset.name;
