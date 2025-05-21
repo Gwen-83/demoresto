@@ -555,17 +555,30 @@ function loadProducts() {
     .then(res => res.json())
     .then(data => {
       table.innerHTML = `<tr><th>ID</th><th>Nom</th><th>Prix</th><th>Action</th></tr>`;
+      
       data.forEach(p => {
-        table.innerHTML += `
-          <tr>
-            <td>${p.id}</td>
-            <td>${p.name}</td>
-            <td>${p.price}</td>
-            <td>
-              <button onclick="deleteProduct(${p.id})">Supprimer</button>
-              <button onclick='startEdit(${JSON.stringify(p)})'>Modifier</button>
-            </td>
-          </tr>`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.id}</td>
+          <td>${p.name}</td>
+          <td>${p.price}</td>
+          <td>
+            <button onclick="deleteProduct(${p.id})">Supprimer</button>
+            <button class="edit-button" data-product='${encodeURIComponent(JSON.stringify(p))}'>Modifier</button>
+          </td>
+        `;
+        table.appendChild(tr);
+      });
+
+      // Après avoir inséré tous les boutons "Modifier", on ajoute les événements :
+      document.querySelectorAll('.edit-button').forEach(btn => {
+        const encoded = btn.getAttribute('data-product');
+        try {
+          const decodedProduct = JSON.parse(decodeURIComponent(encoded));
+          btn.addEventListener('click', () => startEdit(decodedProduct));
+        } catch (e) {
+          console.error("Erreur lors du décodage du produit :", e);
+        }
       });
     });
 }
@@ -640,12 +653,16 @@ function startEdit(product) {
   document.getElementById('price').value = product.price;
   document.getElementById('image').value = product.image;
   document.getElementById('category').value = product.category;
+
   const allergenSelect = document.getElementById('allergens');
-  const allergenArray = (product.allergens || '').split(',');
+  const allergensRaw = product.allergens || [];
+  const allergenArray = Array.isArray(allergensRaw)
+    ? allergensRaw
+    : allergensRaw.split(',');
+
   Array.from(allergenSelect.options).forEach(option => {
     option.selected = allergenArray.includes(option.value);
   });
-
 
   document.getElementById('form-button').textContent = 'Modifier';
   document.getElementById('cancel-button').style.display = 'inline-block';
