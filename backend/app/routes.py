@@ -48,7 +48,6 @@ def add_product():
         image=data.get("image"),
         category=data.get("category"),
         allergens=','.join(data.get("allergens", [])),
-        tags=','.join(data.get("tags", []))
     )
 
     db.session.add(product)
