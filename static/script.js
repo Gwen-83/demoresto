@@ -307,7 +307,6 @@ function productMatchesFilters(product, filters) {
       return false;
     }
   }
-
   return true;
 }
 
@@ -322,6 +321,9 @@ function fetchAndRenderProducts() {
   fetch('https://demoresto.onrender.com/api/products')
     .then(response => response.json())
     .then(products => {
+      const menuContainer = document.getElementById('menu-container');
+      menuContainer.innerHTML = ''; // Vide le menu avant tout
+
       const categories = {
         entree: [],
         plat: [],
@@ -338,7 +340,7 @@ function fetchAndRenderProducts() {
           categories[cat].push(product);
         }
       });
-      
+
       const hasProducts = Object.values(categories).some(items => items.length > 0);
 
       if (!hasProducts) {
@@ -347,12 +349,10 @@ function fetchAndRenderProducts() {
         msg.style.textAlign = "center";
         msg.style.margin = "20px 0";
         msg.style.fontWeight = "bold";
+        msg.style.color = "red";
         menuContainer.appendChild(msg);
-        return; // stop ici, pas besoin de construire les sections
+        return; // Stop ici si aucun produit
       }
-
-      const menuContainer = document.getElementById('menu-container');
-      menuContainer.innerHTML = ''; // important : vide le menu avant de re-rendre
 
       for (const [category, items] of Object.entries(categories)) {
         const section = document.createElement('section');
@@ -413,7 +413,7 @@ function fetchAndRenderProducts() {
         menuContainer.appendChild(section);
       }
 
-      // ✅ Attache les gestionnaires de clic sur les boutons
+      // Ajoute les listeners pour les boutons "Ajouter au panier"
       document.querySelectorAll('.add-to-cart').forEach(button => {
         button.addEventListener('click', () => {
           const name = button.dataset.name;
