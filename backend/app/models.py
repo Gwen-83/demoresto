@@ -21,7 +21,6 @@ class Product(db.Model):
             "image": self.image,
             "category": self.category,
             "allergens": self.allergens.split(',') if self.allergens else [],
-            "tags": self.tags.split(',') if self.tags else []
         }
 
 

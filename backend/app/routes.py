@@ -77,7 +77,6 @@ def update_product(id):
     product.image = data.get("image", product.image)
     product.category = data.get("category", product.category)
     product.allergens = ','.join(data.get("allergens", []))
-    product.tags = ','.join(data.get("tags", []))
 
     db.session.commit()
     return jsonify(product.to_dict())
