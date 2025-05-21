@@ -570,15 +570,16 @@ function loadProducts() {
         table.appendChild(tr);
       });
 
-      // Après avoir inséré tous les boutons "Modifier", on ajoute les événements :
       document.querySelectorAll('.edit-button').forEach(btn => {
-        const encoded = btn.getAttribute('data-product');
-        try {
-          const decodedProduct = JSON.parse(decodeURIComponent(encoded));
-          btn.addEventListener('click', () => startEdit(decodedProduct));
-        } catch (e) {
-          console.error("Erreur lors du décodage du produit :", e);
-        }
+        btn.addEventListener('click', () => {
+          try {
+            const encoded = btn.getAttribute('data-product');
+            const decodedProduct = JSON.parse(decodeURIComponent(encoded));
+            startEdit(decodedProduct);
+          } catch (e) {
+            console.error("Erreur lors du décodage du produit :", e);
+          }
+        });
       });
     });
 }
