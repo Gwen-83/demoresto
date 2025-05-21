@@ -499,20 +499,30 @@ function fetchAndRenderProducts() {
 document.addEventListener('DOMContentLoaded', function () {
   const dropdown = document.querySelector('.dropdown-filter');
   const button = dropdown.querySelector('.dropdown-button');
+  const content = dropdown.querySelector('.dropdown-content');
+  const checkboxes = content.querySelectorAll('input[type="checkbox"]');
 
+  // Toggle menu on button click
   button.addEventListener('click', function (e) {
     e.stopPropagation();
     dropdown.classList.toggle('open');
   });
 
-  // Fermer si on clique ailleurs
+  // Close when clicking outside
   document.addEventListener('click', function () {
     dropdown.classList.remove('open');
   });
 
-  // Ne pas fermer si on clique dans le menu
-  dropdown.querySelector('.dropdown-content').addEventListener('click', function (e) {
+  // Prevent closing when clicking inside
+  content.addEventListener('click', function (e) {
     e.stopPropagation();
+  });
+
+  // Close the dropdown when any checkbox is clicked
+  checkboxes.forEach(cb => {
+    cb.addEventListener('change', function () {
+      dropdown.classList.remove('open');
+    });
   });
 });
 
