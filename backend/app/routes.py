@@ -48,6 +48,7 @@ def add_product():
         image=data.get("image"),
         category=data.get("category"),
         allergens=','.join(data.get("allergens", [])),
+        tags=','.join(data.get("tags", []))
     )
 
     db.session.add(product)
@@ -75,10 +76,18 @@ def update_product(id):
     product.price = data.get("price", product.price)
     product.image = data.get("image", product.image)
     product.category = data.get("category", product.category)
-    product.allergens = ','.join(data.get("allergens", []))
+
+    allergens_data = data.get("allergens", [])
+    if isinstance(allergens_data, list):
+        product.allergens = ','.join(allergens_data)
+    elif isinstance(allergens_data, str):
+        product.allergens = allergens_data
+    else:
+        product.allergens = ""
 
     db.session.commit()
     return jsonify(product.to_dict())
+
 
 @bp.route("/api/products/<int:id>", methods=["DELETE"])
 @limiter.limit("5/minute")
