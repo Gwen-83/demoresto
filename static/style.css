@@ -1196,17 +1196,19 @@ form#register-form a:hover {
 }
 
 .dropdown-content {
-  display: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background-color: #fff;
+  min-width: 250px;
+  padding: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-radius: 8px;
   position: absolute;
-  top: 110%;
-  left: 0;
-  z-index: 10;
-  background-color: #fffdf7;
-  min-width: 260px;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  border: 1px solid #ccc;
+  z-index: 1;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .dropdown-filter.open .dropdown-content {
@@ -1240,4 +1242,8 @@ form#register-form a:hover {
   border: 2px solid #f5c6cb;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(255, 0, 0, 0.1);
+}
+
+.filters h3 {
+  text-align: center;
 }
