@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Réserver une table</title>
+  <title>Gestion du site - Chez Mario</title>
   <link rel="stylesheet" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -11,6 +11,7 @@
   <p id="notification-message"></p>
   <button class="close-btn" onclick="hideNotification()">×</button>
 </div>
+
 <header>
   <h1>Chez Mario</h1>
   <button class="menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
@@ -25,37 +26,142 @@
       <button id="auth-button"></button>
     </div>
     <div id="user-status"></div>
+    <div id="role"></div>
   </nav>
 </header>
-<h1 class="title-book">Réserver une table</h1>
-<section id="reservation-section">
-  <form id="reservation-form">
-    <label for="adresse">Votre adresse mail :</label>
-    <input type="email" name="adresse" id="adresse" required placeholder="exemple@exemple.Com">
 
-    <label>Numéro de téléphone :</label>
-    <input type="tel" name="telephone" id="telephone" required pattern="^0[1-9][0-9]{8}$" placeholder="06XXXXXXXX">
+<div class="admin-tabs">
+  <button class="tab-button active" onclick="switchTab('reservations')">Réservations</button>
+  <button class="tab-button" onclick="switchTab('products')">Produits</button>
+  <button class="tab-button" onclick="switchTab('schedules')">Horaires</button>
+</div>
 
-    <label for="couverts">Nombre de couverts :</label>
-    <input type="number" name="couverts" id="couverts" min="1" max="20" required placeholder="max 20, pour plus, veuillez nous contacter">
+<!-- Onglet Réservations -->
+<div id="reservations-tab" class="tab-content active">
+  <div class="reservations-container">
+    <h2>Gestion des réservations</h2>
+    
+    <div class="stats-overview">
+      <div class="stat-card">
+        <div class="stat-number" id="stat-total">0</div>
+        <div class="stat-label">Total réservations</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-pending">0</div>
+        <div class="stat-label">En attente</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-validated">0</div>
+        <div class="stat-label">Validées</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-rejected">0</div>
+        <div class="stat-label">Refusées</div>
+      </div>
+    </div>
+    
+    <div class="main-content">
+      <div class="calendar-section">
+        <div class="calendar">
+          <div class="calendar-header">
+            <button class="calendar-nav" onclick="previousMonth()">‹</button>
+            <div class="calendar-title" id="calendar-title"></div>
+            <button class="calendar-nav" onclick="nextMonth()">›</button>
+          </div>
+          <div class="calendar-grid" id="calendar-grid">
+            <!-- Calendrier généré dynamiquement -->
+          </div>
+        </div>
+      </div>
+      
+      <div class="reservations-section">
+        <h2 class="section-title">Réservations du jour</h2>
+        <div class="reservations-list" id="reservations-list">
+          <!-- Réservations générées dynamiquement -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <label for="date">Date :</label>
-    <input type="date" name="date" id="date" required>
+<!-- Onglet Produits (contenu existant) -->
+<div id="products-tab" class="tab-content">
+  <section class="presentation">
+    <div class="presentation-container" style="flex-direction: column; align-items: center;">
+      <div class="presentation-texte" style="text-align: center;">
+        <h2>Gestion des produits</h2>
+        <p>Ajoutez, modifiez ou supprimez les produits du menu.</p>
+      </div>
 
-    <label for="heure">Heure :</label>
-    <input type="time" name="heure" id="heure" required>
-    <p id="opening-hours-info" class="horaires-info"></p>
+      <div class="produit-table-container" style="overflow-x: auto; margin-top: 40px; width: 100%;">
+        <table id="productTable" class="styled-table">
+        </table>
+      </div>
+    </div>
+  </section>
 
-    <label for="commentaire">Commentaire :</label>
-    <textarea name="commentaire" id="commentaire" rows="4" cols="50" maxlength="500"></textarea>
+  <section class="presentation" style="background-color: #fafafa;">
+    <div class="presentation-container" style="flex-direction: column; align-items: center;">
+      <div class="presentation-texte" style="max-width: 600px; text-align: center;">
+        <h2 id="form-title">Ajouter un produit</h2>
+        <form onsubmit="addProduct(); return false;" class="form-produit">
+          <input id="name" placeholder="Nom" required>
+          <input id="description" placeholder="Description">
+          <input id="price" type="number" placeholder="Prix" required>
+          <input id="image" placeholder="URL de l'image">
+          <input id="category" placeholder="Catégorie">
+        
+          <select id="allergens" multiple style="height: 120px;">
+            <option value="Gluten">Gluten</option>
+            <option value="Lactose">Lactose</option>
+            <option value="Oeuf">Oeuf</option>
+            <option value="Fruits à coques">Fruits à coques</option>
+            <option value="Arachides">Arachides</option>
+            <option value="Soja">Soja</option>
+            <option value="Poissons">Poissons</option>
+            <option value="Crustacés">Crustacés</option>
+            <option value="Mollusques">Mollusques</option>
+            <option value="Sésame">Sésame</option>
+            <option>Aucune Allergie</option>
+          </select>
 
-    <input type="text" name="company" id="company" style="display: none;">
+          <button type="submit" class="map-button" id="form-button">Ajouter</button>
+          <button type="button" id="cancel-button" class="map-button" style="background-color: #666; margin-top: 10px; display: none;" onclick="cancelEdit()">Annuler</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>
 
-    <button type="submit">Réserver</button>
-    <button type="button" id="reset-button">Vider le formulaire</button>
-    <p class="avertissement">Les données de ce formulaires ne sont utilisé que dans le but de traiter votre demande. En cas d'annulation ou de modification, merci de nous prévenir au  04 68 12 34 56.</p>
-  </form>
-</section>
+<!-- Onglet Horaires (contenu existant) -->
+<div id="schedules-tab" class="tab-content">
+  <div class="schedule-admin">
+    <h2>Modifier les horaires d'ouverture</h2>
+    <form id="schedule-form">
+      <div id="schedule-fields"></div>
+      <button type="submit">Enregistrer les horaires</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal de refus -->
+<div id="rejectModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Refuser la réservation</h3>
+      <span class="close" onclick="closeRejectModal()">&times;</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Motif du refus (optionnel) :</label>
+      <textarea class="form-control" id="rejectReason" rows="4" placeholder="Expliquez la raison du refus..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal btn-cancel" onclick="closeRejectModal()">Annuler</button>
+      <button class="btn-modal btn-confirm" onclick="confirmReject()">Confirmer le refus</button>
+    </div>
+  </div>
+</div>
+
 <footer>
   <div class="footer-logo">
     <img src="public/logo.png" alt="Logo Chez Mario">
@@ -70,266 +176,354 @@
     <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d'accès</a>
   </div>
 </footer>
-<script src="script.js"></script>
+
+<script src="script.js" defer></script>
 <script>
-let horairesOuverture = {};
+// Variables globales pour la gestion des réservations
+let currentDate = new Date();
+let selectedDate = new Date();
+let reservations = [];
+let currentReservationId = null;
 
-// Charger les horaires d'ouverture au chargement de la page
-document.addEventListener('DOMContentLoaded', async () => {
-  await loadHoraires();
-  updateHorairesInfo();
-});
+// Fonction utilitaire pour formater une date en YYYY-MM-DD (heure locale)
+function formatDateLocal(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
-// Fonction pour charger les horaires depuis l'API
-async function loadHoraires() {
+// Fonction utilitaire pour normaliser une date de réservation
+function normalizeReservationDate(dateStr) {
+  // Si la date contient déjà un format YYYY-MM-DD, on la garde
+  if (dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return dateStr;
+  }
+  
+  // Si c'est un objet Date ou une chaîne ISO, on la convertit en format local
+  const date = new Date(dateStr);
+  if (!isNaN(date.getTime())) {
+    return formatDateLocal(date);
+  }
+  
+  return dateStr;
+}
+
+// Fonction pour basculer entre les onglets
+function switchTab(tabName) {
+  // Masquer tous les onglets
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  
+  // Désactiver tous les boutons d'onglet
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.classList.remove('active');
+  });
+  
+  // Activer l'onglet sélectionné
+  document.getElementById(tabName + '-tab').classList.add('active');
+  event.target.classList.add('active');
+  
+  // Charger les données spécifiques à l'onglet
+  if (tabName === 'reservations') {
+    loadReservations();
+  }
+}
+
+// Charger les réservations depuis l'API
+async function loadReservations() {
   try {
-    const response = await fetch('/api/horaires.json');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      showNotification('Vous devez être connecté pour accéder à cette page', 'error');
+      return;
+    }
+
+    const response = await fetch('/api/reservations', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
     if (response.ok) {
-      horairesOuverture = await response.json();
+      const rawReservations = await response.json();
+      
+      // Normaliser les dates des réservations
+      reservations = rawReservations.map(reservation => ({
+        ...reservation,
+        date: normalizeReservationDate(reservation.date)
+      }));
+      
+      updateStats();
+      renderCalendar();
+      renderSelectedDateReservations();
+    } else {
+      const error = await response.json();
+      showNotification(error.error || 'Erreur lors du chargement des réservations', 'error');
     }
   } catch (error) {
-    console.error('Erreur lors du chargement des horaires:', error);
+    console.error('Erreur:', error);
+    showNotification('Erreur de connexion', 'error');
   }
 }
 
-// Fonction pour convertir l'heure au format HH:MM
-function parseTimeString(timeStr) {
-  if (!timeStr) return null;
-  const match = timeStr.match(/^(\d{1,2})h(\d{2})$/);
-  if (match) {
-    const [, hours, minutes] = match;
-    return `${hours.padStart(2, '0')}:${minutes}`;
-  }
-  return null;
-}
-
-// Fonction pour obtenir le nom du jour en français
-function getDayName(date) {
-  const jours = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-  return jours[date.getDay()];
-}
-
-// Fonction pour analyser les horaires d'un jour
-function parseHoraires(horaireStr) {
-  if (!horaireStr || horaireStr === "Fermé") {
-    return null;
-  }
-
-  const periods = [];
+// Mettre à jour les statistiques
+function updateStats() {
+  const total = reservations.length;
+  const pending = reservations.filter(r => r.status === 'pending' || r.status === 'en_attente').length;
+  const validated = reservations.filter(r => r.status === 'validee').length;
+  const rejected = reservations.filter(r => r.status === 'refusee').length;
   
-  // Gérer les horaires avec ou sans pause déjeuner
-  if (horaireStr.includes('/')) {
-    // Format: "11h30-14h00/18h30-22h00"
-    const parts = horaireStr.split('/');
-    for (const part of parts) {
-      const times = part.trim().split('-');
-      if (times.length === 2) {
-        const start = parseTimeString(times[0].trim());
-        const end = parseTimeString(times[1].trim());
-        if (start && end) {
-          periods.push({ start, end });
-        }
-      }
-    }
-  } else {
-    // Format simple: "11h30-22h00"
-    const times = horaireStr.split('-');
-    if (times.length === 2) {
-      const start = parseTimeString(times[0].trim());
-      const end = parseTimeString(times[1].trim());
-      if (start && end) {
-        periods.push({ start, end });
-      }
-    }
-  }
-  
-  return periods.length > 0 ? periods : null;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('stat-validated').textContent = validated;
+  document.getElementById('stat-rejected').textContent = rejected;
 }
 
-// Fonction pour vérifier si une heure est dans les horaires d'ouverture
-function isTimeInOpeningHours(selectedDate, selectedTime) {
-  const dayName = getDayName(new Date(selectedDate));
-  const horaireJour = horairesOuverture[dayName];
+// Rendu du calendrier
+function renderCalendar() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
   
-  if (!horaireJour || horaireJour === "Fermé") {
-    return { valid: false, message: `Le restaurant est fermé le ${dayName.toLowerCase()}.` };
-  }
+  document.getElementById('calendar-title').textContent = 
+    new Date(year, month).toLocaleDateString('fr-FR', { 
+      month: 'long', 
+      year: 'numeric' 
+    });
 
-  const periods = parseHoraires(horaireJour);
-  if (!periods) {
-    return { valid: false, message: `Horaires non disponibles pour le ${dayName.toLowerCase()}.` };
-  }
+  const firstDay = new Date(year, month, 1);
+  const startDate = new Date(firstDay);
+  startDate.setDate(startDate.getDate() - firstDay.getDay());
 
-  // Vérifier si l'heure sélectionnée est dans une des périodes d'ouverture
-  for (const period of periods) {
-    if (selectedTime >= period.start && selectedTime <= period.end) {
-      return { valid: true };
-    }
-  }
+  const calendarGrid = document.getElementById('calendar-grid');
+  calendarGrid.innerHTML = '';
 
-  // Construire le message d'erreur avec les horaires disponibles
-  const horaireDisplay = periods.map(p => `${p.start.replace(':', 'h')}-${p.end.replace(':', 'h')}`).join(' / ');
-  return { 
-    valid: false, 
-    message: `L'heure sélectionnée n'est pas dans les horaires d'ouverture du ${dayName.toLowerCase()} (${horaireDisplay}).` 
-  };
-}
-
-// Fonction pour mettre à jour l'affichage des horaires
-function updateHorairesInfo() {
-  const dateInput = document.getElementById('date');
-  const horaireInfo = document.getElementById('opening-hours-info');
-  
-  if (!dateInput.value) {
-    horaireInfo.textContent = 'Sélectionnez une date pour voir les horaires d\'ouverture.';
-    return;
-  }
-
-  const selectedDate = new Date(dateInput.value);
-  const dayName = getDayName(selectedDate);
-  const horaireJour = horairesOuverture[dayName];
-  
-  if (!horaireJour || horaireJour === "Fermé") {
-    horaireInfo.textContent = `Le restaurant est fermé le ${dayName.toLowerCase()}.`;
-    horaireInfo.style.color = '#d32f2f';
-  } else {
-    horaireInfo.textContent = `Horaires d'ouverture le ${dayName.toLowerCase()} : ${horaireJour}`;
-    horaireInfo.style.color = '#2e7d32';
-  }
-}
-
-// Écouter les changements de date
-document.getElementById('date').addEventListener('change', updateHorairesInfo);
-
-document.getElementById("reservation-form").addEventListener("submit", function(e) {
-  e.preventDefault();
-
-  const lastSubmission = parseInt(localStorage.getItem("lastReservationTime"), 10);
-  const nowTimestamp = Date.now();
-  const spamTimeout = 10 * 1000; // 5 minutes en ms
-
-  if (lastSubmission && nowTimestamp - lastSubmission < spamTimeout) {
-    const remainingTime = spamTimeout - (nowTimestamp - lastSubmission);
-    const minutes = Math.floor(remainingTime / 60000);
-    const seconds = Math.floor((remainingTime % 60000) / 1000);
-
-    showNotification(
-      `Veuillez attendre encore ${minutes} minute${minutes !== 1 ? "s" : ""} et ${seconds} seconde${seconds !== 1 ? "s" : ""} avant de réserver à nouveau.`,
-      "info"
-    );
-    return;
-  }
-
-  const form = this;
-  const formData = new FormData(form);
-  const couverts = parseInt(formData.get("couverts"), 10);
-
-  if (couverts > 20) {
-    showNotification("Le nombre de couverts est limité à 20.", "error");
-    return;
-  }
-
-  const selectedDate = formData.get("date");
-  const selectedTime = formData.get("heure");
-
-  if (!selectedDate || !selectedTime) {
-    showNotification("Veuillez sélectionner une date et une heure.", "error");
-    return;
-  }
-
-  const selectedDateTime = new Date(`${selectedDate}T${selectedTime}`);
-  const now = new Date();
-  const minReservationTime = new Date(now.getTime() + 2 * 60 * 60 * 1000); // +2h
-
-  const todayDate = now.toISOString().split("T")[0];
-
-  // 🟥 Cas 1 : date entière dans le passé
-  if (selectedDate < todayDate) {
-    showNotification("La date sélectionnée est déjà passée.", "error");
-    return;
-  }
-
-  // 🟧 Cas 2 : aujourd'hui mais heure déjà passée
-  if (selectedDate === todayDate && selectedDateTime < now) {
-    showNotification("L'heure sélectionnée est déjà passée.", "error");
-    return;
-  }
-
-  // 🟨 Cas 3 : pas assez de préavis
-  if (selectedDateTime < minReservationTime) {
-    showNotification("Les réservations doivent être faites au moins 2 heures à l'avance.", "error");
-    return;
-  }
-
-  // 🟩 Cas 4 : Vérifier les horaires d'ouverture
-  const timeValidation = isTimeInOpeningHours(selectedDate, selectedTime);
-  if (!timeValidation.valid) {
-    showNotification(timeValidation.message, "error");
-    return;
-  }
-
-  // ✅ Tout est bon
-  showNotification("Envoi en cours...", "info");
-
-  fetch("/api/reservation", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + localStorage.getItem("token")
-    },
-    body: JSON.stringify({
-      adresse: formData.get("adresse"),
-      telephone: formData.get("telephone"),
-      couverts: couverts,
-      date: selectedDate,
-      heure: selectedTime,
-      commentaire: formData.get("commentaire")
-    })
-  })
-
-  .then(res => res.json().then(data => {
-    if (res.ok) {
-      localStorage.setItem("lastReservationTime", Date.now().toString());
-
-      // Stocker les données de la réservation pour l'affichage
-      localStorage.setItem("reservationDetails", JSON.stringify({
-        adresse: formData.get("adresse"),
-        telephone: formData.get("telephone"),
-        couverts: couverts,
-        date: selectedDate,
-        heure: selectedTime,
-        commentaire: formData.get("commentaire")
-      }));
-
-      // Rediriger vers la page de confirmation
-      window.location.href = "confirmation.html";
-    } else {
-      showNotification(data.error || "Une erreur est survenue.", "error");
-    }
-  }))
-  .catch(err => {
-    console.error(err);
-    showNotification("Erreur lors de l'envoi de la réservation.", "error");
+  // En-têtes des jours
+  const dayHeaders = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  dayHeaders.forEach(day => {
+    const dayHeader = document.createElement('div');
+    dayHeader.className = 'calendar-day-header';
+    dayHeader.textContent = day;
+    calendarGrid.appendChild(dayHeader);
   });
-});
 
-document.getElementById("reset-button").addEventListener("click", function () {
-  const form = document.getElementById("reservation-form");
-  form.reset();
-  document.getElementById('opening-hours-info').textContent = 'Sélectionnez une date pour voir les horaires d\'ouverture.';
-  showNotification("Le formulaire a été vidé.", "info");
+  // Jours du calendrier
+  const currentDateObj = new Date();
+  const currentDateStr = formatDateLocal(currentDateObj);
+
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    
+    const dayElement = document.createElement('div');
+    dayElement.className = 'calendar-day';
+    
+    if (date.getMonth() !== month) {
+      dayElement.classList.add('other-month');
+    }
+    
+    const dateStr = formatDateLocal(date);
+    if (dateStr === currentDateStr) {
+      dayElement.classList.add('today');
+    }
+
+    dayElement.innerHTML = `<div class="day-number">${date.getDate()}</div>`;
+    
+    // Ajouter les points de réservation
+    const dayReservations = reservations.filter(r => r.date === dateStr);
+    if (dayReservations.length > 0) {
+      const dot = document.createElement('div');
+      dot.className = 'reservation-dot';
+      
+      // Déterminer la couleur selon le statut prioritaire
+      const pendingCount = dayReservations.filter(r => r.status === 'pending' || r.status === 'en_attente').length;
+      const valideeCount = dayReservations.filter(r => r.status === 'validee').length;
+      const refuseeCount = dayReservations.filter(r => r.status === 'refusee').length;
+      
+      if (pendingCount > 0) {
+        dot.classList.add('pending');
+      } else if (valideeCount > 0) {
+        dot.classList.add('validee');
+      } else {
+        dot.classList.add('refusee');
+      }
+      
+      dot.textContent = dayReservations.length;
+      dayElement.appendChild(dot);
+    }
+
+    dayElement.addEventListener('click', () => selectDate(date));
+    calendarGrid.appendChild(dayElement);
+  }
+}
+
+// Sélectionner une date
+function selectDate(date) {
+  selectedDate = new Date(date);
+  renderSelectedDateReservations();
+}
+
+// Rendu des réservations du jour sélectionné
+function renderSelectedDateReservations() {
+  const dateStr = formatDateLocal(selectedDate);
+  const dayReservations = reservations.filter(r => r.date === dateStr);
+  
+  const reservationsList = document.getElementById('reservations-list');
+  const sectionTitle = document.querySelector('.section-title');
+  
+  sectionTitle.textContent = `Réservations du ${selectedDate.toLocaleDateString('fr-FR')} (${dayReservations.length})`;
+  
+  if (dayReservations.length === 0) {
+    reservationsList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Aucune réservation pour cette date</p>';
+    return;
+  }
+
+  reservationsList.innerHTML = dayReservations.map(reservation => {
+    const status = reservation.status === 'en_attente' ? 'pending' : reservation.status;
+    const statusLabel = status === 'pending' ? 'En attente' : 
+                       status === 'validee' ? 'Validée' : 'Refusée';
+    
+    return `
+      <div class="reservation-card ${status}">
+        <div class="reservation-header">
+          <div class="reservation-id">#${reservation.id}</div>
+          <div class="status-badge ${status}">
+            ${statusLabel}
+          </div>
+        </div>
+        <div class="reservation-details">
+          <div class="detail-item">
+            <span class="detail-label">📧</span>
+            <span class="detail-value">${reservation.email}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">📞</span>
+            <span class="detail-value">${reservation.telephone}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">👥</span>
+            <span class="detail-value">${reservation.couverts} couverts</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">🕒</span>
+            <span class="detail-value">${reservation.heure}</span>
+          </div>
+        </div>
+        ${reservation.commentaire ? `
+          <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-style: italic;">
+            💬 ${reservation.commentaire}
+          </div>
+        ` : ''}
+        ${status === 'pending' ? `
+          <div class="reservation-actions">
+            <button class="btn btn-accept" onclick="acceptReservation(${reservation.id})">
+              ✓ Accepter
+            </button>
+            <button class="btn btn-reject" onclick="openRejectModal(${reservation.id})">
+              ✗ Refuser
+            </button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// Navigation du calendrier
+function previousMonth() {
+  currentDate.setMonth(currentDate.getMonth() - 1);
+  renderCalendar();
+}
+
+function nextMonth() {
+  currentDate.setMonth(currentDate.getMonth() + 1);
+  renderCalendar();
+}
+
+// Accepter une réservation
+async function acceptReservation(reservationId) {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/reservation/${reservationId}/validate`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      showNotification('Réservation acceptée avec succès', 'success');
+      await loadReservations();
+    } else {
+      const error = await response.json();
+      showNotification(error.error || 'Erreur lors de l\'acceptation', 'error');
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    showNotification('Erreur de connexion', 'error');
+  }
+}
+
+// Ouvrir le modal de refus
+function openRejectModal(reservationId) {
+  currentReservationId = reservationId;
+  document.getElementById('rejectModal').style.display = 'block';
+  document.getElementById('rejectReason').value = '';
+}
+
+// Fermer le modal de refus
+function closeRejectModal() {
+  document.getElementById('rejectModal').style.display = 'none';
+  currentReservationId = null;
+}
+
+// Confirmer le refus
+async function confirmReject() {
+  if (!currentReservationId) return;
+
+  try {
+    const token = localStorage.getItem('token');
+    const reason = document.getElementById('rejectReason').value;
+    
+    const response = await fetch(`/api/reservation/${currentReservationId}/reject`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ reason })
+    });
+
+    if (response.ok) {
+      showNotification('Réservation refusée', 'success');
+      await loadReservations();
+      closeRejectModal();
+    } else {
+      const error = await response.json();
+      showNotification(error.error || 'Erreur lors du refus', 'error');
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    showNotification('Erreur de connexion', 'error');
+  }
+}
+
+// Fermer le modal en cliquant à l'extérieur
+window.onclick = function(event) {
+  const modal = document.getElementById('rejectModal');
+  if (event.target === modal) {
+    closeRejectModal();
+  }
+}
+
+// Charger les réservations au chargement de la page
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('reservations-tab').classList.contains('active')) {
+    loadReservations();
+  }
 });
 </script>
-
-<style>
-.horaires-info {
-  font-size: 0.9em;
-  margin-top: 5px;
-  padding: 8px;
-  border-radius: 4px;
-  background-color: #f5f5f5;
-  border-left: 4px solid #2196F3;
-}
-</style>
 </body>
 </html>
