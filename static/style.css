@@ -1139,8 +1139,8 @@ form#register-form a:hover {
 
 .confirmation-message {
   text-align: center;
-  margin: 100px auto;
-  padding: 30px;
+  margin: 10px auto;
+  padding: 3px;
   max-width: 600px;
   background-color: #f9f9f9;
   border-radius: 15px;
