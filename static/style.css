@@ -1346,28 +1346,27 @@ form#register-form a:hover {
   color: #900;
 }
 
-  .schedule-admin {
-    background: #f9f9f9;
-    padding: 2em;
-    margin: 2em auto;
-    border-radius: 8px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.1);
-    max-width: 650px;
-    text-align: center; /* centre le titre et le bouton */
-  }
+.schedule-admin {
+  background: #f9f9f9;
+  padding: 2em;
+  margin: 2em auto;
+  border-radius: 8px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+  max-width: 600px;
+  text-align: center; /* centre le titre et le bouton */
+}
 
-  .schedule-admin h2 {
-    margin-bottom: 1.5em;
-    color: #900;
-  }
+.schedule-admin h2 {
+  margin-bottom: 1.5em;
+  color: #900;
+}
 
-  #schedule-fields {
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* centre les blocs de jours */
-    max-width: 90%;
-    gap: 10px;
-  }
+#schedule-fields {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* centre les blocs de jours */
+  gap: 10px;
+}
 
 /* Pour centrer chaque ligne de jour */
 .day-block {
