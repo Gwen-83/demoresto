@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app, Flask, send_from_directory
-from .models import Product, CartItem, User, TokenBlocklist
+from .models import Product, CartItem, User, TokenBlocklist, Reservation
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, create_access_token
@@ -272,6 +272,7 @@ def send_reservation():
     data = request.get_json()
     if data.get("company"):
         return jsonify({"error": "Bot détecté."}), 400
+    
     sender_email = sanitize_input(data.get("adresse"))
     tel = sanitize_input(data.get("telephone"), max_length=20)
     couverts = data.get("couverts")
@@ -282,11 +283,9 @@ def send_reservation():
     if not sender_email or not is_valid_email(sender_email):
         return jsonify({"error": "Adresse e-mail invalide."}), 400
 
-    # Vérifie que tous les champs obligatoires sont présents
     if not couverts or not date or not heure or not sender_email or not tel:
         return jsonify({"error": "Tous les champs obligatoires ne sont pas remplis."}), 400
 
-    # Vérifie que le nombre de couverts est bien un entier entre 1 et 20
     try:
         couverts = int(couverts)
         if couverts < 1 or couverts > 20:
@@ -294,8 +293,30 @@ def send_reservation():
     except ValueError:
         return jsonify({"error": "Le nombre de couverts doit être un nombre entier."}), 400
 
+    # Créer la réservation avec SQLAlchemy ORM
+    try:
+        reservation = Reservation(
+            email=sender_email,
+            telephone=tel,
+            couverts=couverts,
+            date=date,
+            heure=heure,
+            commentaire=commentaire,
+            status='pending'  # Statut par défaut en attente
+        )
+        
+        db.session.add(reservation)
+        db.session.commit()
+        
+        reservation_id = reservation.id
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Erreur lors de la sauvegarde."}), 500
+
+    # Envoyer l'email de notification à l'admin
     message = f"""
-    Nouvelle réservation reçue :
+    Nouvelle réservation reçue (ID: {reservation_id}) :
 
     - Adresse mail du client : {sender_email}
     - Téléphone du client : {tel}
@@ -303,10 +324,12 @@ def send_reservation():
     - Date : {date}
     - Heure : {heure}
     - Commentaire : {commentaire}
+    
+    Connectez-vous à votre espace admin pour valider ou refuser cette réservation.
     """
 
     msg = MIMEText(message)
-    msg['Subject'] = 'Nouvelle réservation'
+    msg['Subject'] = f'Nouvelle réservation #{reservation_id}'
     msg['From'] = smtp_sender
     msg['To'] = receiver_email
 
@@ -314,10 +337,151 @@ def send_reservation():
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(smtp_sender, smtp_password)
             server.send_message(msg)
-        return jsonify({"message": "Réservation envoyée avec succès."}), 200
     except Exception as e:
-        return jsonify({"error": "Échec de l'envoi de l'email."}), 500
+        print(f"Erreur envoi email: {e}")  # Log l'erreur mais ne fait pas échouer la réservation
+
+    return jsonify({
+        "message": "Réservation envoyée avec succès.",
+        "reservation_id": reservation_id
+    }), 201
     
+
+# Nouvelle route pour récupérer toutes les réservations (admin uniquement)
+@bp.route("/api/reservations", methods=["GET"])
+@jwt_required()
+def get_reservations():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+    
+    try:
+        reservations = Reservation.query.order_by(
+            Reservation.date.asc(), 
+            Reservation.heure.asc()
+        ).all()
+        
+        return jsonify([reservation.to_dict() for reservation in reservations]), 200
+        
+    except Exception as e:
+        return jsonify({"error": "Erreur lors de la récupération des réservations."}), 500
+
+# Route pour valider une réservation
+@bp.route("/api/reservation/<int:reservation_id>/validate", methods=["POST"])
+@jwt_required()
+def validate_reservation(reservation_id):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+    
+    try:
+        reservation = Reservation.query.get(reservation_id)
+        
+        if not reservation:
+            return jsonify({"error": "Réservation introuvable."}), 404
+        
+        # Mettre à jour le statut
+        reservation.status = 'validee'
+        db.session.commit()
+        
+        # Envoyer un email de confirmation au client
+        message = f"""
+        Bonjour,
+
+        Votre réservation chez Mario a été confirmée !
+
+        Détails de votre réservation :
+        - Date : {reservation.date}
+        - Heure : {reservation.heure}
+        - Nombre de couverts : {reservation.couverts}
+
+        Nous vous attendons avec plaisir !
+
+        L'équipe Chez Mario
+        """
+        
+        msg = MIMEText(message)
+        msg['Subject'] = 'Réservation confirmée - Chez Mario'
+        msg['From'] = smtp_sender
+        msg['To'] = reservation.email
+        
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(smtp_sender, smtp_password)
+                server.send_message(msg)
+        except Exception as e:
+            print(f"Erreur envoi email confirmation: {e}")
+        
+        return jsonify({"message": "Réservation validée avec succès."}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Erreur lors de la validation."}), 500
+
+# Route pour refuser une réservation
+@bp.route("/api/reservation/<int:reservation_id>/reject", methods=["POST"])
+@jwt_required()
+def reject_reservation(reservation_id):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+    
+    data = request.get_json()
+    reason = sanitize_input(data.get('reason', ''), max_length=500) if data else ''
+    
+    try:
+        reservation = Reservation.query.get(reservation_id)
+        
+        if not reservation:
+            return jsonify({"error": "Réservation introuvable."}), 404
+        
+        # Mettre à jour le statut
+        reservation.status = 'refusee'
+        if reason:
+            reservation.commentaire_admin = reason  # Nouveau champ pour stocker le motif
+        db.session.commit()
+        
+        # Envoyer un email au client
+        message = f"""
+        Bonjour,
+
+        Nous sommes désolés mais votre réservation du {reservation.date} à {reservation.heure} n'a pas pu être confirmée.
+        
+        """
+        
+        if reason:
+            message += f"Motif : {reason}\n\n"
+        
+        message += """
+        N'hésitez pas à nous contacter pour une nouvelle réservation.
+
+        L'équipe Chez Mario
+        04 68 12 34 56
+        """
+        
+        msg = MIMEText(message)
+        msg['Subject'] = 'Réservation non confirmée - Chez Mario'
+        msg['From'] = smtp_sender
+        msg['To'] = reservation.email
+        
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(smtp_sender, smtp_password)
+                server.send_message(msg)
+        except Exception as e:
+            print(f"Erreur envoi email refus: {e}")
+        
+        return jsonify({"message": "Réservation refusée."}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Erreur lors du refus."}), 500
+
 
 @bp.route("/api/contact", methods=["POST"])
 @limiter.limit("3 per minute")

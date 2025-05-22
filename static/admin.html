@@ -5,12 +5,311 @@
   <title>Gestion du site - Chez Mario</title>
   <link rel="stylesheet" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    .admin-tabs {
+      display: flex;
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #ddd;
+      margin: 20px 0;
+    }
+    
+    .tab-button {
+      background: none;
+      border: none;
+      padding: 15px 25px;
+      cursor: pointer;
+      font-size: 16px;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s ease;
+    }
+    
+    .tab-button.active {
+      background-color: #fff;
+      border-bottom-color: #007bff;
+      color: #007bff;
+      font-weight: bold;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 20px 0;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .reservations-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .calendar-view {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin: 20px 0;
+    }
+    
+    .calendar-header {
+      background-color: #007bff;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+    }
+    
+    .calendar-day {
+      border: 1px solid #ddd;
+      min-height: 120px;
+      padding: 5px;
+      background-color: #fff;
+      position: relative;
+    }
+    
+    .calendar-day.other-month {
+      background-color: #f8f9fa;
+      color: #999;
+    }
+    
+    .calendar-day-number {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .reservation-item {
+      background-color: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 3px;
+      padding: 3px 5px;
+      margin: 2px 0;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .reservation-item:hover {
+      background-color: #fff1b8;
+      transform: translateY(-1px);
+    }
+    
+    .reservation-item.validee {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+    }
+    
+    .reservation-item.refusee {
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+    
+    .reservation-item.en_attente {
+      background-color: #fff3cd;
+      border-color: #ffeaa7;
+    }
+    
+    .reservation-details {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 2px solid #007bff;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      z-index: 1000;
+      max-width: 500px;
+      width: 90%;
+      display: none;
+    }
+    
+    .reservation-details.show {
+      display: block;
+    }
+    
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      display: none;
+    }
+    
+    .modal-overlay.show {
+      display: block;
+    }
+    
+    .reservation-details h3 {
+      margin-top: 0;
+      color: #007bff;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+    
+    .detail-item {
+      margin: 10px 0;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .detail-label {
+      font-weight: bold;
+      color: #555;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    
+    .status-en_attente {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    .status-validee {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .status-refusee {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .btn-validate {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .btn-reject {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .btn-close {
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-left: auto;
+    }
+    
+    .btn-validate:hover {
+      background-color: #218838;
+    }
+    
+    .btn-reject:hover {
+      background-color: #c82333;
+    }
+    
+    .btn-close:hover {
+      background-color: #5a6268;
+    }
+    
+    .month-navigation {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 20px 0;
+      padding: 10px 20px;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+    }
+    
+    .nav-button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .nav-button:hover {
+      background-color: #0056b3;
+    }
+    
+    .current-month {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .reject-reason {
+      width: 100%;
+      min-height: 80px;
+      margin: 10px 0;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      resize: vertical;
+    }
+    
+    .stats-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .stat-number {
+      font-size: 2em;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+  </style>
 </head>
 <body>
 <div id="notification" class="notification hidden">
   <p id="notification-message"></p>
   <button class="close-btn" onclick="hideNotification()">×</button>
 </div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeReservationDetails()"></div>
+
 <header>
   <h1>Chez Mario</h1>
   <button class="menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
@@ -25,62 +324,117 @@
       <button id="auth-button"></button>
     </div>
     <div id="user-status"></div>
-    <div id"role"></div>
+    <div id="role"></div>
   </nav>
 </header>
 
-<section class="presentation">
-  <div class="presentation-container" style="flex-direction: column; align-items: center;">
-    <div class="presentation-texte" style="text-align: center;">
-      <h2>Gestion des produits</h2>
-      <p>Ajoutez, modifiez ou supprimez les produits du menu.</p>
-    </div>
-
-    <div class="produit-table-container" style="overflow-x: auto; margin-top: 40px; width: 100%;">
-      <table id="productTable" class="styled-table">
-      </table>
-    </div>
-  </div>
-</section>
-
-<section class="presentation" style="background-color: #fafafa;">
-  <div class="presentation-container" style="flex-direction: column; align-items: center;">
-    <div class="presentation-texte" style="max-width: 600px; text-align: center;">
-      <h2 id="form-title">Ajouter un produit</h2>
-      <form onsubmit="addProduct(); return false;" class="form-produit">
-        <input id="name" placeholder="Nom" required>
-        <input id="description" placeholder="Description">
-        <input id="price" type="number" placeholder="Prix" required>
-        <input id="image" placeholder="URL de l’image">
-        <input id="category" placeholder="Catégorie">
-      
-        <select id="allergens" multiple style="height: 120px;">
-          <option value="Gluten">Gluten</option>
-          <option value="Lactose">Lactose</option>
-          <option value="Oeuf">Oeuf</option>
-          <option value="Fruits à coques">Fruits à coques</option>
-          <option value="Arachides">Arachides</option>
-          <option value="Soja">Soja</option>
-          <option value="Poissons">Poissons</option>
-          <option value="Crustacés">Crustacés</option>
-          <option value="Mollusques">Mollusques</option>
-          <option value="Sésame">Sésame</option>
-          <option>Aucune Allergie</option>
-        </select>
-
-        <button type="submit" class="map-button" id="form-button">Ajouter</button>
-        <button type="button" id="cancel-button" class="map-button" style="background-color: #666; margin-top: 10px; display: none;" onclick="cancelEdit()">Annuler</button>
-      </form>
-    </div>
-  </div>
-</section>
-<div class="schedule-admin">
-  <h2>Modifier les horaires d'ouverture</h2>
-  <form id="schedule-form">
-    <div id="schedule-fields"></div>
-    <button type="submit">Enregistrer les horaires</button>
-  </form>
+<div class="admin-tabs">
+  <button class="tab-button active" onclick="switchTab('reservations')">Réservations</button>
+  <button class="tab-button" onclick="switchTab('products')">Produits</button>
+  <button class="tab-button" onclick="switchTab('schedules')">Horaires</button>
 </div>
+
+<!-- Onglet Réservations -->
+<div id="reservations-tab" class="tab-content active">
+  <div class="reservations-container">
+    <h2>Gestion des réservations</h2>
+    
+    <div class="stats-overview">
+      <div class="stat-card">
+        <div class="stat-number" id="stat-total">0</div>
+        <div class="stat-label">Total réservations</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-pending">0</div>
+        <div class="stat-label">En attente</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-validated">0</div>
+        <div class="stat-label">Validées</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-rejected">0</div>
+        <div class="stat-label">Refusées</div>
+      </div>
+    </div>
+    
+    <div class="month-navigation">
+      <button class="nav-button" onclick="changeMonth(-1)">← Mois précédent</button>
+      <div class="current-month" id="currentMonth"></div>
+      <button class="nav-button" onclick="changeMonth(1)">Mois suivant →</button>
+    </div>
+    
+    <div class="calendar-view" id="calendar">
+      <!-- Le calendrier sera généré par JavaScript -->
+    </div>
+  </div>
+</div>
+
+<!-- Onglet Produits (contenu existant) -->
+<div id="products-tab" class="tab-content">
+  <section class="presentation">
+    <div class="presentation-container" style="flex-direction: column; align-items: center;">
+      <div class="presentation-texte" style="text-align: center;">
+        <h2>Gestion des produits</h2>
+        <p>Ajoutez, modifiez ou supprimez les produits du menu.</p>
+      </div>
+
+      <div class="produit-table-container" style="overflow-x: auto; margin-top: 40px; width: 100%;">
+        <table id="productTable" class="styled-table">
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="presentation" style="background-color: #fafafa;">
+    <div class="presentation-container" style="flex-direction: column; align-items: center;">
+      <div class="presentation-texte" style="max-width: 600px; text-align: center;">
+        <h2 id="form-title">Ajouter un produit</h2>
+        <form onsubmit="addProduct(); return false;" class="form-produit">
+          <input id="name" placeholder="Nom" required>
+          <input id="description" placeholder="Description">
+          <input id="price" type="number" placeholder="Prix" required>
+          <input id="image" placeholder="URL de l'image">
+          <input id="category" placeholder="Catégorie">
+        
+          <select id="allergens" multiple style="height: 120px;">
+            <option value="Gluten">Gluten</option>
+            <option value="Lactose">Lactose</option>
+            <option value="Oeuf">Oeuf</option>
+            <option value="Fruits à coques">Fruits à coques</option>
+            <option value="Arachides">Arachides</option>
+            <option value="Soja">Soja</option>
+            <option value="Poissons">Poissons</option>
+            <option value="Crustacés">Crustacés</option>
+            <option value="Mollusques">Mollusques</option>
+            <option value="Sésame">Sésame</option>
+            <option>Aucune Allergie</option>
+          </select>
+
+          <button type="submit" class="map-button" id="form-button">Ajouter</button>
+          <button type="button" id="cancel-button" class="map-button" style="background-color: #666; margin-top: 10px; display: none;" onclick="cancelEdit()">Annuler</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Onglet Horaires (contenu existant) -->
+<div id="schedules-tab" class="tab-content">
+  <div class="schedule-admin">
+    <h2>Modifier les horaires d'ouverture</h2>
+    <form id="schedule-form">
+      <div id="schedule-fields"></div>
+      <button type="submit">Enregistrer les horaires</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal pour les détails de réservation -->
+<div class="reservation-details" id="reservationDetails">
+  <!-- Le contenu sera généré par JavaScript -->
+</div>
+
 <footer>
   <div class="footer-logo">
     <img src="public/logo.png" alt="Logo Chez Mario">
@@ -92,9 +446,359 @@
     <p>Réalisation : GD</p>
   </div>
   <div class="footer-map">
-    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d’accès</a>
+    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d'accès</a>
   </div>
 </footer>
+
 <script src="script.js" defer></script>
+<script>
+// Variables globales pour la gestion des réservations
+let currentDate = new Date();
+let reservations = [];
+let selectedReservation = null;
+
+// Fonction pour basculer entre les onglets
+function switchTab(tabName) {
+  // Masquer tous les onglets
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  
+  // Désactiver tous les boutons d'onglet
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.classList.remove('active');
+  });
+  
+  // Activer l'onglet sélectionné
+  document.getElementById(tabName + '-tab').classList.add('active');
+  event.target.classList.add('active');
+  
+  // Charger les données spécifiques à l'onglet
+  if (tabName === 'reservations') {
+    loadReservations();
+  }
+}
+
+// Charger les réservations depuis l'API
+async function loadReservations() {
+  try {
+    const response = await fetch('/api/reservations');
+    if (response.ok) {
+      reservations = await response.json();
+      updateStats();
+      generateCalendar();
+    } else {
+      showNotification('Erreur lors du chargement des réservations', 'error');
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    showNotification('Erreur de connexion', 'error');
+  }
+}
+
+// Mettre à jour les statistiques
+function updateStats() {
+  const total = reservations.length;
+  const pending = reservations.filter(r => r.status === 'en_attente').length;
+  const validated = reservations.filter(r => r.status === 'validee').length;
+  const rejected = reservations.filter(r => r.status === 'refusee').length;
+  
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('stat-validated').textContent = validated;
+  document.getElementById('stat-rejected').textContent = rejected;
+}
+
+// Générer le calendrier
+function generateCalendar() {
+  const calendar = document.getElementById('calendar');
+  const currentMonth = document.getElementById('currentMonth');
+  
+  // Mettre à jour le titre du mois
+  const monthNames = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+  ];
+  currentMonth.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  
+  // Effacer le calendrier existant
+  calendar.innerHTML = '';
+  
+  // Ajouter les en-têtes des jours
+  const dayHeaders = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  dayHeaders.forEach(day => {
+    const header = document.createElement('div');
+    header.className = 'calendar-header';
+    header.textContent = day;
+    calendar.appendChild(header);
+  });
+  
+  // Calculer le premier jour du mois et le nombre de jours
+  const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const startDate = new Date(firstDay);
+  
+  // Ajuster pour commencer le lundi
+  const dayOfWeek = (firstDay.getDay() + 6) % 7;
+  startDate.setDate(firstDay.getDate() - dayOfWeek);
+  
+  // Générer 42 jours (6 semaines)
+  for (let i = 0; i < 42; i++) {
+    const cellDate = new Date(startDate);
+    cellDate.setDate(startDate.getDate() + i);
+    
+    const dayCell = document.createElement('div');
+    dayCell.className = 'calendar-day';
+    
+    if (cellDate.getMonth() !== currentDate.getMonth()) {
+      dayCell.classList.add('other-month');
+    }
+    
+    // Numéro du jour
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'calendar-day-number';
+    dayNumber.textContent = cellDate.getDate();
+    dayCell.appendChild(dayNumber);
+    
+    // Ajouter les réservations pour ce jour
+    const dateStr = cellDate.toISOString().split('T')[0];
+    const dayReservations = reservations.filter(r => r.date === dateStr);
+    
+    dayReservations.forEach(reservation => {
+      const reservationElement = document.createElement('div');
+      reservationElement.className = `reservation-item ${reservation.status}`;
+      reservationElement.textContent = `${reservation.heure} - ${reservation.couverts}p`;
+      reservationElement.title = `${reservation.email} - ${reservation.couverts} couverts`;
+      reservationElement.onclick = () => showReservationDetails(reservation);
+      dayCell.appendChild(reservationElement);
+    });
+    
+    calendar.appendChild(dayCell);
+  }
+}
+
+// Changer de mois
+function changeMonth(direction) {
+  currentDate.setMonth(currentDate.getMonth() + direction);
+  generateCalendar();
+}
+
+// Afficher les détails d'une réservation
+function showReservationDetails(reservation) {
+  selectedReservation = reservation;
+  const modal = document.getElementById('reservationDetails');
+  const overlay = document.getElementById('modalOverlay');
+  
+  const statusLabels = {
+    'en_attente': 'En attente',
+    'validee': 'Validée',
+    'refusee': 'Refusée'
+  };
+  
+  modal.innerHTML = `
+    <h3>Détails de la réservation #${reservation.id}</h3>
+    
+    <div class="detail-item">
+      <span class="detail-label">Statut :</span>
+      <span class="status-badge status-${reservation.status}">
+        ${statusLabels[reservation.status]}
+      </span>
+    </div>
+    
+    <div class="detail-item">
+      <span class="detail-label">Email :</span>
+      <span>${reservation.email}</span>
+    </div>
+    
+    <div class="detail-item">
+      <span class="detail-label">Téléphone :</span>
+      <span>${reservation.telephone}</span>
+    </div>
+    
+    <div class="detail-item">
+      <span class="detail-label">Date :</span>
+      <span>${formatDate(reservation.date)}</span>
+    </div>
+    
+    <div class="detail-item">
+      <span class="detail-label">Heure :</span>
+      <span>${reservation.heure}</span>
+    </div>
+    
+    <div class="detail-item">
+      <span class="detail-label">Nombre de couverts :</span>
+      <span>${reservation.couverts}</span>
+    </div>
+    
+    <div class="detail-item">
+      <span class="detail-label">Commentaire :</span>
+      <span>${reservation.commentaire || 'Aucun commentaire'}</span>
+    </div>
+    
+    <div class="detail-item">
+      <span class="detail-label">Reçue le :</span>
+      <span>${formatDateTime(reservation.created_at)}</span>
+    </div>
+    
+    <div class="action-buttons">
+      ${reservation.status === 'en_attente' ? `
+        <button class="btn-validate" onclick="validateReservation(${reservation.id})">
+          Valider
+        </button>
+        <button class="btn-reject" onclick="showRejectForm(${reservation.id})">
+          Refuser
+        </button>
+      ` : ''}
+      <button class="btn-close" onclick="closeReservationDetails()">
+        Fermer
+      </button>
+    </div>
+    
+    <div id="rejectForm" style="display: none; margin-top: 20px;">
+      <h4>Motif du refus (optionnel) :</h4>
+      <textarea class="reject-reason" id="rejectReason" placeholder="Expliquez pourquoi vous refusez cette réservation..."></textarea>
+      <div style="margin-top: 10px;">
+        <button class="btn-reject" onclick="confirmRejectReservation(${reservation.id})">
+          Confirmer le refus
+        </button>
+        <button class="btn-close" onclick="hideRejectForm()">
+          Annuler
+        </button>
+      </div>
+    </div>
+  `;
+  
+  modal.classList.add('show');
+  overlay.classList.add('show');
+}
+
+// Fermer la modal des détails
+function closeReservationDetails() {
+  document.getElementById('reservationDetails').classList.remove('show');
+  document.getElementById('modalOverlay').classList.remove('show');
+  selectedReservation = null;
+}
+
+// Valider une réservation
+async function validateReservation(reservationId) {
+  try {
+    const response = await fetch(`/api/reservation/${reservationId}/validate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      showNotification('Réservation validée avec succès', 'success');
+      closeReservationDetails();
+      loadReservations(); // Recharger les données
+    } else {
+      const error = await response.json();
+      showNotification(error.error || 'Erreur lors de la validation', 'error');
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    showNotification('Erreur de connexion', 'error');
+  }
+}
+
+// Afficher le formulaire de refus
+function showRejectForm(reservationId) {
+  document.getElementById('rejectForm').style.display = 'block';
+}
+
+// Masquer le formulaire de refus
+function hideRejectForm() {
+  document.getElementById('rejectForm').style.display = 'none';
+  document.getElementById('rejectReason').value = '';
+}
+
+// Confirmer le refus d'une réservation
+async function confirmRejectReservation(reservationId) {
+  const reason = document.getElementById('rejectReason').value;
+  
+  try {
+    const response = await fetch(`/api/reservation/${reservationId}/reject`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ reason })
+    });
+    
+    if (response.ok) {
+      showNotification('Réservation refusée', 'success');
+      closeReservationDetails();
+      loadReservations(); // Recharger les données
+    } else {
+      const error = await response.json();
+      showNotification(error.error || 'Erreur lors du refus', 'error');
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    showNotification('Erreur de connexion', 'error');
+  }
+}
+
+// Fonctions utilitaires pour le formatage des dates
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+function formatDateTime(dateTimeStr) {
+  const date = new Date(dateTimeStr);
+  return date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Charger les réservations au chargement de la page
+document.addEventListener('DOMContentLoaded', () => {
+  // Si l'onglet réservations est actif, charger les données
+  if (document.getElementById('reservations-tab').classList.contains('active')) {
+    loadReservations();
+  }
+});
+
+// Fonctions existantes du script original (addProduct, etc.)
+// Vous devrez les intégrer avec votre script.js existant
+
+// Notification system (si pas déjà présent dans script.js)
+function showNotification(message, type = 'info') {
+  const notification = document.getElementById('notification');
+  const messageElement = document.getElementById('notification-message');
+  
+  messageElement.textContent = message;
+  notification.className = `notification ${type}`;
+  notification.classList.remove('hidden');
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    hideNotification();
+  }, 5000);
+}
+
+function hideNotification() {
+  document.getElementById('notification').classList.add('hidden');
+}
+
+// Gestionnaire pour fermer la modal avec Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeReservationDetails();
+  }
+});
+</script>
 </body>
 </html>

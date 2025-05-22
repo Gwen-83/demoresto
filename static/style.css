@@ -1046,6 +1046,7 @@ form#register-form a:hover {
   color: #900;
   margin-bottom: 5px;
   font-size: 1.1em;
+  text-align: center;
 }
 
 .info-bloc p {
@@ -1415,4 +1416,223 @@ form#register-form a:hover {
 
 .schedule-admin button[type="submit"]:hover {
   background-color: #b00;
+}
+
+/* CSS à ajouter à votre fichier style.css existant */
+
+/* Styles pour les notifications améliorées */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  z-index: 9999;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transform: translateX(450px);
+  transition: transform 0.3s ease;
+}
+
+.notification:not(.hidden) {
+  transform: translateX(0);
+}
+
+.notification.success {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.notification.error {
+  background: linear-gradient(135deg, #dc3545, #e74c3c);
+}
+
+.notification.info {
+  background: linear-gradient(135deg, #007bff, #17a2b8);
+}
+
+.notification .close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  float: right;
+  margin-left: 10px;
+  opacity: 0.7;
+}
+
+.notification .close-btn:hover {
+  opacity: 1;
+}
+
+/* Responsive design pour les petits écrans */
+@media (max-width: 768px) {
+  .calendar-view {
+    font-size: 12px;
+  }
+  
+  .calendar-day {
+    min-height: 80px;
+    padding: 3px;
+  }
+  
+  .calendar-day-number {
+    font-size: 14px;
+  }
+  
+  .reservation-item {
+    font-size: 10px;
+    padding: 2px 3px;
+  }
+  
+  .reservation-details {
+    width: 95%;
+    padding: 15px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .action-buttons button {
+    margin: 5px 0;
+  }
+  
+  .stats-overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .admin-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .tab-button {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-view {
+    gap: 5px;
+  }
+  
+  .calendar-day {
+    min-height: 60px;
+    padding: 2px;
+  }
+  
+  .stats-overview {
+    grid-template-columns: 1fr;
+  }
+  
+  .month-navigation {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .month-navigation .nav-button {
+    margin: 5px 0;
+  }
+}
+
+/* Animation pour les éléments de réservation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reservation-item {
+  animation: slideIn 0.3s ease;
+}
+
+/* Effet de survol amélioré pour les cartes de statistiques */
+.stat-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+/* Style pour les boutons d'action */
+.btn-validate,
+.btn-reject,
+.btn-close {
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-validate:hover,
+.btn-reject:hover,
+.btn-close:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Amélioration de l'apparence des onglets */
+.admin-tabs {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.tab-button {
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover:not(.active) {
+  background-color: #f0f0f0;
+  color: #007bff;
+}
+
+/* Style pour le formulaire de motif de refus */
+.reject-reason {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.reject-reason:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+/* Animation pour l'ouverture de la modal */
+.reservation-details.show {
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.modal-overlay.show {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

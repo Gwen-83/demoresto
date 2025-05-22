@@ -76,3 +76,36 @@ class TokenBlocklist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     jti = db.Column(db.String(36), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Reservation(db.Model):
+    __tablename__ = 'reservations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), nullable=False)
+    telephone = db.Column(db.String(20), nullable=False)
+    couverts = db.Column(db.Integer, nullable=False)
+    date = db.Column(db.String(20), nullable=False)  # Ou db.Date si vous voulez un format date
+    heure = db.Column(db.String(20), nullable=False)  # Ou db.Time si vous voulez un format time
+    commentaire = db.Column(db.Text)
+    commentaire_admin = db.Column(db.Text)  # Pour stocker les motifs de refus
+    status = db.Column(db.String(20), default='pending')  # pending, validee, refusee
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'email': self.email,
+            'telephone': self.telephone,
+            'couverts': self.couverts,
+            'date': self.date,
+            'heure': self.heure,
+            'commentaire': self.commentaire,
+            'commentaire_admin': self.commentaire_admin,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    def __repr__(self):
+        return f'<Reservation {self.id}: {self.email} - {self.date} {self.heure}>'
