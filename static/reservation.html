@@ -44,6 +44,7 @@
 
     <label for="heure">Heure :</label>
     <input type="time" name="heure" id="heure" required>
+    <p id="opening-hours-info" class="horaires-info"></p>
 
     <label for="commentaire">Commentaire :</label>
     <textarea name="commentaire" id="commentaire" rows="4" cols="50" maxlength="500"></textarea>
@@ -66,11 +67,140 @@
     <p>Réalisation : GD</p>
   </div>
   <div class="footer-map">
-    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d’accès</a>
+    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d'accès</a>
   </div>
 </footer>
 <script src="script.js"></script>
 <script>
+let horairesOuverture = {};
+
+// Charger les horaires d'ouverture au chargement de la page
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadHoraires();
+  updateHorairesInfo();
+});
+
+// Fonction pour charger les horaires depuis l'API
+async function loadHoraires() {
+  try {
+    const response = await fetch('/api/horaires.json');
+    if (response.ok) {
+      horairesOuverture = await response.json();
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des horaires:', error);
+  }
+}
+
+// Fonction pour convertir l'heure au format HH:MM
+function parseTimeString(timeStr) {
+  if (!timeStr) return null;
+  const match = timeStr.match(/^(\d{1,2})h(\d{2})$/);
+  if (match) {
+    const [, hours, minutes] = match;
+    return `${hours.padStart(2, '0')}:${minutes}`;
+  }
+  return null;
+}
+
+// Fonction pour obtenir le nom du jour en français
+function getDayName(date) {
+  const jours = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+  return jours[date.getDay()];
+}
+
+// Fonction pour analyser les horaires d'un jour
+function parseHoraires(horaireStr) {
+  if (!horaireStr || horaireStr === "Fermé") {
+    return null;
+  }
+
+  const periods = [];
+  
+  // Gérer les horaires avec ou sans pause déjeuner
+  if (horaireStr.includes('/')) {
+    // Format: "11h30-14h00/18h30-22h00"
+    const parts = horaireStr.split('/');
+    for (const part of parts) {
+      const times = part.trim().split('-');
+      if (times.length === 2) {
+        const start = parseTimeString(times[0].trim());
+        const end = parseTimeString(times[1].trim());
+        if (start && end) {
+          periods.push({ start, end });
+        }
+      }
+    }
+  } else {
+    // Format simple: "11h30-22h00"
+    const times = horaireStr.split('-');
+    if (times.length === 2) {
+      const start = parseTimeString(times[0].trim());
+      const end = parseTimeString(times[1].trim());
+      if (start && end) {
+        periods.push({ start, end });
+      }
+    }
+  }
+  
+  return periods.length > 0 ? periods : null;
+}
+
+// Fonction pour vérifier si une heure est dans les horaires d'ouverture
+function isTimeInOpeningHours(selectedDate, selectedTime) {
+  const dayName = getDayName(new Date(selectedDate));
+  const horaireJour = horairesOuverture[dayName];
+  
+  if (!horaireJour || horaireJour === "Fermé") {
+    return { valid: false, message: `Le restaurant est fermé le ${dayName.toLowerCase()}.` };
+  }
+
+  const periods = parseHoraires(horaireJour);
+  if (!periods) {
+    return { valid: false, message: `Horaires non disponibles pour le ${dayName.toLowerCase()}.` };
+  }
+
+  // Vérifier si l'heure sélectionnée est dans une des périodes d'ouverture
+  for (const period of periods) {
+    if (selectedTime >= period.start && selectedTime <= period.end) {
+      return { valid: true };
+    }
+  }
+
+  // Construire le message d'erreur avec les horaires disponibles
+  const horaireDisplay = periods.map(p => `${p.start.replace(':', 'h')}-${p.end.replace(':', 'h')}`).join(' / ');
+  return { 
+    valid: false, 
+    message: `L'heure sélectionnée n'est pas dans les horaires d'ouverture du ${dayName.toLowerCase()} (${horaireDisplay}).` 
+  };
+}
+
+// Fonction pour mettre à jour l'affichage des horaires
+function updateHorairesInfo() {
+  const dateInput = document.getElementById('date');
+  const horaireInfo = document.getElementById('opening-hours-info');
+  
+  if (!dateInput.value) {
+    horaireInfo.textContent = 'Sélectionnez une date pour voir les horaires d\'ouverture.';
+    return;
+  }
+
+  const selectedDate = new Date(dateInput.value);
+  const dayName = getDayName(selectedDate);
+  const horaireJour = horairesOuverture[dayName];
+  
+  if (!horaireJour || horaireJour === "Fermé") {
+    horaireInfo.textContent = `Le restaurant est fermé le ${dayName.toLowerCase()}.`;
+    horaireInfo.style.color = '#d32f2f';
+  } else {
+    horaireInfo.textContent = `Horaires d'ouverture le ${dayName.toLowerCase()} : ${horaireJour}`;
+    horaireInfo.style.color = '#2e7d32';
+  }
+}
+
+// Écouter les changements de date
+document.getElementById('date').addEventListener('change', updateHorairesInfo);
+
 document.getElementById("reservation-form").addEventListener("submit", function(e) {
   e.preventDefault();
 
@@ -89,7 +219,6 @@ document.getElementById("reservation-form").addEventListener("submit", function(
     );
     return;
   }
-
 
   const form = this;
   const formData = new FormData(form);
@@ -129,6 +258,13 @@ document.getElementById("reservation-form").addEventListener("submit", function(
   // 🟨 Cas 3 : pas assez de préavis
   if (selectedDateTime < minReservationTime) {
     showNotification("Les réservations doivent être faites au moins 2 heures à l'avance.", "error");
+    return;
+  }
+
+  // 🟩 Cas 4 : Vérifier les horaires d'ouverture
+  const timeValidation = isTimeInOpeningHours(selectedDate, selectedTime);
+  if (!timeValidation.valid) {
+    showNotification(timeValidation.message, "error");
     return;
   }
 
@@ -178,8 +314,20 @@ document.getElementById("reservation-form").addEventListener("submit", function(
 document.getElementById("reset-button").addEventListener("click", function () {
   const form = document.getElementById("reservation-form");
   form.reset();
+  document.getElementById('opening-hours-info').textContent = 'Sélectionnez une date pour voir les horaires d\'ouverture.';
   showNotification("Le formulaire a été vidé.", "info");
 });
 </script>
+
+<style>
+.horaires-info {
+  font-size: 0.9em;
+  margin-top: 5px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  border-left: 4px solid #2196F3;
+}
+</style>
 </body>
 </html>
