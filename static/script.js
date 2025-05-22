@@ -893,7 +893,7 @@ document.addEventListener('DOMContentLoaded', () => {
         horaires[day] = value;
       }
 
-      await fetch('/update-horaires', {
+      await fetch('/api/update-horaires', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(horaires),
