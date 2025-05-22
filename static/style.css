@@ -1329,3 +1329,29 @@ form#register-form a:hover {
   width: 100px;
   font-weight: bold;
 }
+
+.notification1.visible {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  color: #000;
+  border: 2px solid #444;
+  padding: 20px;
+  z-index: 1000;
+  max-width: 400px;
+  text-align: center;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.notification1 .notif-buttons {
+  margin-top: 15px;
+}
+
+.notification1 .notif-buttons button {
+  margin: 0 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+}

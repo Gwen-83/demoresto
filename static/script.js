@@ -854,6 +854,17 @@ function updateEmptyCartMessage() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+  let horairesTemp = {};
+  let horairesIncohérents = [];
+
+  const toMinutes = (time) => {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const formatTime = (time) => time.replace(':', 'h');
+
   async function loadSchedules() {
     const response = await fetch('/api/horaires.json');
     const horaires = await response.json();
@@ -861,30 +872,70 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!scheduleFields) return;
 
     scheduleFields.innerHTML = '';
-    for (const day of Object.keys(horaires)) {
+
+    for (const day of jours) {
+      let s1 = "00:00", e1 = "00:00", s2 = "00:00", e2 = "00:00";
+      const value = horaires[day];
+
+      if (value && value !== "Fermé" && !value.includes("erreur")) {
+        const [part1, part2] = value.split('/');
+        const [h1, h2] = part1.trim().split('-').map(t => t.trim().replace('h', ':'));
+        s1 = h1;
+        e1 = h2;
+        if (part2) {
+          const [h3, h4] = part2.trim().split('-').map(t => t.trim().replace('h', ':'));
+          s2 = h3;
+          e2 = h4;
+        }
+      }
+
       scheduleFields.innerHTML += `
         <div class="day-block">
           <label>${day} :</label>
-          <input type="time" name="${day}-start1" required>
-          <input type="time" name="${day}-end1" required>
+          <input type="time" name="${day}-start1" value="${s1}" required>
+          <input type="time" name="${day}-end1" value="${e1}" required>
           <span>/</span>
-          <input type="time" name="${day}-start2" required>
-          <input type="time" name="${day}-end2" required>
+          <input type="time" name="${day}-start2" value="${s2}" required>
+          <input type="time" name="${day}-end2" value="${e2}" required>
         </div>
       `;
     }
   }
 
-  async function loadHorairesContact() {
-    const response = await fetch('/api/horaires.json');
-    const horaires = await response.json();
-    const container = document.getElementById('opening-hours');
-    if (!container) return;
+  function showConfirmationNotification(joursIncohérents) {
+    const message = `
+      <p>Êtes-vous sûr des horaires mis pour les jours suivants ?</p>
+      <ul>
+        ${joursIncohérents.map(jour => `<li><strong>${jour}</strong> : ${horairesTemp[jour]}</li>`).join('')}
+      </ul>
+      <div class="notif-buttons">
+        <button id="confirmer-incoherences">Valider quand même</button>
+        <button id="annuler-incoherences">Modifier</button>
+      </div>
+    `;
 
-    container.innerHTML = '';
-    for (const [day, hours] of Object.entries(horaires)) {
-      container.innerHTML += `<p><strong>${day}</strong> : ${hours}</p>`;
-    }
+    const notif = document.createElement('div');
+    notif.classList.add('notification1', 'visible');
+    notif.innerHTML = message;
+    document.body.appendChild(notif);
+
+    document.getElementById('confirmer-incoherences').onclick = async () => {
+      document.body.removeChild(notif);
+      await enregistrerHoraires(horairesTemp);
+    };
+
+    document.getElementById('annuler-incoherences').onclick = () => {
+      document.body.removeChild(notif);
+    };
+  }
+
+  async function enregistrerHoraires(horaires) {
+    await fetch('/api/update-horaires', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(horaires),
+    });
+    alert("Horaires mis à jour !");
   }
 
   const scheduleForm = document.getElementById('schedule-form');
@@ -895,15 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const formData = new FormData(e.target);
       const horaires = {};
-      const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-      const erreurs = [];
-
-      const toMinutes = (time) => {
-        const [h, m] = time.split(':').map(Number);
-        return h * 60 + m;
-      };
-
-      const formatTime = (time) => time.replace(':', 'h');
+      horairesIncohérents = [];
 
       for (const day of jours) {
         const s1 = formData.get(`${day}-start1`);
@@ -911,7 +954,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const s2 = formData.get(`${day}-start2`);
         const e2 = formData.get(`${day}-end2`);
 
-        // Jour fermé
         if ([s1, e1, s2, e2].every(t => t === '00:00')) {
           horaires[day] = "Fermé";
           continue;
@@ -922,42 +964,57 @@ document.addEventListener('DOMContentLoaded', () => {
         const mS2 = toMinutes(s2);
         const mE2 = toMinutes(e2);
 
-        // Vérification des incohérences
-        if (mS1 >= mE1 || mS2 >= mE2 || (mS2 > 0 && mS2 < mE1)) {
-          erreurs.push(`Incohérence dans le temps pour ${day}`);
-          continue;
+        let isIncohérent = false;
+        if (
+          mS1 >= mE1 || mS2 >= mE2 ||
+          (mS2 > 0 && mS2 < mE1) ||
+          mS1 < 360 || // avant 6h du matin
+          mS2 < 360
+        ) {
+          isIncohérent = true;
         }
 
-        // Formatage
         const part1 = `${formatTime(s1)}-${formatTime(e1)}`;
         const part2 = `${formatTime(s2)}-${formatTime(e2)}`;
+        let horaire;
 
-        // Si le deuxième créneau est vide ou collé (e1 == s2)
         if (mS2 === 0 && mE2 === 0) {
-          horaires[day] = part1;
+          horaire = part1;
         } else if (mE1 === mS2) {
-          horaires[day] = `${formatTime(s1)}-${formatTime(e2)}`;
+          horaire = `${formatTime(s1)}-${formatTime(e2)}`;
         } else {
-          horaires[day] = `${part1}/${part2}`;
+          horaire = `${part1}/${part2}`;
+        }
+
+        horaires[day] = horaire;
+        if (isIncohérent) {
+          horairesIncohérents.push(day);
         }
       }
 
-      if (erreurs.length > 0) {
-        alert(erreurs.join('\n'));
-        return;
+      horairesTemp = horaires;
+
+      if (horairesIncohérents.length > 0) {
+        showConfirmationNotification(horairesIncohérents);
+      } else {
+        await enregistrerHoraires(horaires);
       }
-
-      await fetch('/api/update-horaires', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(horaires),
-      });
-
-      alert("Horaires mis à jour !");
     });
   }
 
   if (document.getElementById('opening-hours')) {
     loadHorairesContact();
+  }
+
+  async function loadHorairesContact() {
+    const response = await fetch('/api/horaires.json');
+    const horaires = await response.json();
+    const container = document.getElementById('opening-hours');
+    if (!container) return;
+
+    container.innerHTML = '';
+    for (const day of jours) {
+      container.innerHTML += `<p><strong>${day}</strong> : ${horaires[day]}</p>`;
+    }
   }
 });
