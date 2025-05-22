@@ -1305,3 +1305,27 @@ form#register-form a:hover {
 .btn-retour:hover {
   background-color: #b00;
 }
+
+.schedule-admin {
+  background: #f9f9f9;
+  padding: 1em;
+  margin: 2em 0;
+  border-radius: 8px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.schedule-admin h2 {
+  margin-bottom: 1em;
+}
+
+.day-block {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.day-block label {
+  width: 100px;
+  font-weight: bold;
+}

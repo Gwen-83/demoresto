@@ -424,11 +424,21 @@ def update_horaires():
     horaires_path = os.path.join(current_app.root_path, 'horaires.json')
     try:
         horaires = request.get_json()
+
         if not isinstance(horaires, dict):
             return jsonify({"error": "Format de données invalide"}), 400
 
+        # Vérification basique des valeurs
+        heure_pattern = re.compile(r'^(\d{1,2}h\d{2})(-(\d{1,2}h\d{2}))?(\/(\d{1,2}h\d{2})-(\d{1,2}h\d{2}))?$')
+
+        for jour, valeur in horaires.items():
+            if valeur != "Fermé" and not heure_pattern.match(valeur):
+                return jsonify({"error": f"Format invalide pour {jour} : {valeur}"}), 400
+
         with open(horaires_path, 'w', encoding='utf-8') as f:
             json.dump(horaires, f, ensure_ascii=False, indent=2)
+
         return '', 204
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500

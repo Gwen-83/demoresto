@@ -861,10 +861,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!scheduleFields) return;
 
     scheduleFields.innerHTML = '';
-    for (const [day, hours] of Object.entries(horaires)) {
+    for (const day of Object.keys(horaires)) {
       scheduleFields.innerHTML += `
-        <label for="${day}">${day} :</label>
-        <input type="text" id="${day}" name="${day}" value="${hours}" required>
+        <div class="day-block">
+          <label>${day} :</label>
+          <input type="time" name="${day}-start1" required>
+          <input type="time" name="${day}-end1" required>
+          <span>/</span>
+          <input type="time" name="${day}-start2" required>
+          <input type="time" name="${day}-end2" required>
+        </div>
       `;
     }
   }
@@ -889,8 +895,56 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const formData = new FormData(e.target);
       const horaires = {};
-      for (const [day, value] of formData.entries()) {
-        horaires[day] = value;
+      const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+      const erreurs = [];
+
+      const toMinutes = (time) => {
+        const [h, m] = time.split(':').map(Number);
+        return h * 60 + m;
+      };
+
+      const formatTime = (time) => time.replace(':', 'h');
+
+      for (const day of jours) {
+        const s1 = formData.get(`${day}-start1`);
+        const e1 = formData.get(`${day}-end1`);
+        const s2 = formData.get(`${day}-start2`);
+        const e2 = formData.get(`${day}-end2`);
+
+        // Jour fermé
+        if ([s1, e1, s2, e2].every(t => t === '00:00')) {
+          horaires[day] = "Fermé";
+          continue;
+        }
+
+        const mS1 = toMinutes(s1);
+        const mE1 = toMinutes(e1);
+        const mS2 = toMinutes(s2);
+        const mE2 = toMinutes(e2);
+
+        // Vérification des incohérences
+        if (mS1 >= mE1 || mS2 >= mE2 || (mS2 > 0 && mS2 < mE1)) {
+          erreurs.push(`Incohérence dans le temps pour ${day}`);
+          continue;
+        }
+
+        // Formatage
+        const part1 = `${formatTime(s1)}-${formatTime(e1)}`;
+        const part2 = `${formatTime(s2)}-${formatTime(e2)}`;
+
+        // Si le deuxième créneau est vide ou collé (e1 == s2)
+        if (mS2 === 0 && mE2 === 0) {
+          horaires[day] = part1;
+        } else if (mE1 === mS2) {
+          horaires[day] = `${formatTime(s1)}-${formatTime(e2)}`;
+        } else {
+          horaires[day] = `${part1}/${part2}`;
+        }
+      }
+
+      if (erreurs.length > 0) {
+        alert(erreurs.join('\n'));
+        return;
       }
 
       await fetch('/api/update-horaires', {
