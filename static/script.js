@@ -40,7 +40,7 @@ function logout() {
   let wasAdmin = false;
 
   if (token) {
-    // Vérifie le rôle de l'utilisateur
+    // Vérifie le rôle de l'utilisateur avant de supprimer le token
     fetch('https://demoresto.onrender.com/api/verify-token', {
       headers: {
         'Authorization': 'Bearer ' + token
@@ -51,18 +51,9 @@ function logout() {
       if (data && data.role === 'admin') {
         wasAdmin = true;
       }
-
-      // Appelle l’API de logout pour invalider le token côté serveur
-      return fetch('https://demoresto.onrender.com/api/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        }
-      });
     })
     .finally(() => {
-      // Nettoyage du client quoi qu’il arrive
+      // Nettoyage côté client uniquement
       localStorage.removeItem('token');
       localStorage.removeItem('username');
       updateAuthButton();
@@ -86,8 +77,7 @@ function logout() {
   }
 }
 
-
- function updateAuthButton() {
+function updateAuthButton() {
   const btn = document.getElementById('auth-button');
   const status = document.getElementById('user-status');
   const username = localStorage.getItem('username');
@@ -122,7 +112,7 @@ function logout() {
   } else {
     btn.textContent = 'Connexion';
     btn.onclick = () => window.location.href = 'login.html';
-    if (status) status.innerText = 'Déconnecté'; // <-- Ici
+    if (status) status.innerText = 'Déconnecté';
   }
 }
 

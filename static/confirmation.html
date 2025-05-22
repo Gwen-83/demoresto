@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Réserver une table</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<div id="notification" class="notification hidden">
+  <p id="notification-message"></p>
+  <button class="close-btn" onclick="hideNotification()">×</button>
+</div>
+<header>
+  <h1>Chez Mario</h1>
+  <button class="menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html">Accueil</a>
+      <a href="menu.html">Menu</a>
+      <a href="reservation.html">Réservation</a>
+      <a href="contact.html">Contact</a>
+      <a href="panier.html">Voir le panier</a>
+      <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
+      <button id="auth-button"></button>
+    </div>
+    <div id="user-status"></div>
+  </nav>
+</header>
+
+<main class="confirmation">
+  <div class="confirmation-container">
+    <h2>🎉 Réservation confirmée !</h2>
+    <p class="confirmation-message">Merci pour votre réservation ! Voici un récapitulatif :</p>
+    <ul id="resume-reservation" class="confirmation-details"></ul>
+    <a href="index.html" class="btn-retour">← Retour à l'accueil</a>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-logo">
+    <img src="public/logo.png" alt="Logo Chez Mario">
+  </div>
+  <div class="footer-infos">
+    <p>Chez Mario <span class="sep">|</span> 12 Rue des Oliviers, 66000 Perpignan <span class="sep">|</span> 04 68 12 34 56 <span class="sep">|</span> email: contact@chezmario.fr</p>
+  </div>
+  <div class="footer-credit">
+    <p>Réalisation : GD</p>
+  </div>
+  <div class="footer-map">
+    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d’accès</a>
+  </div>
+</footer>
+  <script>
+    const data = JSON.parse(localStorage.getItem("reservationDetails"));
+    if (data) {
+      const list = document.getElementById("resume-reservation");
+      list.innerHTML = `
+        <li><strong>Email :</strong> ${data.adresse}</li>
+        <li><strong>Téléphone :</strong> ${data.telephone}</li>
+        <li><strong>Nombre de couverts :</strong> ${data.couverts}</li>
+        <li><strong>Date :</strong> ${data.date}</li>
+        <li><strong>Heure :</strong> ${data.heure}</li>
+        <li><strong>Commentaire :</strong> ${data.commentaire || "Aucun"}</li>
+      `;
+    } else {
+      document.body.innerHTML = "<p>Erreur : Aucune réservation trouvée.</p><a href='reservation.html'>Retour au formulaire</a>";
+    }
+  </script>
+</body>
+</html>

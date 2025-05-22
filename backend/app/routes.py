@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify, request, current_app
 from .models import Product, CartItem, User, TokenBlocklist
 from . import db
-from flask_jwt_extended import create_access_token,jwt_required, get_jwt_identity, get_jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 import smtplib
 from email.mime.text import MIMEText

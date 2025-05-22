@@ -152,8 +152,19 @@ document.getElementById("reservation-form").addEventListener("submit", function(
   .then(res => res.json().then(data => {
     if (res.ok) {
       localStorage.setItem("lastReservationTime", Date.now().toString());
-      showNotification(data.message || "Réservation réussie !");
-      form.reset();
+
+      // Stocker les données de la réservation pour l'affichage
+      localStorage.setItem("reservationDetails", JSON.stringify({
+        adresse: formData.get("adresse"),
+        telephone: formData.get("telephone"),
+        couverts: couverts,
+        date: selectedDate,
+        heure: selectedTime,
+        commentaire: formData.get("commentaire")
+      }));
+
+      // Rediriger vers la page de confirmation
+      window.location.href = "confirmation.html";
     } else {
       showNotification(data.error || "Une erreur est survenue.", "error");
     }
