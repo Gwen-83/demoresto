@@ -347,26 +347,27 @@ def send_reservation():
     }), 201
     
 
-# Nouvelle route pour récupérer toutes les réservations (admin uniquement)
 @bp.route("/api/reservations", methods=["GET"])
 @jwt_required()
 def get_reservations():
-    user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin:
-        return jsonify({"error": "Accès interdit"}), 403
-    
     try:
-        reservations = Reservation.query.order_by(
-            Reservation.date.asc(), 
-            Reservation.heure.asc()
-        ).all()
+        user_id = int(get_jwt_identity())
+        print("user_id:", user_id)
+        user = User.query.get(user_id)
+        print("user:", user)
+
+        if not user or not user.is_admin:
+            print("Accès refusé: pas admin ou user introuvable")
+            return jsonify({"error": "Accès interdit"}), 403
         
-        return jsonify([reservation.to_dict() for reservation in reservations]), 200
-        
+        reservations = Reservation.query.order_by(Reservation.id.asc()).all()
+
+        print("Nombre de réservations récupérées :", len(reservations))
+        return jsonify([r.to_dict() for r in reservations]), 200
+
     except Exception as e:
-        return jsonify({"error": "Erreur lors de la récupération des réservations."}), 500
+        print("Erreur serveur dans /api/reservations :", e)
+        return jsonify({"error": str(e)}), 500
 
 # Route pour valider une réservation
 @bp.route("/api/reservation/<int:reservation_id>/validate", methods=["POST"])
