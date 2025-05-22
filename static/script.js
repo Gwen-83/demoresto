@@ -855,7 +855,7 @@ function updateEmptyCartMessage() {
 
 document.addEventListener('DOMContentLoaded', () => {
   async function loadSchedules() {
-    const response = await fetch('/horaires.json');
+    const response = await fetch('/api/horaires.json');
     const horaires = await response.json();
     const scheduleFields = document.getElementById('schedule-fields');
     if (!scheduleFields) return;
@@ -870,7 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadHorairesContact() {
-    const response = await fetch('/horaires.json');
+    const response = await fetch('/api/horaires.json');
     const horaires = await response.json();
     const container = document.getElementById('opening-hours');
     if (!container) return;

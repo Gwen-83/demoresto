@@ -409,17 +409,21 @@ def verify_token():
     username = claims.get("username", "inconnu")
     return jsonify({"message": "Token valide", "role": "admin" if is_admin else "user", "username": username}), 200
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+HORAIRES_PATH = os.path.join(BASE_DIR, 'horaires.json')
 
-@app.route('/horaires.json')
+@bp.route('/api/horaires.json')
 def horaires():
-    with open('horaires.json', 'r', encoding='utf-8') as f:
+    if not os.path.exists(HORAIRES_PATH):
+        return jsonify({"error": "Fichier horaires.json introuvable"}), 404
+
+    with open(HORAIRES_PATH, 'r', encoding='utf-8') as f:
         data = json.load(f)
     return jsonify(data)
 
-@app.route('/update-horaires', methods=['POST'])
+@bp.route('/api/update-horaires', methods=['POST'])
 def update_horaires():
     horaires = request.get_json()
-    with open('horaires.json', 'w', encoding='utf-8') as f:
+    with open(HORAIRES_PATH, 'w', encoding='utf-8') as f:
         json.dump(horaires, f, ensure_ascii=False, indent=2)
     return '', 204
