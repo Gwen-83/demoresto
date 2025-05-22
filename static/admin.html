@@ -12,8 +12,6 @@
   <button class="close-btn" onclick="hideNotification()">×</button>
 </div>
 
-<div class="modal-overlay" id="modalOverlay" onclick="closeReservationDetails()"></div>
-
 <header>
   <h1>Chez Mario</h1>
   <button class="menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
@@ -146,7 +144,6 @@
   </div>
 </div>
 
-<!-- Modal pour les détails de réservation -->
 <!-- Modal de refus -->
 <div id="rejectModal" class="modal">
   <div class="modal-content">
@@ -212,7 +209,7 @@ function normalizeReservationDate(dateStr) {
   return dateStr;
 }
 
-// Fonction pour basculer entre les onglets (garder existant)
+// Fonction pour basculer entre les onglets
 function switchTab(tabName) {
   // Masquer tous les onglets
   document.querySelectorAll('.tab-content').forEach(tab => {
