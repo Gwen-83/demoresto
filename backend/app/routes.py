@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, Flask, send_from_directory
 from .models import Product, CartItem, User, TokenBlocklist
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,6 +10,7 @@ from flask_limiter.util import get_remote_address
 from flask_limiter import Limiter
 import os
 import re
+import json
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -407,3 +408,18 @@ def verify_token():
     is_admin = claims.get("is_admin", False)
     username = claims.get("username", "inconnu")
     return jsonify({"message": "Token valide", "role": "admin" if is_admin else "user", "username": username}), 200
+
+app = Flask(__name__)
+
+@app.route('/horaires.json')
+def horaires():
+    with open('horaires.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return jsonify(data)
+
+@app.route('/update-horaires', methods=['POST'])
+def update_horaires():
+    horaires = request.get_json()
+    with open('horaires.json', 'w', encoding='utf-8') as f:
+        json.dump(horaires, f, ensure_ascii=False, indent=2)
+    return '', 204

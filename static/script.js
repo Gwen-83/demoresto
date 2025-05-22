@@ -852,3 +852,58 @@ function updateEmptyCartMessage() {
     emptyMessage.style.display = "none";
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  async function loadSchedules() {
+    const response = await fetch('/horaires.json');
+    const horaires = await response.json();
+    const scheduleFields = document.getElementById('schedule-fields');
+    if (!scheduleFields) return;
+
+    scheduleFields.innerHTML = '';
+    for (const [day, hours] of Object.entries(horaires)) {
+      scheduleFields.innerHTML += `
+        <label for="${day}">${day} :</label>
+        <input type="text" id="${day}" name="${day}" value="${hours}" required>
+      `;
+    }
+  }
+
+  async function loadHorairesContact() {
+    const response = await fetch('/horaires.json');
+    const horaires = await response.json();
+    const container = document.getElementById('opening-hours');
+    if (!container) return;
+
+    container.innerHTML = '';
+    for (const [day, hours] of Object.entries(horaires)) {
+      container.innerHTML += `<p><strong>${day}</strong> : ${hours}</p>`;
+    }
+  }
+
+  const scheduleForm = document.getElementById('schedule-form');
+  if (scheduleForm) {
+    loadSchedules();
+
+    scheduleForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const horaires = {};
+      for (const [day, value] of formData.entries()) {
+        horaires[day] = value;
+      }
+
+      await fetch('/update-horaires', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(horaires),
+      });
+
+      alert("Horaires mis à jour !");
+    });
+  }
+
+  if (document.getElementById('opening-hours')) {
+    loadHorairesContact();
+  }
+});

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Gestion des produits - Chez Mario</title>
+  <title>Gestion du site - Chez Mario</title>
   <link rel="stylesheet" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -74,7 +74,17 @@
     </div>
   </div>
 </section>
-
+<section class="presentation" style="margin-top: 50px;">
+  <div class="presentation-container">
+    <h2>Gestion des horaires</h2>
+    <form id="schedule-form">
+      <div id="schedule-fields">
+        <!-- Champs ajoutés dynamiquement par JS -->
+      </div>
+      <button type="submit" class="map-button">Enregistrer les horaires</button>
+    </form>
+  </div>
+</section>
 <footer>
   <div class="footer-logo">
     <img src="public/logo.png" alt="Logo Chez Mario">
@@ -89,7 +99,6 @@
     <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d’accès</a>
   </div>
 </footer>
-
-<script src="script.js"></script>
+<script src="script.js" defer></script>
 </body>
 </html>
