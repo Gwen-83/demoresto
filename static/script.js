@@ -935,7 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(horaires),
     });
-    alert("Horaires mis à jour !");
+    showNotification("Horaires mis à jour !","success");
   }
 
   const scheduleForm = document.getElementById('schedule-form');
