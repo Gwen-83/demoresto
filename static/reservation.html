@@ -274,7 +274,8 @@ document.getElementById("reservation-form").addEventListener("submit", function(
   fetch("/api/reservation", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + localStorage.getItem("token")
     },
     body: JSON.stringify({
       adresse: formData.get("adresse"),
@@ -285,6 +286,7 @@ document.getElementById("reservation-form").addEventListener("submit", function(
       commentaire: formData.get("commentaire")
     })
   })
+
   .then(res => res.json().then(data => {
     if (res.ok) {
       localStorage.setItem("lastReservationTime", Date.now().toString());
