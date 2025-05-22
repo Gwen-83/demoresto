@@ -206,7 +206,7 @@ document.getElementById("reservation-form").addEventListener("submit", function(
 
   const lastSubmission = parseInt(localStorage.getItem("lastReservationTime"), 10);
   const nowTimestamp = Date.now();
-  const spamTimeout = 5 * 60 * 1000; // 5 minutes en ms
+  const spamTimeout = 10 * 1000; // 5 minutes en ms
 
   if (lastSubmission && nowTimestamp - lastSubmission < spamTimeout) {
     const remainingTime = spamTimeout - (nowTimestamp - lastSubmission);

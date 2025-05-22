@@ -480,24 +480,85 @@ function switchTab(tabName) {
 }
 
 // Charger les réservations depuis l'API
+// Charger les réservations depuis l'API
 async function loadReservations() {
   try {
-    const token = localStorage.getItem("token"); // Récupère le token
+    const token = localStorage.getItem("token");
 
     const response = await fetch('/api/reservations', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token // Ajoute le token ici
+        'Authorization': 'Bearer ' + token
       }
     });
 
     if (response.ok) {
-      const reservations = await response.json(); // ajout du const au passage
+      reservations = await response.json(); // ← CORRECTION: stocker dans la variable globale
+      console.log('Réservations chargées:', reservations); // Debug
       updateStats();
       generateCalendar();
     } else {
-      showNotification('Erreur lors du chargement des réservations', 'error');
+      const errorData = await response.json();
+      console.error('Erreur API:', errorData);
+      showNotification('Erreur lors du chargement des réservations: ' + (errorData.error || 'Erreur inconnue'), 'error');
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    showNotification('Erreur de connexion', 'error');
+  }
+}
+
+// Fonction pour valider une réservation (correction de l'en-tête d'autorisation)
+async function validateReservation(reservationId) {
+  try {
+    const token = localStorage.getItem("token");
+    
+    const response = await fetch(`/api/reservation/${reservationId}/validate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token // ← CORRECTION: ajouter l'autorisation
+      }
+    });
+    
+    if (response.ok) {
+      showNotification('Réservation validée avec succès', 'success');
+      closeReservationDetails();
+      loadReservations(); // Recharger les données
+    } else {
+      const error = await response.json();
+      showNotification(error.error || 'Erreur lors de la validation', 'error');
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    showNotification('Erreur de connexion', 'error');
+  }
+}
+
+// Fonction pour refuser une réservation (correction de l'en-tête d'autorisation)
+async function confirmRejectReservation(reservationId) {
+  const reason = document.getElementById('rejectReason').value;
+  
+  try {
+    const token = localStorage.getItem("token");
+    
+    const response = await fetch(`/api/reservation/${reservationId}/reject`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token // ← CORRECTION: ajouter l'autorisation
+      },
+      body: JSON.stringify({ reason })
+    });
+    
+    if (response.ok) {
+      showNotification('Réservation refusée', 'success');
+      closeReservationDetails();
+      loadReservations(); // Recharger les données
+    } else {
+      const error = await response.json();
+      showNotification(error.error || 'Erreur lors du refus', 'error');
     }
   } catch (error) {
     console.error('Erreur:', error);
