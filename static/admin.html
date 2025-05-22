@@ -482,9 +482,18 @@ function switchTab(tabName) {
 // Charger les réservations depuis l'API
 async function loadReservations() {
   try {
-    const response = await fetch('/api/reservations');
+    const token = localStorage.getItem("token"); // Récupère le token
+
+    const response = await fetch('/api/reservations', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token // Ajoute le token ici
+      }
+    });
+
     if (response.ok) {
-      reservations = await response.json();
+      const reservations = await response.json(); // ajout du const au passage
       updateStats();
       generateCalendar();
     } else {

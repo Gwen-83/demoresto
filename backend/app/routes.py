@@ -267,6 +267,7 @@ def is_valid_email(email):
     return re.match(regex, email) is not None
 
 @bp.route("/api/reservation", methods=["POST"])
+@jwt_required()
 @limiter.limit("3 per minute")
 def send_reservation():
     data = request.get_json()
