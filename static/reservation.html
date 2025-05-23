@@ -271,6 +271,12 @@ document.getElementById("reservation-form").addEventListener("submit", function(
   // ✅ Tout est bon
   showNotification("Envoi en cours...", "info");
 
+  const company = formData.get("company");
+  if (company) {
+    showNotification("Bot détecté (champ caché rempli).", "error");
+    return;
+  }
+
   fetch("/api/reservation", {
     method: "POST",
     headers: {
@@ -278,14 +284,15 @@ document.getElementById("reservation-form").addEventListener("submit", function(
       "Authorization": "Bearer " + localStorage.getItem("token")
     },
     body: JSON.stringify({
-      adresse: formData.get("adresse"),
+      email: formData.get("adresse"),            // ✅ CHANGÉ
       telephone: formData.get("telephone"),
-      couverts: couverts,
-      date: selectedDate,
-      heure: selectedTime,
+      couverts: parseInt(formData.get("couverts"), 10),
+      date: formData.get("date"),
+      heure: formData.get("heure"),
       commentaire: formData.get("commentaire")
     })
   })
+
 
   .then(res => res.json().then(data => {
     if (res.ok) {
