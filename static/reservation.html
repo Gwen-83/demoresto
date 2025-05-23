@@ -295,6 +295,7 @@ document.getElementById("reservation-form").addEventListener("submit", function(
 
 
   .then(res => res.json().then(data => {
+    console.log("Réponse serveur :", data);
     if (res.ok) {
       localStorage.setItem("lastReservationTime", Date.now().toString());
 

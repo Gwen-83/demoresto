@@ -271,6 +271,7 @@ def is_valid_email(email):
 @limiter.limit("3 per minute")
 def send_reservation():
     data = request.get_json()
+    print("Requête reçue :", data)
     if data.get("company"):
         return jsonify({"error": "Bot détecté."}), 400
     
