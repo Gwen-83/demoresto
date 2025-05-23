@@ -274,7 +274,7 @@ def send_reservation():
     if data.get("company"):
         return jsonify({"error": "Bot détecté."}), 400
     
-    sender_email = sanitize_input(data.get("adresse"))
+    sender_email = sanitize_input(data.get("email"))
     tel = sanitize_input(data.get("telephone"), max_length=20)
     couverts = data.get("couverts")
     date = sanitize_input(data.get("date"), max_length=20)
