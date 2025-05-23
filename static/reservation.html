@@ -278,7 +278,7 @@ document.getElementById("reservation-form").addEventListener("submit", function(
       "Authorization": "Bearer " + localStorage.getItem("token")
     },
     body: JSON.stringify({
-      adresse: formData.get("adresse"),
+      email: formData.get("adresse"),
       telephone: formData.get("telephone"),
       couverts: couverts,
       date: selectedDate,
@@ -293,7 +293,7 @@ document.getElementById("reservation-form").addEventListener("submit", function(
 
       // Stocker les données de la réservation pour l'affichage
       localStorage.setItem("reservationDetails", JSON.stringify({
-        adresse: formData.get("adresse"),
+        email: formData.get("adresse"),
         telephone: formData.get("telephone"),
         couverts: couverts,
         date: selectedDate,
