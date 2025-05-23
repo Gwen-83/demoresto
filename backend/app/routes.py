@@ -493,7 +493,7 @@ def send_contact():
         return jsonify({"error": "Bot détecté."}), 400
     prenom = sanitize_input(data.get("prenom"))
     nom = sanitize_input(data.get("nom"))
-    sender_email = sanitize_input(data.get("adresse"))
+    sender_email = sanitize_input(data.get("email"))
     objet = sanitize_input(data.get("objet"), max_length=150)
     message_content = sanitize_input(data.get("message"), max_length=500)
 
