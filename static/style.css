@@ -2247,3 +2247,10 @@ form#register-form a:hover {
     font-size: 0.7em;
   }
 }
+
+.cadre-paragraphe{
+  border: 2px solid #ccc;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
