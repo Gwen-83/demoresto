@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: e8fc3ba15a9a
+Revision ID: da60fdf9b3f1
 Revises: 
-Create Date: 2025-05-21 18:44:02.737787
+Create Date: 2025-05-28 12:22:39.813948
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'e8fc3ba15a9a'
+revision = 'da60fdf9b3f1'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -32,7 +32,20 @@ def upgrade():
     sa.Column('image', sa.String(length=255), nullable=True),
     sa.Column('category', sa.String(length=50), nullable=True),
     sa.Column('allergens', sa.String(length=255), nullable=True),
-    sa.Column('tags', sa.String(length=255), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('reservations',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('email', sa.String(length=255), nullable=False),
+    sa.Column('telephone', sa.String(length=20), nullable=False),
+    sa.Column('couverts', sa.Integer(), nullable=False),
+    sa.Column('date', sa.String(length=20), nullable=False),
+    sa.Column('heure', sa.String(length=20), nullable=False),
+    sa.Column('commentaire', sa.Text(), nullable=True),
+    sa.Column('commentaire_admin', sa.Text(), nullable=True),
+    sa.Column('status', sa.String(length=20), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('token_blocklist',
@@ -48,8 +61,10 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(length=80), nullable=False),
     sa.Column('password_hash', sa.Text(), nullable=False),
+    sa.Column('email', sa.String(length=120), nullable=False),
     sa.Column('is_admin', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('email'),
     sa.UniqueConstraint('username')
     )
     op.create_table('cart_item',
@@ -74,6 +89,7 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_token_blocklist_jti'))
 
     op.drop_table('token_blocklist')
+    op.drop_table('reservations')
     op.drop_table('product')
     op.drop_table('order')
     # ### end Alembic commands ###
