@@ -14,271 +14,406 @@
 
     body {
       font-family: 'Raleway', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
+      line-height: 1.6;
+      background-color: #fffdf7;
       color: #333;
     }
 
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
+    /* Header principal harmonisé avec le style global */
+    .main-header {
+      background-color: #900;
+      color: white;
       padding: 20px;
+      text-align: center;
     }
 
-    header {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      padding: 1rem 2rem;
-      border-radius: 15px;
-      margin-bottom: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    }
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    h1 {
-      color: #764ba2;
-      font-weight: 600;
+    .main-header h1 {
       font-size: 2rem;
+      font-weight: 600;
     }
 
-    .nav-links {
+    /* Navigation harmonisée */
+    .main-navigation {
+      position: relative;
+      height: 50px;
+      padding: 10px 20px;
+      background-color: #900;
+    }
+
+    .nav-links-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
+      align-items: center;
+      gap: 15px;
     }
 
-    .nav-links a, .btn {
-      background: linear-gradient(135deg, #667eea, #764ba2);
+    .nav-link-item {
       color: white;
       text-decoration: none;
-      padding: 0.5rem 1rem;
-      border-radius: 25px;
-      font-weight: 500;
-      transition: all 0.3s ease;
+      font-weight: bold;
+      padding: 10px 15px;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+
+    .nav-link-item:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .admin-nav-link {
+      background-color: rgba(255, 255, 255, 0.2);
+      display: none;
+    }
+
+    .user-status-indicator {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: white;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    /* Menu toggle pour mobile */
+    .mobile-menu-toggle {
+      display: none;
+      font-size: 2em;
+      background: none;
+      color: white;
       border: none;
       cursor: pointer;
-      font-size: 0.9rem;
+      margin-left: 20px;
     }
 
-    .nav-links a:hover, .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    /* Container principal */
+    .profile-main-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 20px;
     }
 
-    .profile-card {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-    }
-
-    .profile-header {
+    /* Messages de statut */
+    .loading-message {
       text-align: center;
-      margin-bottom: 2rem;
+      padding: 60px 20px;
+      font-size: 1.2rem;
+      color: #555;
+      background-color: #f5f5f5;
+      border-radius: 12px;
+      margin: 20px 0;
     }
 
-    .profile-avatar {
+    .error-message-container {
+      background-color: #fff5f5;
+      color: #e74c3c;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      margin: 20px 0;
+      border: 1px solid #f5c6cb;
+      display: none;
+    }
+
+    .success-message-container {
+      background-color: #f0fff4;
+      color: #27ae60;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      margin: 20px 0;
+      border: 1px solid #c3e6cb;
+    }
+
+    /* Carte de profil principale */
+    .user-profile-card {
+      background-color: #fff;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      margin-bottom: 30px;
+    }
+
+    .profile-header-section {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .user-avatar-circle {
       width: 100px;
       height: 100px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      background-color: #900;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 1rem;
+      margin: 0 auto 20px;
       font-size: 2rem;
       color: white;
       font-weight: 600;
     }
 
-    .profile-info {
+    .profile-welcome-title {
+      font-size: 1.8rem;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    /* Grille d'informations utilisateur */
+    .user-information-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
+      gap: 20px;
+      margin-bottom: 40px;
     }
 
-    .info-card {
-      background: rgba(102, 126, 234, 0.1);
-      padding: 1.5rem;
-      border-radius: 15px;
-      border-left: 4px solid #667eea;
+    .info-card-item {
+      background-color: #f5f5f5;
+      padding: 20px;
+      border-radius: 12px;
+      border-left: 4px solid #900;
     }
 
-    .info-label {
-      font-weight: 600;
-      color: #667eea;
-      margin-bottom: 0.5rem;
+    .info-label-text {
+      font-weight: bold;
+      color: #900;
+      margin-bottom: 8px;
       font-size: 0.9rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    .info-value {
+    .info-value-display {
       font-size: 1.1rem;
       color: #333;
     }
 
-    .actions {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      margin-top: 2rem;
-      flex-wrap: wrap;
-    }
-
-    .btn-secondary {
-      background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-    }
-
-    .loading {
-      text-align: center;
-      padding: 3rem;
-      color: white;
-      font-size: 1.2rem;
-    }
-
-    .error {
-      background: rgba(255, 107, 107, 0.1);
-      color: #e74c3c;
-      padding: 1rem;
-      border-radius: 10px;
-      text-align: center;
-      margin: 1rem 0;
-      border: 1px solid rgba(231, 76, 60, 0.3);
-    }
-
-    .success {
-      background: rgba(46, 204, 113, 0.1);
+    .connection-status-online {
       color: #27ae60;
-      padding: 1rem;
-      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    /* Section des actions utilisateur */
+    .user-actions-section {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+
+    .primary-action-button {
+      background-color: #900;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+      text-decoration: none;
+      display: inline-block;
       text-align: center;
-      margin: 1rem 0;
-      border: 1px solid rgba(39, 174, 96, 0.3);
+    }
+
+    .primary-action-button:hover {
+      background-color: #b00;
+      transform: translateY(-2px);
+    }
+
+    .secondary-action-button {
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .secondary-action-button:hover {
+      background-color: #5a6268;
+      transform: translateY(-2px);
+    }
+
+    .danger-action-button {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .danger-action-button:hover {
+      background-color: #c82333;
+      transform: translateY(-2px);
+    }
+
+    /* Responsive Design */
+    @media screen and (max-width: 1024px) {
+      .mobile-menu-toggle {
+        display: inline-block;
+      }
+
+      .nav-links-container {
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        display: none;
+        background-color: #900;
+        padding: 10px 20px;
+        margin-top: 10px;
+        position: static;
+        transform: none;
+      }
+
+      .nav-links-container.mobile-nav-show {
+        display: flex;
+      }
+
+      .main-navigation {
+        height: auto;
+        padding: 0;
+      }
+
+      .user-status-indicator {
+        position: static;
+        transform: none;
+        margin-top: 10px;
+        padding-left: 20px;
+      }
     }
 
     @media (max-width: 768px) {
-      .container {
-        padding: 10px;
+      .profile-main-container {
+        padding: 20px 10px;
       }
       
-      .header-content {
+      .user-profile-card {
+        padding: 20px;
+      }
+      
+      .user-actions-section {
         flex-direction: column;
+        align-items: center;
       }
-      
-      .nav-links {
-        justify-content: center;
-      }
-      
-      .profile-card {
-        padding: 1rem;
-      }
-      
-      .actions {
-        flex-direction: column;
+
+      .primary-action-button,
+      .secondary-action-button,
+      .danger-action-button {
+        width: 100%;
+        max-width: 250px;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="header-content">
-        <h1>Chez Mario</h1>
-        <nav class="nav-links">
-          <a href="index.html">Accueil</a>
-          <a href="menu.html">Menu</a>
-          <a href="reservation.html">Réservation</a>
-          <a href="contact.html">Contact</a>
-          <a href="panier.html">Panier</a>
-          <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
-        </nav>
-      </div>
-    </header>
+  <header class="main-header">
+    <h1>Chez Mario</h1>
+  </header>
 
-    <div id="loading" class="loading">
+  <nav class="main-navigation">
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+    <div class="nav-links-container" id="navigation-links">
+      <a href="index.html" class="nav-link-item">Accueil</a>
+      <a href="menu.html" class="nav-link-item">Menu</a>
+      <a href="reservation.html" class="nav-link-item">Réservation</a>
+      <a href="contact.html" class="nav-link-item">Contact</a>
+      <a href="panier.html" class="nav-link-item">Panier</a>
+      <a href="admin.html" class="nav-link-item admin-nav-link" id="admin-navigation-link">Administration</a>
+    </div>
+    <div class="user-status-indicator" id="user-connection-status"></div>
+  </nav>
+
+  <div class="profile-main-container">
+    <div id="profile-loading-state" class="loading-message">
       Chargement de votre profil...
     </div>
 
-    <div id="error-message" class="error" style="display: none;">
+    <div id="profile-error-display" class="error-message-container">
     </div>
 
-    <div id="profile-content" style="display: none;">
-      <div class="profile-card">
-        <div class="profile-header">
-          <div class="profile-avatar" id="user-avatar">
+    <div id="profile-content-section" style="display: none;">
+      <div class="user-profile-card">
+        <div class="profile-header-section">
+          <div class="user-avatar-circle" id="user-avatar-display">
             U
           </div>
-          <h2 id="welcome-message">Bienvenue sur votre profil</h2>
+          <h2 class="profile-welcome-title" id="profile-welcome-message">Bienvenue sur votre profil</h2>
         </div>
 
-        <div class="profile-info">
-          <div class="info-card">
-            <div class="info-label">Nom d'utilisateur</div>
-            <div class="info-value" id="username-display">-</div>
+        <div class="user-information-grid">
+          <div class="info-card-item">
+            <div class="info-label-text">Nom d'utilisateur</div>
+            <div class="info-value-display" id="username-info-display">-</div>
           </div>
 
-          <div class="info-card">
-            <div class="info-label">Rôle</div>
-            <div class="info-value" id="role-display">-</div>
+          <div class="info-card-item">
+            <div class="info-label-text">Rôle</div>
+            <div class="info-value-display" id="user-role-display">-</div>
           </div>
 
-          <div class="info-card">
-            <div class="info-label">Statut de connexion</div>
-            <div class="info-value">
-              <span style="color: #27ae60; font-weight: 600;">● Connecté</span>
+          <div class="info-card-item">
+            <div class="info-label-text">Statut de connexion</div>
+            <div class="info-value-display">
+              <span class="connection-status-online">● Connecté</span>
             </div>
           </div>
 
-          <div class="info-card">
-            <div class="info-label">Dernière connexion</div>
-            <div class="info-value" id="last-login">Aujourd'hui</div>
+          <div class="info-card-item">
+            <div class="info-label-text">Dernière connexion</div>
+            <div class="info-value-display" id="last-login-timestamp">Aujourd'hui</div>
           </div>
         </div>
 
-        <div class="actions">
-          <button class="btn" onclick="goToMenu()">Voir le Menu</button>
-          <button class="btn" onclick="goToCart()">Mon Panier</button>
-          <button class="btn btn-secondary" onclick="logout()">Se Déconnecter</button>
+        <div class="user-actions-section">
+          <button class="primary-action-button" onclick="navigateToMenu()">Voir le Menu</button>
+          <button class="primary-action-button" onclick="navigateToCart()">Mon Panier</button>
+          <button class="danger-action-button" onclick="performLogout()">Se Déconnecter</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // Variables globales
-    let userData = null;
-    let authToken = null;
+    // Variables globales pour la gestion de l'utilisateur
+    let currentUserData = null;
+    let userAuthenticationToken = null;
+
+    // Fonction pour basculer le menu mobile
+    function toggleMobileMenu() {
+      const navLinks = document.getElementById('navigation-links');
+      navLinks.classList.toggle('mobile-nav-show');
+    }
 
     // Fonction pour récupérer le token d'authentification
-    function getAuthToken() {
-      // Utilise la même clé que dans votre deuxième fichier
+    function getUserAuthenticationToken() {
       return localStorage.getItem("token");
     }
 
-    // Fonction pour vérifier l'authentification
-    async function verifyAuthentication() {
-      const token = getAuthToken();
+    // Fonction pour vérifier l'authentification utilisateur
+    async function verifyUserAuthentication() {
+      const token = getUserAuthenticationToken();
       
       if (!token) {
-        showError("Vous devez être connecté pour accéder à cette page.");
+        displayErrorMessage("Vous devez être connecté pour accéder à cette page.");
         setTimeout(() => {
-          redirectToLogin();
+          redirectToLoginPage();
         }, 2000);
         return false;
       }
 
       try {
-        // Corrigé : utilise la même URL que dans votre deuxième fichier
         const response = await fetch("https://demoresto.onrender.com/api/verify-token", {
           method: "GET",
           headers: {
@@ -288,96 +423,98 @@
         });
 
         if (!response.ok) {
-          // Token invalide ou expiré
           if (response.status === 401 || response.status === 403) {
             localStorage.removeItem("token");
             localStorage.removeItem("username");
-            showError("Votre session a expiré. Veuillez vous reconnecter.");
+            displayErrorMessage("Votre session a expiré. Veuillez vous reconnecter.");
             setTimeout(() => {
-              redirectToLogin();
+              redirectToLoginPage();
             }, 2000);
             return false;
           }
           throw new Error(`Erreur ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        console.log("Réponse de vérification:", data);
+        const userData = await response.json();
+        console.log("Réponse de vérification:", userData);
         
         // Stocker les données utilisateur
-        userData = {
-          username: data.username,
-          role: data.role,
-          is_admin: data.role === 'admin'
+        currentUserData = {
+          username: userData.username,
+          role: userData.role,
+          is_admin: userData.role === 'admin'
         };
 
         return true;
 
       } catch (error) {
         console.error("Erreur de vérification:", error);
-        showError("Erreur de connexion. Veuillez vous reconnecter.");
+        displayErrorMessage("Erreur de connexion. Veuillez vous reconnecter.");
         setTimeout(() => {
-          redirectToLogin();
+          redirectToLoginPage();
         }, 2000);
         return false;
       }
     }
 
-    // Fonction pour afficher les informations utilisateur
-    function displayUserInfo() {
-      if (!userData) {
+    // Fonction pour afficher les informations de l'utilisateur
+    function displayUserProfileInformation() {
+      if (!currentUserData) {
         console.error("Aucune donnée utilisateur disponible");
         return;
       }
 
-      document.getElementById('username-display').textContent = userData.username;
-      document.getElementById('role-display').textContent = userData.role;
-      document.getElementById('welcome-message').textContent = `Bienvenue, ${userData.username}!`;
+      document.getElementById('username-info-display').textContent = currentUserData.username;
+      document.getElementById('user-role-display').textContent = currentUserData.role;
+      document.getElementById('profile-welcome-message').textContent = `Bienvenue, ${currentUserData.username}!`;
       
       // Afficher l'initiale du nom d'utilisateur dans l'avatar
-      document.getElementById('user-avatar').textContent = userData.username.charAt(0).toUpperCase();
+      document.getElementById('user-avatar-display').textContent = currentUserData.username.charAt(0).toUpperCase();
 
       // Afficher le lien admin si l'utilisateur est admin
-      if (userData.is_admin) {
-        document.getElementById('admin-link').style.display = 'inline-block';
+      if (currentUserData.is_admin) {
+        document.getElementById('admin-navigation-link').style.display = 'inline-block';
       }
 
       // Afficher la date/heure actuelle comme dernière connexion
-      document.getElementById('last-login').textContent = new Date().toLocaleString('fr-FR');
+      document.getElementById('last-login-timestamp').textContent = new Date().toLocaleString('fr-FR');
+      
+      // Mettre à jour le statut utilisateur dans la navigation
+      document.getElementById('user-connection-status').textContent = `Connecté: ${currentUserData.username}`;
     }
 
-    // Fonction pour afficher une erreur
-    function showError(message) {
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('profile-content').style.display = 'none';
-      const errorElement = document.getElementById('error-message');
+    // Fonction pour afficher un message d'erreur
+    function displayErrorMessage(message) {
+      document.getElementById('profile-loading-state').style.display = 'none';
+      document.getElementById('profile-content-section').style.display = 'none';
+      const errorElement = document.getElementById('profile-error-display');
       errorElement.textContent = message;
       errorElement.style.display = 'block';
     }
 
     // Fonction pour rediriger vers la page de connexion
-    function redirectToLogin() {
+    function redirectToLoginPage() {
       window.location.href = "login.html";
     }
 
-    // Fonction de déconnexion
-    function logout() {
+    // Fonction de déconnexion utilisateur
+    function performLogout() {
       if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-        // Supprimer les tokens du localStorage (cohérence avec votre deuxième fichier)
+        // Supprimer les tokens du localStorage
         localStorage.removeItem("token");
         localStorage.removeItem("username");
         
         alert('Vous avez été déconnecté avec succès.');
-        redirectToLogin();
+        redirectToLoginPage();
       }
     }
 
     // Fonctions de navigation
-    function goToMenu() {
+    function navigateToMenu() {
       window.location.href = "menu.html";
     }
 
-    function goToCart() {
+    function navigateToCart() {
       window.location.href = "panier.html";
     }
 
@@ -385,13 +522,13 @@
     document.addEventListener("DOMContentLoaded", async () => {
       console.log("Page chargée, vérification de l'authentification...");
       
-      const isAuthenticated = await verifyAuthentication();
-      console.log("Authentifié:", isAuthenticated);
+      const isUserAuthenticated = await verifyUserAuthentication();
+      console.log("Utilisateur authentifié:", isUserAuthenticated);
       
-      if (isAuthenticated) {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('profile-content').style.display = 'block';
-        displayUserInfo();
+      if (isUserAuthenticated) {
+        document.getElementById('profile-loading-state').style.display = 'none';
+        document.getElementById('profile-content-section').style.display = 'block';
+        displayUserProfileInformation();
       }
     });
   </script>
