@@ -616,3 +616,8 @@ def update_horaires():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@bp.route('/dashboard')
+@jwt_required()
+def dashboard_page():
+    return send_from_directory('static', 'dashboard.html')
