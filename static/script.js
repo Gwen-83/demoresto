@@ -1018,3 +1018,142 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 });
+
+let currentUserData = null;
+let userAuthenticationToken = null;
+
+// Fonction pour récupérer le token d'authentification
+function getUserAuthenticationToken() {
+  return localStorage.getItem("token");
+}
+
+// Fonction pour vérifier l'authentification utilisateur
+async function verifyUserAuthentication() {
+  const token = getUserAuthenticationToken();
+  
+  if (!token) {
+    displayErrorMessage("Vous devez être connecté pour accéder à cette page.");
+    setTimeout(() => {
+      redirectToLoginPage();
+    }, 2000);
+    return false;
+  }
+
+  try {
+    const response = await fetch("https://demoresto.onrender.com/api/verify-token", {
+      method: "GET",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        displayErrorMessage("Votre session a expiré. Veuillez vous reconnecter.");
+        setTimeout(() => {
+          redirectToLoginPage();
+        }, 2000);
+        return false;
+      }
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+
+    const userData = await response.json();
+    console.log("Réponse de vérification:", userData);
+    
+    // Stocker les données utilisateur
+    currentUserData = {
+      username: userData.username,
+      role: userData.role,
+      is_admin: userData.role === 'admin'
+    };
+
+    return true;
+
+  } catch (error) {
+    console.error("Erreur de vérification:", error);
+    displayErrorMessage("Erreur de connexion. Veuillez vous reconnecter.");
+    setTimeout(() => {
+      redirectToLoginPage();
+    }, 2000);
+    return false;
+  }
+}
+
+// Fonction pour afficher les informations de l'utilisateur
+function displayUserProfileInformation() {
+  if (!currentUserData) {
+    console.error("Aucune donnée utilisateur disponible");
+    return;
+  }
+
+  document.getElementById('username-info-display').textContent = currentUserData.username;
+  document.getElementById('user-role-display').textContent = currentUserData.role;
+  document.getElementById('profile-welcome-message').textContent = `Bienvenue, ${currentUserData.username}!`;
+  
+  // Afficher l'initiale du nom d'utilisateur dans l'avatar
+  document.getElementById('user-avatar-display').textContent = currentUserData.username.charAt(0).toUpperCase();
+
+  // Afficher le lien admin si l'utilisateur est admin
+  if (currentUserData.is_admin) {
+    document.getElementById('admin-navigation-link').style.display = 'inline-block';
+  }
+
+  // Afficher la date/heure actuelle comme dernière connexion
+  document.getElementById('last-login-timestamp').textContent = new Date().toLocaleString('fr-FR');
+  
+  // Mettre à jour le statut utilisateur dans la navigation
+  document.getElementById('user-connection-status').textContent = `Connecté: ${currentUserData.username}`;
+}
+
+// Fonction pour afficher un message d'erreur
+function displayErrorMessage(message) {
+  document.getElementById('profile-loading-state').style.display = 'none';
+  document.getElementById('profile-content-section').style.display = 'none';
+  const errorElement = document.getElementById('profile-error-display');
+  errorElement.textContent = message;
+  errorElement.style.display = 'block';
+}
+
+// Fonction pour rediriger vers la page de connexion
+function redirectToLoginPage() {
+  window.location.href = "login.html";
+}
+
+// Fonction de déconnexion utilisateur
+function performLogout() {
+  if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+    // Supprimer les tokens du localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    
+    alert('Vous avez été déconnecté avec succès.');
+    redirectToLoginPage();
+  }
+}
+
+// Fonctions de navigation
+function navigateToMenu() {
+  window.location.href = "menu.html";
+}
+
+function navigateToCart() {
+  window.location.href = "panier.html";
+}
+
+// Initialisation au chargement de la page
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("Page chargée, vérification de l'authentification...");
+  
+  const isUserAuthenticated = await verifyUserAuthentication();
+  console.log("Utilisateur authentifié:", isUserAuthenticated);
+  
+  if (isUserAuthenticated) {
+    document.getElementById('profile-loading-state').style.display = 'none';
+    document.getElementById('profile-content-section').style.display = 'block';
+    displayUserProfileInformation();
+  }
+});
