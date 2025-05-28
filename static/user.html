@@ -255,14 +255,12 @@
   </div>
 
   <script>
-    // Simulation des données utilisateur (dans un vrai environnement, cela viendrait de votre API)
+    // Variables globales
     let userData = null;
     let authToken = null;
 
-    // Fonction pour simuler la récupération du token (à adapter selon votre méthode)
+    // Fonction pour récupérer le token d'authentification
     function getAuthToken() {
-      // Dans votre vraie application, vous récupéreriez le token depuis localStorage
-      // Ici, nous simulons un token pour la démonstration
       return localStorage.getItem("access_token");
     }
 
@@ -279,23 +277,37 @@
       }
 
       try {
-        // Dans votre vraie application, vous feriez un appel à votre API
-        // const response = await fetch("/api/verify-token", {
-        //   headers: {
-        //     "Authorization": "Bearer " + token
-        //   }
-        // });
-
-        // Simulation de la réponse API
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulation du délai réseau
-        
-        // Simulation des données utilisateur
+        // Appel à votre API pour vérifier le token
         const response = await fetch("/api/verify-token", {
-        headers: {
-            "Authorization": "Bearer " + token
-        }
+          method: "GET",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+          }
         });
-        const userData = await response.json();
+
+        if (!response.ok) {
+          // Token invalide ou expiré
+          if (response.status === 401 || response.status === 403) {
+            localStorage.removeItem("access_token");
+            showError("Votre session a expiré. Veuillez vous reconnecter.");
+            setTimeout(() => {
+              redirectToLogin();
+            }, 2000);
+            return false;
+          }
+          throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("Réponse de vérification:", data);
+        
+        // Stocker les données utilisateur
+        userData = {
+          username: data.username,
+          role: data.role,
+          is_admin: data.role === 'admin'
+        };
 
         return true;
 
@@ -311,7 +323,10 @@
 
     // Fonction pour afficher les informations utilisateur
     function displayUserInfo() {
-      if (!userData) return;
+      if (!userData) {
+        console.error("Aucune donnée utilisateur disponible");
+        return;
+      }
 
       document.getElementById('username-display').textContent = userData.username;
       document.getElementById('role-display').textContent = userData.role;
@@ -346,8 +361,8 @@
     // Fonction de déconnexion
     function logout() {
       if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-        // Dans votre vraie application, vous supprimeriez le token du localStorage
-        // localStorage.removeItem("access_token");
+        // Supprimer le token du localStorage
+        localStorage.removeItem("access_token");
         
         alert('Vous avez été déconnecté avec succès.');
         redirectToLogin();
@@ -365,7 +380,10 @@
 
     // Initialisation au chargement de la page
     document.addEventListener("DOMContentLoaded", async () => {
+      console.log("Page chargée, vérification de l'authentification...");
+      
       const isAuthenticated = await verifyAuthentication();
+      console.log("Authentifié:", isAuthenticated);
       
       if (isAuthenticated) {
         document.getElementById('loading').style.display = 'none';
