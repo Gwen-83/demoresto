@@ -1123,17 +1123,6 @@ function redirectToLoginPage() {
   window.location.href = "login.html";
 }
 
-// Fonction de déconnexion utilisateur
-function performLogout() {
-  if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-    // Supprimer les tokens du localStorage
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    
-    alert('Vous avez été déconnecté avec succès.');
-    redirectToLoginPage();
-  }
-}
 
 // Fonctions de navigation
 function navigateToMenu() {
