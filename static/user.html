@@ -2,34 +2,377 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Paiement</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Profil Utilisateur - Chez Mario</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Raleway&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Raleway', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 1rem 2rem;
+      border-radius: 15px;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    h1 {
+      color: #764ba2;
+      font-weight: 600;
+      font-size: 2rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a, .btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .nav-links a:hover, .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+
+    .profile-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      font-size: 2rem;
+      color: white;
+      font-weight: 600;
+    }
+
+    .profile-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .info-card {
+      background: rgba(102, 126, 234, 0.1);
+      padding: 1.5rem;
+      border-radius: 15px;
+      border-left: 4px solid #667eea;
+    }
+
+    .info-label {
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-value {
+      font-size: 1.1rem;
+      color: #333;
+    }
+
+    .actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: white;
+      font-size: 1.2rem;
+    }
+
+    .error {
+      background: rgba(255, 107, 107, 0.1);
+      color: #e74c3c;
+      padding: 1rem;
+      border-radius: 10px;
+      text-align: center;
+      margin: 1rem 0;
+      border: 1px solid rgba(231, 76, 60, 0.3);
+    }
+
+    .success {
+      background: rgba(46, 204, 113, 0.1);
+      color: #27ae60;
+      padding: 1rem;
+      border-radius: 10px;
+      text-align: center;
+      margin: 1rem 0;
+      border: 1px solid rgba(39, 174, 96, 0.3);
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+      
+      .header-content {
+        flex-direction: column;
+      }
+      
+      .nav-links {
+        justify-content: center;
+      }
+      
+      .profile-card {
+        padding: 1rem;
+      }
+      
+      .actions {
+        flex-direction: column;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div id="notification" class="notification hidden">
-  <p id="notification-message"></p>
-  <button class="close-btn" onclick="hideNotification()">×</button>
-</div>
-<header>
-  <h1>Chez Mario</h1>
-  <button class="menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
-  <nav>
-    <div class="nav-left">
-      <a href="index.html">Accueil</a>
-      <a href="menu.html">Menu</a>
-      <a href="reservation.html">Réservation</a>
-      <a href="contact.html">Contact</a>
-      <a href="panier.html">Voir le panier</a>
-      <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
+  <div class="container">
+    <header>
+      <div class="header-content">
+        <h1>Chez Mario</h1>
+        <nav class="nav-links">
+          <a href="index.html">Accueil</a>
+          <a href="menu.html">Menu</a>
+          <a href="reservation.html">Réservation</a>
+          <a href="contact.html">Contact</a>
+          <a href="panier.html">Panier</a>
+          <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
+        </nav>
+      </div>
+    </header>
+
+    <div id="loading" class="loading">
+      Chargement de votre profil...
     </div>
-    <div id="user-status"></div>
-  </nav>
-</header>
-  <h1>Bienvenue sur votre tableau de bord</h1>
-  <p id="user-info"></p>
-  <button onclick="logout()">Se déconnecter</button>
-<script src="protect.js" defer></script>
+
+    <div id="error-message" class="error" style="display: none;">
+    </div>
+
+    <div id="profile-content" style="display: none;">
+      <div class="profile-card">
+        <div class="profile-header">
+          <div class="profile-avatar" id="user-avatar">
+            U
+          </div>
+          <h2 id="welcome-message">Bienvenue sur votre profil</h2>
+        </div>
+
+        <div class="profile-info">
+          <div class="info-card">
+            <div class="info-label">Nom d'utilisateur</div>
+            <div class="info-value" id="username-display">-</div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-label">Rôle</div>
+            <div class="info-value" id="role-display">-</div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-label">Statut de connexion</div>
+            <div class="info-value">
+              <span style="color: #27ae60; font-weight: 600;">● Connecté</span>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-label">Dernière connexion</div>
+            <div class="info-value" id="last-login">Aujourd'hui</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" onclick="goToMenu()">Voir le Menu</button>
+          <button class="btn" onclick="goToCart()">Mon Panier</button>
+          <button class="btn btn-secondary" onclick="logout()">Se Déconnecter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simulation des données utilisateur (dans un vrai environnement, cela viendrait de votre API)
+    let userData = null;
+    let authToken = null;
+
+    // Fonction pour simuler la récupération du token (à adapter selon votre méthode)
+    function getAuthToken() {
+      // Dans votre vraie application, vous récupéreriez le token depuis localStorage
+      // Ici, nous simulons un token pour la démonstration
+      return localStorage.getItem("access_token");
+    }
+
+    // Fonction pour vérifier l'authentification
+    async function verifyAuthentication() {
+      const token = getAuthToken();
+      
+      if (!token) {
+        showError("Vous devez être connecté pour accéder à cette page.");
+        setTimeout(() => {
+          redirectToLogin();
+        }, 2000);
+        return false;
+      }
+
+      try {
+        // Dans votre vraie application, vous feriez un appel à votre API
+        // const response = await fetch("/api/verify-token", {
+        //   headers: {
+        //     "Authorization": "Bearer " + token
+        //   }
+        // });
+
+        // Simulation de la réponse API
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulation du délai réseau
+        
+        // Simulation des données utilisateur
+        const response = await fetch("/api/verify-token", {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+        });
+        const userData = await response.json();
+
+        return true;
+
+      } catch (error) {
+        console.error("Erreur de vérification:", error);
+        showError("Erreur de connexion. Veuillez vous reconnecter.");
+        setTimeout(() => {
+          redirectToLogin();
+        }, 2000);
+        return false;
+      }
+    }
+
+    // Fonction pour afficher les informations utilisateur
+    function displayUserInfo() {
+      if (!userData) return;
+
+      document.getElementById('username-display').textContent = userData.username;
+      document.getElementById('role-display').textContent = userData.role;
+      document.getElementById('welcome-message').textContent = `Bienvenue, ${userData.username}!`;
+      
+      // Afficher l'initiale du nom d'utilisateur dans l'avatar
+      document.getElementById('user-avatar').textContent = userData.username.charAt(0).toUpperCase();
+
+      // Afficher le lien admin si l'utilisateur est admin
+      if (userData.is_admin) {
+        document.getElementById('admin-link').style.display = 'inline-block';
+      }
+
+      // Afficher la date/heure actuelle comme dernière connexion
+      document.getElementById('last-login').textContent = new Date().toLocaleString('fr-FR');
+    }
+
+    // Fonction pour afficher une erreur
+    function showError(message) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('profile-content').style.display = 'none';
+      const errorElement = document.getElementById('error-message');
+      errorElement.textContent = message;
+      errorElement.style.display = 'block';
+    }
+
+    // Fonction pour rediriger vers la page de connexion
+    function redirectToLogin() {
+      window.location.href = "login.html";
+    }
+
+    // Fonction de déconnexion
+    function logout() {
+      if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+        // Dans votre vraie application, vous supprimeriez le token du localStorage
+        // localStorage.removeItem("access_token");
+        
+        alert('Vous avez été déconnecté avec succès.');
+        redirectToLogin();
+      }
+    }
+
+    // Fonctions de navigation
+    function goToMenu() {
+      window.location.href = "menu.html";
+    }
+
+    function goToCart() {
+      window.location.href = "panier.html";
+    }
+
+    // Initialisation au chargement de la page
+    document.addEventListener("DOMContentLoaded", async () => {
+      const isAuthenticated = await verifyAuthentication();
+      
+      if (isAuthenticated) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('profile-content').style.display = 'block';
+        displayUserInfo();
+      }
+    });
+  </script>
 </body>
 </html>
