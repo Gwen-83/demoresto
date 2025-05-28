@@ -678,7 +678,8 @@ form#login-form,form#register-form {
 form#login-form input[type="text"],
 form#login-form input[type="password"],
 form#register-form input[type="text"],
-form#register-form input[type="password"] {
+form#register-form input[type="password"],
+form#register-form input[type=email] {
   width: 100%;
   padding: 12px;
   margin: 15px 0;
