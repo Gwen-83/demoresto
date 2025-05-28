@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mon Profil</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html">Accueil</a>
+      <a href="menu.html">Menu</a>
+      <a href="reservation.html">Réservation</a>
+      <a href="contact.html">Contact</a>
+      <a href="panier.html">Voir le panier</a>
+      <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
+    </div>
+    <div id="user-status"></div>
+  </nav>
+
+  <main>
+    <h1>Bienvenue sur votre profil</h1>
+    <div id="profil-info"></div>
+    <button onclick="logout()">Se déconnecter</button>
+  </main>
+
+  <script>
+    async function chargerProfil() {
+      const token = localStorage.getItem("access_token");
+      if (!token) return window.location.href = "login.html";
+
+      const response = await fetch("/api/user", {
+        headers: { Authorization: "Bearer " + token }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        document.getElementById("profil-info").innerHTML = `
+          <p>Nom d'utilisateur : <b>${data.username}</b></p>
+          <p>Rôle : ${data.is_admin ? "Admin" : "Utilisateur"}</p>
+        `;
+      } else {
+        window.location.href = "login.html";
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("access_token");
+      window.location.href = "index.html";
+    }
+
+    window.onload = chargerProfil;
+  </script>
+</body>
+</html>

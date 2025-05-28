@@ -267,7 +267,6 @@ def is_valid_email(email):
     return re.match(regex, email) is not None
 
 @bp.route("/api/reservation", methods=["POST"])
-@jwt_required()
 @limiter.limit("3 per minute")
 def send_reservation():
     data = request.get_json()
@@ -349,7 +348,6 @@ def send_reservation():
     
 
 @bp.route("/api/reservations", methods=["GET"])
-@jwt_required()
 def get_reservations():
     try:
         user_id = int(get_jwt_identity())
@@ -609,3 +607,17 @@ def update_horaires():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@bp.route("/api/user", methods=["GET"])
+@jwt_required()
+def user_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "Utilisateur introuvable"}), 404
+
+    return jsonify({
+        "username": user.username,
+        "is_admin": user.is_admin
+    }), 200

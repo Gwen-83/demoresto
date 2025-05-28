@@ -15,7 +15,7 @@
 <header>
   <h1>Chez Mario</h1>
   <button class="menu-toggle" aria-label="Ouvrir le menu">&#9776;</button>
-  <nav role="navigation">
+  <nav>
     <div class="nav-left">
       <a href="index.html">Accueil</a>
       <a href="menu.html">Menu</a>
@@ -23,10 +23,32 @@
       <a href="contact.html">Contact</a>
       <a href="panier.html">Voir le panier</a>
       <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
-      <button id="auth-button"></button>
+      <a href="user.html" id="profil-link" style="display: none;">Profil</a>
     </div>
     <div id="user-status"></div>
   </nav>
+
+<script>
+  const token = localStorage.getItem("access_token");
+
+  if (token) {
+    fetch("/api/user", {
+      headers: { Authorization: "Bearer " + token }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.username) {
+        document.getElementById("profil-link").style.display = "inline";
+        if (data.is_admin) {
+          document.getElementById("admin-link").style.display = "inline";
+        }
+        document.getElementById("user-status").innerHTML =
+          `<span>Connecté : ${data.username}</span>`;
+      }
+    });
+  }
+</script>
+
 </header>
 
 <section class="carousel">
