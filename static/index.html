@@ -22,33 +22,13 @@
       <a href="reservation.html">Réservation</a>
       <a href="contact.html">Contact</a>
       <a href="panier.html">Voir le panier</a>
+      <a href="user.html" class="btn">Mon Profil</a>
       <a href="admin.html" id="admin-link" style="display: none;">Administration</a>
-      <a href="user.html" id="profil-link" style="display: none;">Profil</a>
+      <button id="auth-button"></button>
     </div>
     <div id="user-status"></div>
+    <div id="role"></div>
   </nav>
-
-<script>
-  const token = localStorage.getItem("access_token");
-
-  if (token) {
-    fetch("/api/user", {
-      headers: { Authorization: "Bearer " + token }
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.username) {
-        document.getElementById("profil-link").style.display = "inline";
-        if (data.is_admin) {
-          document.getElementById("admin-link").style.display = "inline";
-        }
-        document.getElementById("user-status").innerHTML =
-          `<span>Connecté : ${data.username}</span>`;
-      }
-    });
-  }
-</script>
-
 </header>
 
 <section class="carousel">

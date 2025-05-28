@@ -607,17 +607,75 @@ def update_horaires():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+# Ajoutez ces routes à votre fichier routes.py
 
-@bp.route("/api/user", methods=["GET"])
+@bp.route('/profile')
+def profile_page():
+    """Route pour servir la page profil utilisateur"""
+    return send_from_directory('.', 'profile.html')
+
+@bp.route("/api/user/reservations", methods=["GET"])
 @jwt_required()
-def user_profile():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+def get_user_reservations():
+    """API pour récupérer les réservations de l'utilisateur connecté"""
+    try:
+        # Récupérer l'ID utilisateur depuis le token JWT
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "Utilisateur introuvable"}), 404
+        
+        # Récupérer les réservations par email de l'utilisateur
+        # Note: Vous devrez peut-être ajouter un champ email au modèle User
+        # ou créer une relation entre User et Reservation
+        
+        # Pour l'instant, on récupère toutes les réservations
+        # Vous devrez adapter selon votre logique métier
+        reservations = Reservation.query.filter_by(email=user.username + "@example.com").order_by(Reservation.created_at.desc()).all()
+        
+        return jsonify([r.to_dict() for r in reservations]), 200
+        
+    except Exception as e:
+        print(f"Erreur dans get_user_reservations: {e}")
+        return jsonify({"error": "Erreur serveur"}), 500
 
-    if not user:
-        return jsonify({"error": "Utilisateur introuvable"}), 404
+@bp.route("/api/user/info", methods=["GET"])
+@jwt_required()
+def get_user_info():
+    """API pour récupérer les informations de l'utilisateur connecté"""
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "Utilisateur introuvable"}), 404
+            
+        return jsonify({
+            "id": user.id,
+            "username": user.username,
+            "is_admin": user.is_admin
+        }), 200
+        
+    except Exception as e:
+        print(f"Erreur dans get_user_info: {e}")
+        return jsonify({"error": "Erreur serveur"}), 500
 
-    return jsonify({
-        "username": user.username,
-        "is_admin": user.is_admin
-    }), 200
+@bp.route('/api/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    """API pour déconnecter l'utilisateur"""
+    try:
+        jti = get_jwt()['jti']
+        
+        # Ajouter le token à la blacklist
+        blacklisted_token = TokenBlocklist(jti=jti)
+        db.session.add(blacklisted_token)
+        db.session.commit()
+        
+        return jsonify({"message": "Déconnexion réussie"}), 200
+        
+    except Exception as e:
+        print(f"Erreur lors de la déconnexion: {e}")
+        return jsonify({"error": "Erreur serveur"}), 500
