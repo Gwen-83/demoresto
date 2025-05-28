@@ -222,6 +222,7 @@ def register():
 
     new_user = User(
         username=username,
+        email=email,
         is_admin=is_first_user
     )
     new_user.set_password(password)
