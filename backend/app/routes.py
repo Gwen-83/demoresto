@@ -204,12 +204,18 @@ def register():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
+    email = data.get('email')
 
     if not username or not password:
         return jsonify({'error': 'Nom d\'utilisateur et mot de passe requis.'}), 400
 
     if User.query.filter_by(username=username).first():
         return jsonify({'error': 'Ce nom d\'utilisateur existe déjà.'}), 400
+
+    if not email:
+        return jsonify({'error': 'Adresse e-mail requise.'}), 400
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'Cet e-mail est déjà utilisé.'}), 400
 
     # Vérifie si c'est le premier utilisateur
     is_first_user = User.query.first() is None
