@@ -355,7 +355,7 @@ def send_reservation():
     }), 201
     
 
-@bp.route("/api/reservation", methods=["GET"])
+@bp.route("/api/reservations", methods=["GET"])
 @jwt_required()
 def get_reservations():
     try:
@@ -366,14 +366,17 @@ def get_reservations():
             return jsonify({"error": "Utilisateur introuvable"}), 404
 
         if user.is_admin:
+            # Les admins voient toutes les réservations
             reservations = Reservation.query.order_by(Reservation.id.asc()).all()
         else:
-            reservations = Reservation.query.filter_by(user_id=user.id).order_by(Reservation.id.asc()).all()
+            # Les utilisateurs normaux voient seulement leurs réservations (par email)
+            # Supposons que l'email de l'utilisateur est stocké dans user.email
+            reservations = Reservation.query.filter_by(email=User.email).order_by(Reservation.id.asc()).all()
 
         return jsonify([r.to_dict() for r in reservations]), 200
 
     except Exception as e:
-        print("Erreur serveur dans /api/reservation :", e)
+        print("Erreur serveur dans /api/reservations :", e)
         return jsonify({"error": str(e)}), 500
 
 # Route pour valider une réservation
