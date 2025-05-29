@@ -969,6 +969,61 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 });
 
+const confirmButton = document.getElementById("confirm-order-button");
+if (confirmButton) {
+  confirmButton.addEventListener("click", () => {
+    // Valider le formulaire de livraison si nécessaire
+    if (!validateDeliveryForm()) {
+      return;
+    }
+    
+    fetch('https://demoresto.onrender.com/api/cart', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + getToken()
+      }
+    })
+    .then(res => res.json())
+    .then(cart => {
+      if (!cart || cart.length === 0) {
+        showNotification("Votre panier est vide", "error");
+      } else {
+        const deliveryInfo = getDeliveryInfo();
+        const baseTotal = window.baseCartTotal || 0;
+        const deliveryFee = deliveryInfo ? 5.00 : 0;
+        
+        // Préparer les données de commande
+        const orderData = {
+          cart: cart,
+          delivery: deliveryInfo,
+          baseTotal: baseTotal,
+          deliveryFee: deliveryFee,
+          finalTotal: baseTotal + deliveryFee
+        };
+        
+        // Enregistrer les données pour la page paiement
+        localStorage.setItem("cart", JSON.stringify(cart));
+        localStorage.setItem("orderData", JSON.stringify(orderData));
+        
+        // Envoyer l'email de livraison si activée
+        if (deliveryInfo) {
+          sendDeliveryEmail(deliveryInfo, cart);
+          showNotification("Informations de livraison enregistrées !", "success");
+        }
+        
+        // Rediriger vers la page de paiement
+        setTimeout(() => {
+          window.location.href = "paiement.html";
+        }, 1000);
+      }
+    })
+    .catch(err => {
+      console.error("Erreur lors de la récupération du panier :", err);
+      showNotification("Impossible de vérifier le panier", "error");
+    });
+  });
+}
+
 
 function updateEmptyCartMessage() {
   const cartBody = document.getElementById("cart-body");
@@ -1293,337 +1348,3 @@ function resetInactivityTimer() {
 });
 
 resetInactivityTimer(); // Lancer le timer au chargement de la page
-
-const stripe = Stripe("pk_test_51RQYw9Alm0wdSVmSEImNmCNmsFrIpyLQYJvj2vcHLRH0abZNsEwsyzY0FNhuGCg0JFc8An47y5sIAyEbqYEhbWSq00nfTpKPnm");
-
-async function simulatePayment() {
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const orderData = JSON.parse(localStorage.getItem('orderData')) || {};
-
-  // Transformer le panier pour Stripe en incluant les frais de livraison
-  const items = cart.map(item => ({
-    price_data: {
-      currency: "eur",
-      product_data: {
-        name: item.product.name
-      },
-      unit_amount: Math.round(item.product.price * 100)
-    },
-    quantity: item.quantity
-  }));
-
-  // Ajouter les frais de livraison si nécessaire
-  if (orderData.delivery) {
-    items.push({
-      price_data: {
-        currency: "eur",
-        product_data: {
-          name: "Frais de livraison"
-        },
-        unit_amount: 500 // 5.00€ en centimes
-      },
-      quantity: 1
-    });
-  }
-
-  try {
-    showNotification("Redirection vers la plateforme de paiement en cours...", "info");
-    document.querySelector("button").disabled = true;
-    const response = await fetch("https://demoresto.onrender.com/create-checkout-session", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + getToken()
-      },
-      body: JSON.stringify({ items, delivery: orderData.delivery })
-    });
-
-    const session = await response.json();
-
-    if (session.id) {
-      await stripe.redirectToCheckout({ sessionId: session.id });
-    } else {
-      showNotification("Erreur Stripe", "error");
-    }
-  } catch (error) {
-    showNotification("Erreur de paiement", "error");
-  }
-}
-
-function showNotification(message, type = "success") {
-  const notif = document.getElementById('notification');
-  const msg = document.getElementById('notification-message');
-
-  if (!notif || !msg) return;
-
-  msg.innerText = message;
-
-  notif.classList.remove('hidden', 'success', 'error', 'info');
-  notif.classList.add(type);
-
-  setTimeout(() => {
-    hideNotification();
-  }, 4000); // Masque automatiquement après 4 sec
-}
-
-let deliveryEnabled = false;
-let baseTotal = 0;
-
-function toggleDelivery() {
-  const checkbox = document.getElementById('delivery-option');
-  const form = document.getElementById('delivery-form');
-  
-  deliveryEnabled = checkbox.checked;
-  
-  if (deliveryEnabled) {
-    form.classList.add('active');
-    // Définir la date minimale à aujourd'hui
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('delivery-date').min = today;
-  } else {
-    form.classList.remove('active');
-    // Réinitialiser les champs
-    clearDeliveryForm();
-  }
-  
-  updateCartTotal();
-}
-
-function clearDeliveryForm() {
-  document.getElementById('delivery-email').value = '';
-  document.getElementById('delivery-phone').value = '';
-  document.getElementById('delivery-address').value = '';
-  document.getElementById('delivery-date').value = '';
-  document.getElementById('delivery-time').value = '';
-  document.getElementById('delivery-instructions').value = '';
-}
-
-function updateCartTotal() {
-  const totalElement = document.getElementById('cart-total');
-  let total = baseTotal;
-  
-  if (deliveryEnabled) {
-    total += 5.00;
-  }
-  
-  totalElement.textContent = `Total : ${total.toFixed(2)}€`;
-}
-
-function validateDeliveryForm() {
-  if (!deliveryEnabled) return true;
-  
-  const requiredFields = [
-    'delivery-email',
-    'delivery-phone', 
-    'delivery-address',
-    'delivery-date',
-    'delivery-time'
-  ];
-  
-  for (const fieldId of requiredFields) {
-    const field = document.getElementById(fieldId);
-    if (!field.value.trim()) {
-      showNotification(`Veuillez remplir le champ ${field.previousElementSibling.textContent.replace(' *', '')}`, "error");
-      field.focus();
-      return false;
-    }
-  }
-  
-  // Validation email
-  const email = document.getElementById('delivery-email').value;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    showNotification("Veuillez saisir un email valide", "error");
-    return false;
-  }
-  
-  // Validation téléphone
-  const phone = document.getElementById('delivery-phone').value;
-  const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
-  if (!phoneRegex.test(phone)) {
-    showNotification("Veuillez saisir un numéro de téléphone valide", "error");
-    return false;
-  }
-  
-  return true;
-}
-
-function getDeliveryInfo() {
-  if (!deliveryEnabled) return null;
-  
-  return {
-    email: document.getElementById('delivery-email').value,
-    phone: document.getElementById('delivery-phone').value,
-    address: document.getElementById('delivery-address').value,
-    date: document.getElementById('delivery-date').value,
-    time: document.getElementById('delivery-time').value,
-    instructions: document.getElementById('delivery-instructions').value
-  };
-}
-
-// Modifier la fonction loadCart existante pour mettre à jour baseTotal
-const originalLoadCart = loadCart;
-loadCart = function() {
-  originalLoadCart();
-  
-  // Calculer le total de base après chargement
-  setTimeout(() => {
-    const totalText = document.getElementById('cart-total').textContent;
-    const match = totalText.match(/(\d+\.?\d*)/);
-    if (match) {
-      baseTotal = parseFloat(match[1]);
-      updateCartTotal();
-    }
-  }, 100);
-};
-
-window.onload = function() {
-  const params = new URLSearchParams(window.location.search);
-  const errorType = params.get("error");
-  if (errorType === "unauthorized") {
-    showNotification("Veuillez vous connecter et ajouter des articles au panier avant de passer au paiement.", "error");
-  }
-};
-
-// Modifier le bouton de confirmation pour inclure les informations de livraison
-const confirmButton = document.getElementById("confirm-order-button");
-if (confirmButton) {
-  confirmButton.addEventListener("click", () => {
-    // Valider le formulaire de livraison si nécessaire
-    if (!validateDeliveryForm()) {
-      return;
-    }
-    
-    fetch('https://demoresto.onrender.com/api/cart', {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Bearer ' + getToken()
-      }
-    })
-    .then(res => res.json())
-    .then(cart => {
-      if (!cart || cart.length === 0) {
-        showNotification("Votre panier est vide","error");
-      } else {
-        // Préparer les données avec les informations de livraison
-        const orderData = {
-          cart: cart,
-          delivery: getDeliveryInfo(),
-          total: baseTotal + (deliveryEnabled ? 5.00 : 0)
-        };
-        
-        // Enregistrer toutes les données pour la page paiement
-        localStorage.setItem("cart", JSON.stringify(cart));
-        localStorage.setItem("orderData", JSON.stringify(orderData));
-        
-        // Si livraison activée, envoyer les informations par email
-        if (deliveryEnabled) {
-          sendDeliveryEmail(getDeliveryInfo());
-        }
-        
-        window.location.href = "paiement.html";
-      }
-    })
-    .catch(err => {
-      console.error("Erreur lors de la récupération du panier :", err);
-      showNotification("Impossible de vérifier le panier","error");
-    });
-  });
-}
-
-function sendDeliveryEmail(deliveryInfo) {
-  fetch('https://demoresto.onrender.com/api/send-delivery-email', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + getToken()
-    },
-    body: JSON.stringify({
-      deliveryInfo: deliveryInfo,
-      cartItems: JSON.parse(localStorage.getItem('cart')),
-      timestamp: new Date().toLocaleString('fr-FR')
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.success) {
-      showNotification("Email de livraison envoyé avec succès", "success");
-    } else {
-      showNotification(data.error || "Erreur lors de l'envoi de l'email", "error");
-    }
-  })
-  .catch(err => {
-    console.error('Erreur envoi email:', err);
-    showNotification("Erreur lors de l'envoi de l'email", "error");
-  });
-}
-
-function loadPaymentDetails() {
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const orderData = JSON.parse(localStorage.getItem('orderData')) || {};
-  const tbody = document.getElementById('payment-summary-body');
-  const totalElement = document.getElementById('payment-total');
-  let total = 0;
-
-  cart.forEach(item => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-        <td>${item.product.name}</td>
-        <td>${item.quantity}</td>
-        <td>${(item.product.price * item.quantity).toFixed(2)}€</td>
-    `;
-
-    tbody.appendChild(row);
-    total += item.product.price * item.quantity;
-  });
-
-  // Ajouter les frais de livraison si activés
-  if (orderData.delivery) {
-    const deliveryRow = document.createElement('tr');
-    deliveryRow.innerHTML = `
-      <td>Frais de livraison</td>
-      <td>1</td>
-      <td>5.00€</td>
-    `;
-    tbody.appendChild(deliveryRow);
-    total += 5.00;
-  }
-
-  totalElement.textContent = `Total : ${total.toFixed(2)}€`;
-}
-
-async function clearCartItems() {
-  console.log("Début clearCartItems");
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  console.log('Contenu du panier:', cart);
-
-  if (cart.length === 0) {
-    return Promise.resolve();
-  }
-
-  const deletePromises = cart.map(item => {
-    console.log('Suppression item avec id:', item.id);
-    return fetch(`https://demoresto.onrender.com/api/cart/${item.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': 'Bearer ' + getToken()
-      }
-    }).then(res => {
-      if (!res.ok) {
-        return res.json().then(err => Promise.reject(err));
-      }
-      return res.json();
-    });
-  });
-
-  try {
-    const results = await Promise.all(deletePromises);
-    console.log('Suppression OK', results);
-    localStorage.removeItem('cart');
-  } catch (error) {
-    console.error('Erreur suppression:', error);
-    throw error;
-  }
-}
-
-window.onload = loadPaymentDetails;

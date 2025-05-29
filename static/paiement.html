@@ -54,10 +54,160 @@
 
 <section class="payment-method">
   <h2>Moyen de paiement</h2>
+  <!-- Exemple de paiement fictif -->
   <p>Ce site est une version Démo. Aucune transaction réelle ne sera effectuée. Si vous souhaitez tester, utilisez la carte "4242 4242 4242 4242" avec n'importe quel date dans le futur et n'importe quel CVC. Vous allez etre redirigé vers Stripe en cliquant ci-dessous.</p>
   <button onclick="simulatePayment()">Payer maintenant</button>
 </section>
+
+<script>
+function getToken() {
+  return localStorage.getItem('token');
+}
+
+function loadPaymentDetails() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const orderData = JSON.parse(localStorage.getItem('orderData')) || {};
+  const tbody = document.getElementById('payment-summary-body');
+  const totalElement = document.getElementById('payment-total');
+  let total = 0;
+
+  cart.forEach(item => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>${item.product.name}</td>
+        <td>${item.quantity}</td>
+        <td>${(item.product.price * item.quantity).toFixed(2)}€</td>
+    `;
+
+    tbody.appendChild(row);
+    total += item.product.price * item.quantity;
+  });
+
+  // Ajouter les frais de livraison si activés
+  if (orderData.delivery) {
+    const deliveryRow = document.createElement('tr');
+    deliveryRow.innerHTML = `
+      <td>Frais de livraison</td>
+      <td>1</td>
+      <td>5.00€</td>
+    `;
+    tbody.appendChild(deliveryRow);
+    total += 5.00;
+  }
+
+  totalElement.textContent = `Total : ${total.toFixed(2)}€`;
+}
+
+async function clearCartItems() {
+  console.log("Début clearCartItems");
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  console.log('Contenu du panier:', cart);
+
+  if (cart.length === 0) {
+    return Promise.resolve();
+  }
+
+  const deletePromises = cart.map(item => {
+    console.log('Suppression item avec id:', item.id);
+    return fetch(`https://demoresto.onrender.com/api/cart/${item.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + getToken()
+      }
+    }).then(res => {
+      if (!res.ok) {
+        return res.json().then(err => Promise.reject(err));
+      }
+      return res.json();
+    });
+  });
+
+  try {
+    const results = await Promise.all(deletePromises);
+    console.log('Suppression OK', results);
+    localStorage.removeItem('cart');
+  } catch (error) {
+    console.error('Erreur suppression:', error);
+    throw error;
+  }
+}
+
+window.onload = loadPaymentDetails;
+</script>
 <script src="https://js.stripe.com/v3/"></script>
+<script>
+const stripe = Stripe("pk_test_51RQYw9Alm0wdSVmSEImNmCNmsFrIpyLQYJvj2vcHLRH0abZNsEwsyzY0FNhuGCg0JFc8An47y5sIAyEbqYEhbWSq00nfTpKPnm");
+
+async function simulatePayment() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const orderData = JSON.parse(localStorage.getItem('orderData')) || {};
+
+  // Transformer le panier pour Stripe en incluant les frais de livraison
+  const items = cart.map(item => ({
+    price_data: {
+      currency: "eur",
+      product_data: {
+        name: item.product.name
+      },
+      unit_amount: Math.round(item.product.price * 100)
+    },
+    quantity: item.quantity
+  }));
+
+  // Ajouter les frais de livraison si nécessaire
+  if (orderData.delivery) {
+    items.push({
+      price_data: {
+        currency: "eur",
+        product_data: {
+          name: "Frais de livraison"
+        },
+        unit_amount: 500 // 5.00€ en centimes
+      },
+      quantity: 1
+    });
+  }
+
+  try {
+    showNotification("Redirection vers la plateforme de paiement en cours...", "info");
+    document.querySelector("button").disabled = true;
+    const response = await fetch("https://demoresto.onrender.com/create-checkout-session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + getToken()
+      },
+      body: JSON.stringify({ items, delivery: orderData.delivery })
+    });
+
+    const session = await response.json();
+
+    if (session.id) {
+      await stripe.redirectToCheckout({ sessionId: session.id });
+    } else {
+      showNotification("Erreur Stripe", "error");
+    }
+  } catch (error) {
+    showNotification("Erreur de paiement", "error");
+  }
+}
+
+function showNotification(message, type = "success") {
+  const notif = document.getElementById('notification');
+  const msg = document.getElementById('notification-message');
+
+  if (!notif || !msg) return;
+
+  msg.innerText = message;
+
+  notif.classList.remove('hidden', 'success', 'error', 'info');
+  notif.classList.add(type);
+
+  setTimeout(() => {
+    hideNotification();
+  }, 4000); // Masque automatiquement après 4 sec
+}
+</script>
 <footer>
   <div class="footer-logo">
     <img src="public/logo.png" alt="Logo Chez Mario">
