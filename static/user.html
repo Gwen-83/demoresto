@@ -6,6 +6,101 @@
   <link rel="stylesheet" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    .reservations-section {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .reservations-grid {
+      display: grid;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .reservation-card {
+      padding: 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+
+    .reservation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .reservation-status {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .status-pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-validated {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-rejected {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .reservation-details {
+      display: grid;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .detail-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .detail-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .no-reservations {
+      text-align: center;
+      padding: 2rem;
+      color: #64748b;
+      font-style: italic;
+    }
+
+    .reservation-tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .reservation-tab {
+      padding: 0.5rem 1rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .reservation-tab.active {
+      color: #0f172a;
+      border-bottom-color: #2563eb;
+    }
+  </style>
 </head>
 <body>
 <header>
@@ -25,55 +120,67 @@
   </nav>
 </header>
 
-  <div class="profile-main-container">
-    <div id="profile-loading-state" class="loading-message">
-      Chargement de votre profil...
-    </div>
+<div class="profile-main-container">
+  <div id="profile-loading-state" class="loading-message">
+    Chargement de votre profil...
+  </div>
 
-    <div id="profile-error-display" class="error-message-container">
-    </div>
+  <div id="profile-error-display" class="error-message-container">
+  </div>
 
-    <div id="profile-content-section" style="display: none;">
-      <div class="user-profile-card">
-        <div class="profile-header-section">
-          <div class="user-avatar-circle" id="user-avatar-display">
-            U
-          </div>
-          <h2 class="profile-welcome-title" id="profile-welcome-message">Bienvenue sur votre profil</h2>
+  <div id="profile-content-section" style="display: none;">
+    <div class="user-profile-card">
+      <div class="profile-header-section">
+        <div class="user-avatar-circle" id="user-avatar-display">
+          U
+        </div>
+        <h2 class="profile-welcome-title" id="profile-welcome-message">Bienvenue sur votre profil</h2>
+      </div>
+
+      <div class="user-information-grid">
+        <div class="info-card-item">
+          <div class="info-label-text">Nom d'utilisateur</div>
+          <div class="info-value-display" id="username-info-display">-</div>
         </div>
 
-        <div class="user-information-grid">
-          <div class="info-card-item">
-            <div class="info-label-text">Nom d'utilisateur</div>
-            <div class="info-value-display" id="username-info-display">-</div>
-          </div>
+        <div class="info-card-item">
+          <div class="info-label-text">Rôle</div>
+          <div class="info-value-display" id="user-role-display">-</div>
+        </div>
 
-          <div class="info-card-item">
-            <div class="info-label-text">Rôle</div>
-            <div class="info-value-display" id="user-role-display">-</div>
-          </div>
-
-          <div class="info-card-item">
-            <div class="info-label-text">Statut de connexion</div>
-            <div class="info-value-display">
-              <span class="connection-status-online">● Connecté</span>
-            </div>
-          </div>
-
-          <div class="info-card-item">
-            <div class="info-label-text">Dernière connexion</div>
-            <div class="info-value-display" id="last-login-timestamp">Aujourd'hui</div>
+        <div class="info-card-item">
+          <div class="info-label-text">Statut de connexion</div>
+          <div class="info-value-display">
+            <span class="connection-status-online">● Connecté</span>
           </div>
         </div>
 
-        <div class="user-actions-section">
-          <button class="primary-action-button" onclick="navigateToMenu()">Voir le Menu</button>
-          <button class="primary-action-button" onclick="navigateToCart()">Mon Panier</button>
-          <button class="danger-action-button" onclick="logout()">Se Déconnecter</button>
+        <div class="info-card-item">
+          <div class="info-label-text">Dernière connexion</div>
+          <div class="info-value-display" id="last-login-timestamp">Aujourd'hui</div>
         </div>
+      </div>
+
+      <div class="reservations-section">
+        <h2>Mes Réservations</h2>
+        <div class="reservation-tabs">
+          <button class="reservation-tab active" data-tab="upcoming">À venir</button>
+          <button class="reservation-tab" data-tab="past">Passées</button>
+        </div>
+        <div class="reservations-grid" id="reservations-grid">
+          <!-- Les réservations seront injectées ici -->
+        </div>
+      </div>
+
+      <div class="user-actions-section">
+        <button class="primary-action-button" onclick="navigateToMenu()">Voir le Menu</button>
+        <button class="primary-action-button" onclick="navigateToCart()">Mon Panier</button>
+        <button class="danger-action-button" onclick="logout()">Se Déconnecter</button>
       </div>
     </div>
   </div>
+</div>
+
 <footer>
   <div class="footer-logo">
     <img src="public/logo.png" alt="Logo Chez Mario">
@@ -85,9 +192,150 @@
     <p>Réalisation : GD</p>
   </div>
   <div class="footer-map">
-    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d’accès</a>
+    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d'accès</a>
   </div>
 </footer>
+
 <script src="script.js" defer></script>
+<script>
+// Fonction pour charger les réservations de l'utilisateur
+async function loadUserReservations() {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Non authentifié');
+    }
+
+    const response = await fetch('/api/reservations', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Erreur lors du chargement des réservations');
+    }
+
+    const reservations = await response.json();
+    displayReservations(reservations);
+  } catch (error) {
+    console.error('Erreur:', error);
+    document.getElementById('reservations-grid').innerHTML = `
+      <div class="no-reservations">
+        Une erreur est survenue lors du chargement de vos réservations.
+      </div>
+    `;
+  }
+}
+
+// Fonction pour afficher les réservations
+function displayReservations(reservations) {
+  const container = document.getElementById('reservations-grid');
+  const now = new Date();
+  
+  // Séparer les réservations futures et passées
+  const upcoming = [];
+  const past = [];
+  
+  reservations.forEach(reservation => {
+    const reservationDate = new Date(reservation.date + 'T' + reservation.heure);
+    if (reservationDate > now) {
+      upcoming.push(reservation);
+    } else {
+      past.push(reservation);
+    }
+  });
+
+  // Fonction pour créer le HTML d'une réservation
+  function createReservationHTML(reservation) {
+    const statusClasses = {
+      'pending': 'status-pending',
+      'validee': 'status-validated',
+      'refusee': 'status-rejected'
+    };
+
+    const statusLabels = {
+      'pending': 'En attente',
+      'validee': 'Validée',
+      'refusee': 'Refusée'
+    };
+
+    return `
+      <div class="reservation-card">
+        <div class="reservation-header">
+          <span class="reservation-date">${new Date(reservation.date).toLocaleDateString('fr-FR')} à ${reservation.heure}</span>
+          <span class="reservation-status ${statusClasses[reservation.status]}">
+            ${statusLabels[reservation.status]}
+          </span>
+        </div>
+        <div class="reservation-details">
+          <div class="detail-row">
+            <span class="detail-label">Couverts:</span>
+            <span>${reservation.couverts}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Téléphone:</span>
+            <span>${reservation.telephone}</span>
+          </div>
+          ${reservation.commentaire ? `
+            <div class="detail-row">
+              <span class="detail-label">Commentaire:</span>
+              <span>${reservation.commentaire}</span>
+            </div>
+          ` : ''}
+          ${reservation.commentaire_admin ? `
+            <div class="detail-row">
+              <span class="detail-label">Réponse:</span>
+              <span>${reservation.commentaire_admin}</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // Gérer les onglets
+  const tabs = document.querySelectorAll('.reservation-tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      if (tab.dataset.tab === 'upcoming') {
+        displayReservationsList(upcoming);
+      } else {
+        displayReservationsList(past);
+      }
+    });
+  });
+
+  // Fonction pour afficher une liste de réservations
+  function displayReservationsList(reservations) {
+    if (reservations.length === 0) {
+      container.innerHTML = `
+        <div class="no-reservations">
+          Aucune réservation à afficher.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = reservations
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .map(createReservationHTML)
+      .join('');
+  }
+
+  // Afficher les réservations à venir par défaut
+  displayReservationsList(upcoming);
+}
+
+// Charger les réservations au chargement de la page
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('profile-content-section')) {
+    loadUserReservations();
+  }
+});
+</script>
 </body>
 </html>
