@@ -1343,14 +1343,14 @@ function displayUserProfileInformation() {
 
   // Afficher le lien admin si l'utilisateur est admin
   if (currentUserData.is_admin) {
-    document.getElementById('admin-navigation-link').style.display = 'inline-block';
+    document.getElementById('admin-link').style.display = 'inline-block';
   }
 
   // Afficher la date/heure actuelle comme dernière connexion
   document.getElementById('last-login-timestamp').textContent = new Date().toLocaleString('fr-FR');
   
   // Mettre à jour le statut utilisateur dans la navigation
-  document.getElementById('user-connection-status').textContent = `Connecté: ${currentUserData.username}`;
+  document.getElementById('user-status').textContent = `Connecté: ${currentUserData.username}`;
 }
 
 // Fonction pour afficher un message d'erreur
