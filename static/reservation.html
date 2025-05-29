@@ -76,26 +76,26 @@
 <script>
 let horairesOuverture = {};
 
-// Charger les horaires d'ouverture au chargement de la page
 document.addEventListener('DOMContentLoaded', async () => {
   await loadHoraires();
-  console.log("Horaires chargés :", horairesOuverture);
-  updateHorairesInfo();
   autoFillUserEmail();
   updateReservationSubmission();
 });
 
-// Fonction pour charger les horaires depuis l'API
+// Déplace updateHorairesInfo ici, une fois les horaires bien chargés
 async function loadHoraires() {
   try {
     const response = await fetch('/api/horaires.json');
     if (response.ok) {
       horairesOuverture = await response.json();
+      console.log("Horaires chargés :", horairesOuverture);
+      updateHorairesInfo(); // <- à faire ici après le chargement
     }
   } catch (error) {
     console.error('Erreur lors du chargement des horaires:', error);
   }
 }
+
 
 // Fonction pour convertir l'heure au format HH:MM
 function parseTimeString(timeStr) {
