@@ -279,24 +279,48 @@ async function loginUser(username, password, redirectAfterLogin = true) {
 }
 
 function getActiveFilters() {
-  const allergenCheckboxes = document.querySelectorAll('.filter-allergen');
-  const allergens = Array.from(allergenCheckboxes)
-    .filter(cb => cb.checked)
-    .map(cb => cb.value.toLowerCase());
-  return { allergens };
+  const filters = {
+    tags: [],
+    allergens: []
+  };
+  
+  // Récupérer les filtres de tags
+  const tagCheckboxes = document.querySelectorAll('.filter-tag:checked');
+  tagCheckboxes.forEach(cb => {
+    filters.tags.push(cb.value);
+  });
+  
+  // Récupérer les filtres d'allergènes
+  const allergenCheckboxes = document.querySelectorAll('.filter-allergen:checked');
+  allergenCheckboxes.forEach(cb => {
+    filters.allergens.push(cb.value);
+  });
+  
+  return filters;
 }
 
 function productMatchesFilters(product, filters) {
-  if (!filters.allergens || filters.allergens.length === 0) {
+  // Si aucun filtre n'est actif, afficher tous les produits
+  if (filters.tags.length === 0 && filters.allergens.length === 0) {
     return true;
   }
-
-  const productAllergens = (product.allergens || []).map(a => a.toLowerCase());
-  for (const allergen of filters.allergens) {
-    if (productAllergens.includes(allergen)) {
-      return false;
-    }
+  
+  // Vérifier les tags
+  if (filters.tags.length > 0) {
+    const productTags = product.tags || [];
+    const hasMatchingTag = filters.tags.some(tag => productTags.includes(tag));
+    if (!hasMatchingTag) return false;
   }
+  
+  // Vérifier les allergènes
+  if (filters.allergens.length > 0) {
+    const productAllergens = product.allergens || [];
+    const hasExcludedAllergen = filters.allergens.some(allergen => 
+      productAllergens.includes(allergen)
+    );
+    if (hasExcludedAllergen) return false;
+  }
+  
   return true;
 }
 
@@ -312,6 +336,13 @@ function fetchAndRenderProducts() {
     .then(response => response.json())
     .then(products => {
       const menuContainer = document.getElementById('menu-container');
+      
+      // Vérifier si l'élément existe avant de le manipuler
+      if (!menuContainer) {
+        console.warn("Élément #menu-container non trouvé");
+        return;
+      }
+      
       menuContainer.innerHTML = ''; // Vide le menu avant tout
 
       const categories = {
@@ -333,14 +364,18 @@ function fetchAndRenderProducts() {
 
       const hasProducts = Object.values(categories).some(items => items.length > 0);
       const noProductsMessage = document.getElementById('no-products-message');
-      if (!hasProducts) {
-        noProductsMessage.style.display = 'block'; // Affiche le message
-        return;
-      } else {
-        noProductsMessage.style.display = 'none'; // Cache le message
+      if (noProductsMessage) {
+        if (!hasProducts) {
+          noProductsMessage.style.display = 'block';
+          return;
+        } else {
+          noProductsMessage.style.display = 'none';
+        }
       }
 
       for (const [category, items] of Object.entries(categories)) {
+        if (items.length === 0) continue;
+        
         const section = document.createElement('section');
         section.id = category + 's';
         section.classList.add('menu-section');
@@ -399,120 +434,141 @@ function fetchAndRenderProducts() {
         menuContainer.appendChild(section);
       }
 
-      document.querySelectorAll('.add-to-cart').forEach(button => {
-        button.addEventListener('click', () => {
-          const name = button.dataset.name;
-          const price = parseFloat(button.dataset.price);
-          const qtyInput = button.previousElementSibling;
-          let quantity = parseInt(qtyInput.value);
-
-          if (isNaN(quantity) || quantity < 1) {
-            showNotification("La quantité minimale est 1.", "error");
-            qtyInput.value = 1;
-            return;
-          }
-
-          if (quantity > 30) {
-            showNotification("La quantité maximale autorisée est 30.", "error");
-            qtyInput.value = 30;
-            return;
-          }
-
-          if (!getToken()) {
-            showNotification("Veuillez vous connecter pour ajouter un produit au panier.", "error");
-            return;
-          }
-
-          fetch('https://demoresto.onrender.com/api/products', {
-            headers: {
-              'Authorization': 'Bearer ' + getToken()
-            }
-          })
-            .then(res => {
-              if (!res.ok) {
-                if (res.status === 401) {
-                  showNotification("Veuillez vous connecter pour voir les produits.", "error");
-                  return Promise.reject();
-                }
-                return Promise.reject('Erreur ' + res.status);
-              }
-              return res.json();
-            })
-            .then(products => {
-              const product = products.find(p => p.name === name && p.price === price);
-              if (!product) {
-                showNotification("Produit introuvable.", "error");
-                return;
-              }
-
-              const productId = product.id;
-
-              fetch('https://demoresto.onrender.com/api/cart', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': 'Bearer ' + getToken()
-                },
-                body: JSON.stringify({ product_id: productId, quantity })
-              })
-                .then(async res => {
-                  if (!res.ok) {
-                    let errorMsg = "Erreur lors de l'ajout au panier.";
-                    try {
-                      const err = await res.json();
-                      if (err.error) errorMsg = err.error;
-                    } catch { }
-                    if (res.status === 401) {
-                      showNotification("Veuillez vous connecter ou créer un compte pour ajouter un produit au panier.");
-                    } else {
-                      showNotification(errorMsg, "error");
-                    }
-                    return;
-                  }
-
-                  const data = await res.json();
-                  if (data.message) {
-                    showNotification(data.message, "success");
-                  } else {
-                    showNotification("Produit ajouté au panier !", "success");
-                  }
-                });
-            })
-            .catch(error => {
-              console.error(error);
-            });
-        });
-      });
+      // Ajouter les event listeners aux boutons d'ajout au panier
+      attachCartEventListeners();
+    })
+    .catch(error => {
+      console.error('Erreur lors du chargement des produits:', error);
     });
 }
 
+function attachCartEventListeners() {
+  document.querySelectorAll('.add-to-cart').forEach(button => {
+    button.addEventListener('click', () => {
+      const name = button.dataset.name;
+      const price = parseFloat(button.dataset.price);
+      const qtyInput = button.previousElementSibling;
+      let quantity = parseInt(qtyInput.value);
+
+      if (isNaN(quantity) || quantity < 1) {
+        showNotification("La quantité minimale est 1.", "error");
+        qtyInput.value = 1;
+        return;
+      }
+
+      if (quantity > 30) {
+        showNotification("La quantité maximale autorisée est 30.", "error");
+        qtyInput.value = 30;
+        return;
+      }
+
+      if (!getToken()) {
+        showNotification("Veuillez vous connecter pour ajouter un produit au panier.", "error");
+        return;
+      }
+
+      fetch('https://demoresto.onrender.com/api/products', {
+        headers: {
+          'Authorization': 'Bearer ' + getToken()
+        }
+      })
+        .then(res => {
+          if (!res.ok) {
+            if (res.status === 401) {
+              showNotification("Veuillez vous connecter pour voir les produits.", "error");
+              return Promise.reject();
+            }
+            return Promise.reject('Erreur ' + res.status);
+          }
+          return res.json();
+        })
+        .then(products => {
+          const product = products.find(p => p.name === name && p.price === price);
+          if (!product) {
+            showNotification("Produit introuvable.", "error");
+            return;
+          }
+
+          const productId = product.id;
+
+          fetch('https://demoresto.onrender.com/api/cart', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + getToken()
+            },
+            body: JSON.stringify({ product_id: productId, quantity })
+          })
+            .then(async res => {
+              if (!res.ok) {
+                let errorMsg = "Erreur lors de l'ajout au panier.";
+                try {
+                  const err = await res.json();
+                  if (err.error) errorMsg = err.error;
+                } catch { }
+                if (res.status === 401) {
+                  showNotification("Veuillez vous connecter ou créer un compte pour ajouter un produit au panier.");
+                } else {
+                  showNotification(errorMsg, "error");
+                }
+                return;
+              }
+
+              const data = await res.json();
+              if (data.message) {
+                showNotification(data.message, "success");
+              } else {
+                showNotification("Produit ajouté au panier !", "success");
+              }
+            });
+        })
+        .catch(error => {
+          console.error(error);
+        });
+    });
+  });
+} 
+
 document.addEventListener('DOMContentLoaded', function () {
+  // Initialiser le menu des produits si on est sur la page menu
+  if (document.getElementById('menu-container')) {
+    fetchAndRenderProducts();
+  }
+
+  // Gestion du dropdown de filtres
   const dropdown = document.querySelector('.dropdown-filter');
-  const button = dropdown.querySelector('.dropdown-button');
-  const content = dropdown.querySelector('.dropdown-content');
-  const checkboxes = content.querySelectorAll('input[type="checkbox"]');
+  if (dropdown) {
+    const button = dropdown.querySelector('.dropdown-button');
+    const content = dropdown.querySelector('.dropdown-content');
+    const checkboxes = content.querySelectorAll('input[type="checkbox"]');
 
-  // Toggle menu on button click
-  button.addEventListener('click', function (e) {
-    e.stopPropagation();
-    dropdown.classList.toggle('open');
-  });
+    // Toggle menu on button click
+    button.addEventListener('click', function (e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
 
-  // Close when clicking outside
-  document.addEventListener('click', function () {
-    dropdown.classList.remove('open');
-  });
-
-  // Prevent closing when clicking inside
-  content.addEventListener('click', function (e) {
-    e.stopPropagation();
-  });
-
-  // Close the dropdown when any checkbox is clicked
-  checkboxes.forEach(cb => {
-    cb.addEventListener('change', function () {
+    // Close when clicking outside
+    document.addEventListener('click', function () {
       dropdown.classList.remove('open');
     });
+
+    // Prevent closing when clicking inside
+    content.addEventListener('click', function (e) {
+      e.stopPropagation();
+    });
+
+    // Close the dropdown when any checkbox is clicked
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', function () {
+        dropdown.classList.remove('open');
+      });
+    });
+  }
+
+  // Event listeners pour les filtres
+  document.querySelectorAll('.filter-tag, .filter-allergen').forEach(cb => {
+    cb.addEventListener('change', fetchAndRenderProducts);
   });
 });
 
@@ -542,35 +598,40 @@ function loadProducts() {
   }
 
   fetch('/api/products')
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Erreur HTTP: ${res.status}`);
+      }
+      return res.json();
+    })
     .then(data => {
       table.innerHTML = `<tr><th>ID</th><th>Nom</th><th>Prix</th><th>Action</th></tr>`;
       
+      // Vider la map et la remplir avec les nouveaux produits
+      productMap.clear();
+      
       data.forEach(p => {
+        // Stocker le produit dans la map
+        productMap.set(p.id, p);
+        
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${p.id}</td>
           <td>${p.name}</td>
-          <td>${p.price}</td>
+          <td>${p.price}€</td>
           <td>
-            <button onclick="deleteProduct(${p.id})">Supprimer</button>
-            <button class="edit-button" data-product="${encodeURIComponent(JSON.stringify(p))}">Modifier</button>
+            <button class="btn-delete" onclick="deleteProduct(${p.id})">Supprimer</button>
+            <button class="btn-edit" onclick="startEditFromMap(${p.id})">Modifier</button>
           </td>
         `;
         table.appendChild(tr);
       });
-
-      document.querySelectorAll('.edit-button').forEach(btn => {
-        btn.addEventListener('click', () => {
-          try {
-            const encoded = btn.getAttribute('data-product');
-            const decodedProduct = JSON.parse(decodeURIComponent(encoded));
-            startEdit(decodedProduct);
-          } catch (e) {
-            console.error("Erreur lors du décodage du produit :", e);
-          }
-        });
-      });
+    })
+    .catch(error => {
+      console.error('Erreur lors du chargement des produits:', error);
+      if (table) {
+        table.innerHTML = `<tr><td colspan="4">Erreur lors du chargement des produits</td></tr>`;
+      }
     });
 }
 
