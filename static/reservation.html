@@ -122,12 +122,16 @@ function parseHoraires(horaireStr) {
 
   const periods = [];
   
+  // Nettoyer la chaîne en supprimant les espaces supplémentaires
+  const cleanedHoraire = horaireStr.replace(/\s+/g, ' ').trim();
+  
   // Gérer les horaires avec ou sans pause déjeuner
-  if (horaireStr.includes('/')) {
-    // Format: "11h30-14h00/18h30-22h00"
-    const parts = horaireStr.split('/');
+  if (cleanedHoraire.includes('/')) {
+    // Format: "11h30 - 14h00 / 18h30 - 22h00"
+    const parts = cleanedHoraire.split('/');
     for (const part of parts) {
-      const times = part.trim().split('-');
+      // Diviser par " - " (avec espaces) au lieu de juste "-"
+      const times = part.trim().split(' - ');
       if (times.length === 2) {
         const start = parseTimeString(times[0].trim());
         const end = parseTimeString(times[1].trim());
@@ -137,8 +141,8 @@ function parseHoraires(horaireStr) {
       }
     }
   } else {
-    // Format simple: "11h30-22h00"
-    const times = horaireStr.split('-');
+    // Format simple: "11h30 - 22h00"
+    const times = cleanedHoraire.split(' - ');
     if (times.length === 2) {
       const start = parseTimeString(times[0].trim());
       const end = parseTimeString(times[1].trim());
