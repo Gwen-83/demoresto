@@ -360,17 +360,16 @@ def send_reservation():
 def get_reservations():
     try:
         user_id = int(get_jwt_identity())
-        print("user_id:", user_id)
         user = User.query.get(user_id)
-        print("user:", user)
 
-        if not user or not user.is_admin:
-            print("Accès refusé: pas admin ou user introuvable")
-            return jsonify({"error": "Accès interdit"}), 403
-        
-        reservations = Reservation.query.order_by(Reservation.id.asc()).all()
+        if not user:
+            return jsonify({"error": "Utilisateur introuvable"}), 404
 
-        print("Nombre de réservations récupérées :", len(reservations))
+        if user.is_admin:
+            reservations = Reservation.query.order_by(Reservation.id.asc()).all()
+        else:
+            reservations = Reservation.query.filter_by(user_id=user.id).order_by(Reservation.id.asc()).all()
+
         return jsonify([r.to_dict() for r in reservations]), 200
 
     except Exception as e:
