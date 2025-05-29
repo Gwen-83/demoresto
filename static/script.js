@@ -1409,3 +1409,143 @@ function resetInactivityTimer() {
 });
 
 resetInactivityTimer(); // Lancer le timer au chargement de la page
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Script JavaScript amélioré à ajouter dans user.html
+
+// Fonction pour diagnostiquer le problème d'email
+async function diagnosticEmailProblem() {
+  console.log('🔍 ===== DIAGNOSTIC EMAIL PROBLEM =====');
+  
+  try {
+    const token = localStorage.getItem('token');
+    
+    // 1. Appeler la route de debug
+    const debugResponse = await fetch('https://demoresto.onrender.com/api/debug/email-check', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (debugResponse.ok) {
+      const debugData = await debugResponse.json();
+      console.log('📊 DONNÉES DE DIAGNOSTIC:', debugData);
+      
+      console.log(`👤 Email utilisateur: "${debugData.user_email}"`);
+      console.log(`📏 Longueur email: ${debugData.user_email_length}`);
+      console.log(`📋 Total réservations: ${debugData.total_reservations}`);
+      console.log(`📧 Emails des réservations:`, debugData.reservation_emails);
+      console.log(`✅ Correspondances exactes: ${debugData.exact_matches}`);
+      console.log(`🔤 Correspondances insensibles casse: ${debugData.case_insensitive_matches}`);
+      
+      if (debugData.exact_matches === 0 && debugData.case_insensitive_matches > 0) {
+        console.log('⚠️ PROBLÈME DÉTECTÉ: Problème de casse dans l\'email!');
+        console.log('🔧 Solution: Corriger la comparaison des emails côté serveur');
+      } else if (debugData.exact_matches === 0 && debugData.case_insensitive_matches === 0) {
+        console.log('❌ PROBLÈME DÉTECTÉ: Aucune réservation avec cet email!');
+        console.log('💡 Vérifiez que vous utilisez le même email pour:');
+        console.log('   1. Créer votre compte utilisateur');
+        console.log('   2. Faire vos réservations');
+      }
+      
+    } else {
+      console.log('❌ Erreur lors du diagnostic:', debugResponse.status);
+    }
+    
+  } catch (error) {
+    console.error('💥 Erreur diagnostic:', error);
+  }
+  
+  console.log('🔍 ===== FIN DIAGNOSTIC =====');
+}
+
+// Fonction pour créer une réservation de test avec le bon email
+async function createTestReservation() {
+  try {
+    const token = localStorage.getItem('token');
+    
+    // D'abord récupérer l'email de l'utilisateur
+    const profileResponse = await fetch('https://demoresto.onrender.com/api/user/profile', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!profileResponse.ok) {
+      console.log('❌ Impossible de récupérer le profil utilisateur');
+      return;
+    }
+    
+    const profile = await profileResponse.json();
+    console.log('👤 Profil utilisateur:', profile);
+    
+    // Créer une réservation avec le bon email
+    const testReservation = {
+      email: profile.email, // Utiliser exactement le même email
+      telephone: '0123456789',
+      couverts: 2,
+      date: '2025-06-15',
+      heure: '19:00',
+      commentaire: 'Réservation de test - ' + new Date().toLocaleString()
+    };
+    
+    console.log('📝 Création réservation de test:', testReservation);
+    
+    const reservationResponse = await fetch('https://demoresto.onrender.com/api/reservation', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(testReservation)
+    });
+    
+    const result = await reservationResponse.json();
+    console.log('✅ Résultat création réservation:', result);
+    
+    if (reservationResponse.ok) {
+      console.log('🎉 Réservation créée avec succès! Rechargez la page pour voir les réservations.');
+      // Recharger les réservations
+      setTimeout(() => {
+        loadUserReservations();
+      }, 1000);
+    }
+    
+  } catch (error) {
+    console.error('💥 Erreur création réservation test:', error);
+  }
+}
+
+// Ajouter ces fonctions au window pour pouvoir les appeler depuis la console
+window.diagnosticEmailProblem = diagnosticEmailProblem;
+window.createTestReservation = createTestReservation;
+
+// Lancer le diagnostic automatiquement
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('profile-content-section')) {
+    setTimeout(() => {
+      diagnosticEmailProblem();
+    }, 2000);
+  }
+});

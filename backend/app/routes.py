@@ -354,6 +354,62 @@ def send_reservation():
         "reservation_id": reservation_id
     }), 201
     
+@bp.route("/api/user/profile", methods=["GET"])
+@jwt_required()
+def get_user_profile():
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+
+        if not user:
+            return jsonify({"error": "Utilisateur introuvable"}), 404
+
+        return jsonify({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "is_admin": user.is_admin
+        }), 200
+
+    except Exception as e:
+        print("Erreur serveur dans /api/user/profile :", e)
+        return jsonify({"error": str(e)}), 500
+
+# Route de diagnostic pour comparer les emails (temporaire - à supprimer en production)
+@bp.route("/api/debug/email-check", methods=["GET"])
+@jwt_required()
+def debug_email_check():
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+
+        if not user:
+            return jsonify({"error": "Utilisateur introuvable"}), 404
+
+        # Récupérer toutes les réservations
+        all_reservations = Reservation.query.all()
+        
+        # Récupérer les emails uniques des réservations
+        reservation_emails = list(set([r.email for r in all_reservations]))
+        
+        # Vérifier les correspondances
+        exact_matches = [r for r in all_reservations if r.email == user.email]
+        case_insensitive_matches = [r for r in all_reservations if r.email.lower() == user.email.lower()]
+        
+        return jsonify({
+            "user_email": user.email,
+            "user_email_length": len(user.email),
+            "total_reservations": len(all_reservations),
+            "reservation_emails": reservation_emails,
+            "exact_matches": len(exact_matches),
+            "case_insensitive_matches": len(case_insensitive_matches),
+            "exact_match_details": [r.to_dict() for r in exact_matches],
+            "case_insensitive_details": [r.to_dict() for r in case_insensitive_matches]
+        }), 200
+
+    except Exception as e:
+        print("Erreur serveur dans /api/debug/email-check :", e)
+        return jsonify({"error": str(e)}), 500
 
 @bp.route("/api/reservations", methods=["GET"])
 @jwt_required()
@@ -365,13 +421,24 @@ def get_reservations():
         if not user:
             return jsonify({"error": "Utilisateur introuvable"}), 404
 
+        # Ajouter des logs pour diagnostiquer
+        print(f"🔍 DEBUG - User ID: {user_id}")
+        print(f"🔍 DEBUG - User email: '{user.email}' (length: {len(user.email)})")
+        print(f"🔍 DEBUG - Is admin: {user.is_admin}")
+
         if user.is_admin:
             # Les admins voient toutes les réservations
             reservations = Reservation.query.order_by(Reservation.id.asc()).all()
+            print(f"🔍 DEBUG - Admin: récupération de {len(reservations)} réservations")
         else:
             # Les utilisateurs normaux voient seulement leurs réservations (par email)
-            # CORRECTION: utiliser user.email au lieu de User.email
             reservations = Reservation.query.filter_by(email=user.email).order_by(Reservation.id.asc()).all()
+            print(f"🔍 DEBUG - User: recherche réservations pour email '{user.email}'")
+            print(f"🔍 DEBUG - User: trouvé {len(reservations)} réservations")
+            
+            # Debug: afficher tous les emails des réservations existantes
+            all_emails = [r.email for r in Reservation.query.all()]
+            print(f"🔍 DEBUG - Tous les emails dans la DB: {all_emails}")
 
         return jsonify([r.to_dict() for r in reservations]), 200
 
