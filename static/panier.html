@@ -377,28 +377,30 @@
   }
 
   function sendDeliveryEmail(deliveryInfo) {
-    // Fonction pour envoyer les informations de livraison par email
-    // Vous devrez implémenter cette fonction selon votre backend
-    console.log("Informations de livraison à envoyer:", deliveryInfo);
-    
-    // Exemple d'implémentation (à adapter selon votre API)
-    /*
     fetch('https://demoresto.onrender.com/api/send-delivery-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + getToken()
       },
-      body: JSON.stringify(deliveryInfo)
+      body: JSON.stringify({
+        deliveryInfo: deliveryInfo,
+        cartItems: JSON.parse(localStorage.getItem('cart')),
+        timestamp: new Date().toLocaleString('fr-FR')
+      })
     })
     .then(res => res.json())
     .then(data => {
-      console.log('Email de livraison envoyé:', data);
+      if (data.success) {
+        showNotification("Email de livraison envoyé avec succès", "success");
+      } else {
+        showNotification(data.error || "Erreur lors de l'envoi de l'email", "error");
+      }
     })
     .catch(err => {
       console.error('Erreur envoi email:', err);
+      showNotification("Erreur lors de l'envoi de l'email", "error");
     });
-    */
   }
 </script>
 </body>

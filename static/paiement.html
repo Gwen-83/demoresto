@@ -66,6 +66,7 @@ function getToken() {
 
 function loadPaymentDetails() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const orderData = JSON.parse(localStorage.getItem('orderData')) || {};
   const tbody = document.getElementById('payment-summary-body');
   const totalElement = document.getElementById('payment-total');
   let total = 0;
@@ -81,6 +82,18 @@ function loadPaymentDetails() {
     tbody.appendChild(row);
     total += item.product.price * item.quantity;
   });
+
+  // Ajouter les frais de livraison si activés
+  if (orderData.delivery) {
+    const deliveryRow = document.createElement('tr');
+    deliveryRow.innerHTML = `
+      <td>Frais de livraison</td>
+      <td>1</td>
+      <td>5.00€</td>
+    `;
+    tbody.appendChild(deliveryRow);
+    total += 5.00;
+  }
 
   totalElement.textContent = `Total : ${total.toFixed(2)}€`;
 }
