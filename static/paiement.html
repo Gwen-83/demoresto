@@ -136,12 +136,13 @@ window.onload = loadPaymentDetails;
 </script>
 <script src="https://js.stripe.com/v3/"></script>
 <script>
-const stripe = Stripe("pk_test_51RQYw9Alm0wdSVmSEImNmCNmsFrIpyLQYJvj2vcHLRH0abZNsEwsyzY0FNhuGCg0JFc8An47y5sIAyEbqYEhbWSq00nfTpKPnm"); // déjà présent
+const stripe = Stripe("pk_test_51RQYw9Alm0wdSVmSEImNmCNmsFrIpyLQYJvj2vcHLRH0abZNsEwsyzY0FNhuGCg0JFc8An47y5sIAyEbqYEhbWSq00nfTpKPnm");
 
 async function simulatePayment() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const orderData = JSON.parse(localStorage.getItem('orderData')) || {};
 
-  // 💡 C’est ICI qu’on fait la transformation du panier :
+  // Transformer le panier pour Stripe en incluant les frais de livraison
   const items = cart.map(item => ({
     price_data: {
       currency: "eur",
@@ -153,16 +154,30 @@ async function simulatePayment() {
     quantity: item.quantity
   }));
 
+  // Ajouter les frais de livraison si nécessaire
+  if (orderData.delivery) {
+    items.push({
+      price_data: {
+        currency: "eur",
+        product_data: {
+          name: "Frais de livraison"
+        },
+        unit_amount: 500 // 5.00€ en centimes
+      },
+      quantity: 1
+    });
+  }
+
   try {
     showNotification("Redirection vers la plateforme de paiement en cours...", "info");
     document.querySelector("button").disabled = true;
     const response = await fetch("https://demoresto.onrender.com/create-checkout-session", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + getToken()  // ✅ Ajout ici
-        },
-        body: JSON.stringify({ items })
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + getToken()
+      },
+      body: JSON.stringify({ items, delivery: orderData.delivery })
     });
 
     const session = await response.json();
@@ -170,10 +185,10 @@ async function simulatePayment() {
     if (session.id) {
       await stripe.redirectToCheckout({ sessionId: session.id });
     } else {
-      showNotification("Erreur Stripe","error");;
+      showNotification("Erreur Stripe", "error");
     }
   } catch (error) {
-    showNotification("Erreur de paiement","error");;
+    showNotification("Erreur de paiement", "error");
   }
 }
 
@@ -204,7 +219,7 @@ function showNotification(message, type = "success") {
     <p>Réalisation : GD</p>
   </div>
   <div class="footer-map">
-    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d’accès</a>
+    <a href="https://www.google.com/maps/place/12+Rue+des+Oliviers,+66000+Perpignan" target="_blank" class="map-button">Plan d'accès</a>
   </div>
 </footer>
 </body>

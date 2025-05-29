@@ -539,35 +539,20 @@ def send_contact():
 @jwt_required()
 def create_checkout_session():
     user_id = int(get_jwt_identity())
+    data = request.get_json()
+    items = data.get('items', [])
+    delivery = data.get('delivery', False)
 
-    # Récupérer les articles du panier en base (non commandés)
-    cart_items = CartItem.query.filter_by(user_id=user_id, order_id=None).all()
-    if not cart_items:
+    if not items:
         return jsonify({"error": "Panier vide"}), 400
-
-    line_items = []
-    for item in cart_items:
-        # On reconstruit chaque item pour Stripe en toute sécurité
-        line_items.append({
-            'price_data': {
-                'currency': 'eur',
-                'product_data': {
-                    'name': item.product.name,
-                    # tu peux ajouter plus d'infos si besoin (ex : description)
-                },
-                'unit_amount': int(item.product.price * 100),  # prix en centimes
-            },
-            'quantity': item.quantity,
-        })
 
     try:
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
-            line_items=line_items,
+            line_items=items,
             mode='payment',
             success_url='https://demoresto.onrender.com/sucess.html',
             cancel_url='https://demoresto.onrender.com/cancel.html',
-            # tu peux associer la session au user avec client_reference_id si tu veux
             client_reference_id=str(user_id)
         )
         return jsonify({'id': session.id})
@@ -668,7 +653,7 @@ def send_delivery_email():
         if not all([delivery_info, cart_items]):
             return jsonify({"error": "Données manquantes"}), 400
 
-        # Construction du HTML de l'email (similaire à votre version Node.js)
+        # Construction du HTML de l'email
         cart_items_html = ""
         total_price = 0
         
@@ -736,17 +721,21 @@ def send_delivery_email():
         restaurant_email = os.environ.get('RECEIVER_EMAIL', 'restaurant@chezmario.fr')
         subject = f"🚚 Nouvelle commande avec livraison - {delivery_info['date']} à {delivery_info['time']}"
         
-        success = send_email(
-            to_email=restaurant_email,
-            subject=subject,
-            html_content=email_html,
-            cc_email=delivery_info['email']
-        )
-        
-        if success:
+        msg = MIMEText(email_html, 'html', 'utf-8')
+        msg['Subject'] = subject
+        msg['From'] = smtp_sender
+        msg['To'] = restaurant_email
+        msg['Cc'] = delivery_info['email']
+
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(smtp_sender, smtp_password)
+                recipients = [restaurant_email, delivery_info['email']]
+                server.send_message(msg, to_addrs=recipients)
             return jsonify({"success": True, "message": "Email envoyé avec succès"}), 200
-        else:
-            return jsonify({"success": False, "error": "Erreur lors de l'envoi"}), 500
+        except Exception as e:
+            current_app.logger.error(f"Erreur envoi email: {e}")
+            return jsonify({"success": False, "error": "Erreur lors de l'envoi de l'email"}), 500
             
     except Exception as e:
         current_app.logger.error(f"Erreur send_delivery_email: {e}")
