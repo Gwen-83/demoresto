@@ -355,7 +355,7 @@ def send_reservation():
     }), 201
     
 
-@bp.route("/api/reservations", methods=["GET"])
+@bp.route("/api/reservation", methods=["GET"])
 @jwt_required()
 def get_reservations():
     try:
@@ -373,7 +373,7 @@ def get_reservations():
         return jsonify([r.to_dict() for r in reservations]), 200
 
     except Exception as e:
-        print("Erreur serveur dans /api/reservations :", e)
+        print("Erreur serveur dans /api/reservation :", e)
         return jsonify({"error": str(e)}), 500
 
 # Route pour valider une réservation
