@@ -22,6 +22,7 @@ def create_app():
     app.config['STRIPE_SECRET_KEY'] = os.getenv('STRIPE_SECRET_KEY')
     app.config['SMTP_SENDER'] = os.getenv('SMTP_SENDER')
     app.config['RECEIVER_EMAIL'] = os.getenv('RECEIVER_EMAIL')
+    app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=30)
     stripe.api_key = app.config['STRIPE_SECRET_KEY']
 
@@ -43,5 +44,8 @@ def create_app():
 
     from .routes import bp as main_bp
     app.register_blueprint(main_bp)
+
+    from .routes.chatbot import bp_chatbot
+    app.register_blueprint(bp_chatbot)
 
     return app

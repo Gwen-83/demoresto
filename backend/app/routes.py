@@ -11,6 +11,7 @@ from flask_limiter import Limiter
 import os
 import re
 import json
+import openai
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -18,8 +19,10 @@ smtp_password = os.getenv("SMTP_PASSWORD")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 smtp_sender = os.getenv("SMTP_SENDER")
 receiver_email=os.getenv("RECEIVER_EMAIL")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 bp = Blueprint("main", __name__)
+bp_chatbot = Blueprint("chatbot", __name__)
 
 @bp.route("/api/products")
 @limiter.limit("5/minute")
@@ -740,3 +743,21 @@ def send_delivery_email():
     except Exception as e:
         current_app.logger.error(f"Erreur send_delivery_email: {e}")
         return jsonify({"success": False, "error": "Erreur serveur"}), 500
+
+@bp_chatbot.route("/chatbot", methods=["POST"])
+def chatbot():
+    data = request.json
+    user_message = data.get("message", "")
+
+    if not user_message:
+        return jsonify({"response": "Aucun message reçu."}), 400
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Ou "gpt-4"
+            messages=[{"role": "user", "content": user_message}]
+        )
+        reply = response.choices[0].message.content.strip()
+        return jsonify({"response": reply})
+    except Exception as e:
+        return jsonify({"response": f"Erreur : {str(e)}"}), 500

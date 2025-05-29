@@ -2546,3 +2546,54 @@ form#register-form a:hover {
     gap: 0;
   }
 }
+
+#chatbot-container {
+  position: fixed;
+  bottom: 60px; /* au-dessus du bouton "haut de page" */
+  right: 20px;
+  width: 300px;
+  height: 400px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+#chatbot-header {
+  background: #4e73df;
+  color: white;
+  padding: 10px;
+  font-weight: bold;
+}
+
+#chatbot-messages {
+  flex-grow: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+#chatbot-input {
+  border: none;
+  padding: 10px;
+  width: 100%;
+  border-top: 1px solid #ccc;
+  outline: none;
+}
+
+#chatbot-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #4e73df;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 1001;
+}
