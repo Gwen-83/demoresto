@@ -752,8 +752,9 @@ def chatbot():
         return jsonify({"response": "Aucun message reçu."}), 400
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Ou "gpt-4"
+        client = openai.OpenAI()
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": user_message}]
         )
         reply = response.choices[0].message.content.strip()
