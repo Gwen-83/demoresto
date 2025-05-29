@@ -213,36 +213,78 @@ async function loadUserReservations() {
     });
 
     if (!response.ok) {
-      throw new Error('Erreur lors du chargement des réservations');
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
     }
 
     const reservations = await response.json();
+    console.log('Réservations reçues:', reservations); // Debug
     displayReservations(reservations);
   } catch (error) {
-    console.error('Erreur:', error);
+    console.error('Erreur lors du chargement des réservations:', error);
     document.getElementById('reservations-grid').innerHTML = `
       <div class="no-reservations">
-        Une erreur est survenue lors du chargement de vos réservations.
+        Une erreur est survenue lors du chargement de vos réservations: ${error.message}
       </div>
     `;
+  }
+}
+
+// Fonction utilitaire pour parser une date de réservation
+function parseReservationDateTime(dateStr, timeStr) {
+  try {
+    // Si dateStr est déjà au format YYYY-MM-DD
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return new Date(dateStr + 'T' + timeStr + ':00');
+    }
+    
+    // Si c'est un autre format, essayer de le parser
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      console.warn('Date invalide:', dateStr);
+      return null;
+    }
+    
+    // Extraire les composants de temps
+    const [hours, minutes] = timeStr.split(':');
+    date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+    
+    return date;
+  } catch (error) {
+    console.error('Erreur lors du parsing de la date:', error);
+    return null;
   }
 }
 
 // Fonction pour afficher les réservations
 function displayReservations(reservations) {
   const container = document.getElementById('reservations-grid');
-  const now = new Date();
   
-  // Séparer les réservations futures et passées
+  if (!Array.isArray(reservations) || reservations.length === 0) {
+    container.innerHTML = `
+      <div class="no-reservations">
+        Vous n'avez aucune réservation.
+      </div>
+    `;
+    return;
+  }
+
+  const now = new Date();
   const upcoming = [];
   const past = [];
   
+  // Séparer les réservations futures et passées
   reservations.forEach(reservation => {
-    const reservationDate = new Date(reservation.date + 'T' + reservation.heure);
-    if (reservationDate > now) {
-      upcoming.push(reservation);
+    const reservationDateTime = parseReservationDateTime(reservation.date, reservation.heure);
+    
+    if (!reservationDateTime) {
+      console.warn('Réservation avec date invalide ignorée:', reservation);
+      return;
+    }
+    
+    if (reservationDateTime > now) {
+      upcoming.push({ ...reservation, parsedDateTime: reservationDateTime });
     } else {
-      past.push(reservation);
+      past.push({ ...reservation, parsedDateTime: reservationDateTime });
     }
   });
 
@@ -260,15 +302,28 @@ function displayReservations(reservations) {
       'refusee': 'Refusée'
     };
 
+    // Formater la date d'affichage
+    let displayDate = '';
+    if (reservation.parsedDateTime) {
+      displayDate = reservation.parsedDateTime.toLocaleDateString('fr-FR');
+    } else {
+      // Fallback si le parsing a échoué
+      displayDate = reservation.date;
+    }
+
     return `
       <div class="reservation-card">
         <div class="reservation-header">
-          <span class="reservation-date">${new Date(reservation.date).toLocaleDateString('fr-FR')} à ${reservation.heure}</span>
-          <span class="reservation-status ${statusClasses[reservation.status]}">
-            ${statusLabels[reservation.status]}
+          <span class="reservation-date">${displayDate} à ${reservation.heure}</span>
+          <span class="reservation-status ${statusClasses[reservation.status] || 'status-pending'}">
+            ${statusLabels[reservation.status] || 'Statut inconnu'}
           </span>
         </div>
         <div class="reservation-details">
+          <div class="detail-row">
+            <span class="detail-label">Réservation #:</span>
+            <span>${reservation.id}</span>
+          </div>
           <div class="detail-row">
             <span class="detail-label">Couverts:</span>
             <span>${reservation.couverts}</span>
@@ -286,7 +341,15 @@ function displayReservations(reservations) {
           ${reservation.commentaire_admin ? `
             <div class="detail-row">
               <span class="detail-label">Réponse:</span>
-              <span>${reservation.commentaire_admin}</span>
+              <span style="color: ${reservation.status === 'refusee' ? '#dc2626' : '#059669'};">
+                ${reservation.commentaire_admin}
+              </span>
+            </div>
+          ` : ''}
+          ${reservation.created_at ? `
+            <div class="detail-row">
+              <span class="detail-label">Demandée le:</span>
+              <span>${new Date(reservation.created_at).toLocaleDateString('fr-FR')}</span>
             </div>
           ` : ''}
         </div>
@@ -310,32 +373,72 @@ function displayReservations(reservations) {
   });
 
   // Fonction pour afficher une liste de réservations
-  function displayReservationsList(reservations) {
-    if (reservations.length === 0) {
+  function displayReservationsList(reservationsList) {
+    if (reservationsList.length === 0) {
+      const tabType = document.querySelector('.reservation-tab.active').dataset.tab;
+      const message = tabType === 'upcoming' ? 
+        'Aucune réservation à venir.' : 
+        'Aucune réservation passée.';
+      
       container.innerHTML = `
         <div class="no-reservations">
-          Aucune réservation à afficher.
+          ${message}
         </div>
       `;
       return;
     }
 
-    container.innerHTML = reservations
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
+    // Trier par date (plus récent en premier pour upcoming, plus ancien en premier pour past)
+    const sortedReservations = [...reservationsList].sort((a, b) => {
+      const dateA = a.parsedDateTime || new Date(a.date);
+      const dateB = b.parsedDateTime || new Date(b.date);
+      
+      // Pour les réservations à venir, on veut les plus proches en premier
+      // Pour les réservations passées, on veut les plus récentes en premier
+      const isUpcoming = document.querySelector('.reservation-tab.active').dataset.tab === 'upcoming';
+      return isUpcoming ? dateA - dateB : dateB - dateA;
+    });
+
+    container.innerHTML = sortedReservations
       .map(createReservationHTML)
       .join('');
   }
 
   // Afficher les réservations à venir par défaut
   displayReservationsList(upcoming);
+  
+  // Mettre à jour les compteurs dans les onglets
+  updateTabCounts(upcoming.length, past.length);
+}
+
+// Fonction pour mettre à jour les compteurs dans les onglets
+function updateTabCounts(upcomingCount, pastCount) {
+  const upcomingTab = document.querySelector('[data-tab="upcoming"]');
+  const pastTab = document.querySelector('[data-tab="past"]');
+  
+  if (upcomingTab) {
+    upcomingTab.textContent = `À venir (${upcomingCount})`;
+  }
+  if (pastTab) {
+    pastTab.textContent = `Passées (${pastCount})`;
+  }
 }
 
 // Charger les réservations au chargement de la page
 document.addEventListener('DOMContentLoaded', () => {
+  // Vérifier que nous sommes sur la page profile
   if (document.getElementById('profile-content-section')) {
-    loadUserReservations();
+    // Attendre que le profil soit chargé avant de charger les réservations
+    setTimeout(() => {
+      loadUserReservations();
+    }, 500);
   }
 });
+
+// Fonction pour rafraîchir les réservations (utile après une action)
+function refreshReservations() {
+  loadUserReservations();
+}
 </script>
 </body>
 </html>

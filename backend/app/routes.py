@@ -370,8 +370,8 @@ def get_reservations():
             reservations = Reservation.query.order_by(Reservation.id.asc()).all()
         else:
             # Les utilisateurs normaux voient seulement leurs réservations (par email)
-            # Supposons que l'email de l'utilisateur est stocké dans user.email
-            reservations = Reservation.query.filter_by(email=User.email).order_by(Reservation.id.asc()).all()
+            # CORRECTION: utiliser user.email au lieu de User.email
+            reservations = Reservation.query.filter_by(email=user.email).order_by(Reservation.id.asc()).all()
 
         return jsonify([r.to_dict() for r in reservations]), 200
 
