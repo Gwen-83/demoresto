@@ -692,15 +692,30 @@ function startEditFromMap(id) {
   }
 }
 
+function updateCartTotalDisplay(cartTotal) {
+  // Stocker le total de base (sans livraison)
+  window.baseCartTotal = cartTotal;
+  
+  // Vérifier si la livraison est activée
+  const deliveryCheckbox = document.getElementById('delivery-option');
+  const deliveryEnabled = deliveryCheckbox ? deliveryCheckbox.checked : false;
+  
+  let finalTotal = cartTotal;
+  if (deliveryEnabled) {
+    finalTotal += 5.00;
+  }
+  
+  document.getElementById('cart-total').textContent = `Total : ${finalTotal.toFixed(2)}€`;
+}
+
 function loadCart() {
   const token = getToken();
-
   const emptyMessage = document.getElementById('empty-cart-message');
 
   if (!token) {
     const tbody = document.getElementById('cart-body');
     tbody.innerHTML = `<tr><td colspan="5">Veuillez vous connecter pour voir votre panier.</td></tr>`;
-    document.getElementById('cart-total').textContent = "Total : 0.00€";
+    updateCartTotalDisplay(0);
     emptyMessage.style.display = "none";
     return;
   }
@@ -749,17 +764,155 @@ function loadCart() {
       });
     }
 
-    document.getElementById('cart-total').textContent = `Total : ${total.toFixed(2)}€`;
+    // Mettre à jour le total global (avec ou sans livraison)
+    updateCartTotalDisplay(total);
   })
   .catch(err => {
     console.error(err);
     const tbody = document.getElementById('cart-body');
     tbody.innerHTML = `<tr><td colspan="5">Erreur lors du chargement du panier.</td></tr>`;
-    document.getElementById('cart-total').textContent = "Total : 0.00€";
+    updateCartTotalDisplay(0);
     emptyMessage.style.display = "none";
   });
 }
 
+function toggleDelivery() {
+  const checkbox = document.getElementById('delivery-option');
+  const form = document.getElementById('delivery-form');
+  
+  const deliveryEnabled = checkbox.checked;
+  
+  if (deliveryEnabled) {
+    form.classList.add('active');
+    // Définir la date minimale à demain
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    document.getElementById('delivery-date').min = tomorrowStr;
+  } else {
+    form.classList.remove('active');
+    // Réinitialiser les champs
+    clearDeliveryForm();
+  }
+  
+  // Mettre à jour le total
+  updateCartTotalDisplay(window.baseCartTotal || 0);
+}
+
+function clearDeliveryForm() {
+  const fields = [
+    'delivery-email',
+    'delivery-phone',
+    'delivery-address',
+    'delivery-date',
+    'delivery-time',
+    'delivery-instructions'
+  ];
+  
+  fields.forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field) field.value = '';
+  });
+}
+
+function validateDeliveryForm() {
+  const deliveryCheckbox = document.getElementById('delivery-option');
+  if (!deliveryCheckbox || !deliveryCheckbox.checked) return true;
+  
+  const requiredFields = [
+    { id: 'delivery-email', name: 'Email' },
+    { id: 'delivery-phone', name: 'Téléphone' },
+    { id: 'delivery-address', name: 'Adresse' },
+    { id: 'delivery-date', name: 'Date de livraison' },
+    { id: 'delivery-time', name: 'Heure de livraison' }
+  ];
+  
+  for (const field of requiredFields) {
+    const element = document.getElementById(field.id);
+    if (!element || !element.value.trim()) {
+      showNotification(`Veuillez remplir le champ ${field.name}`, "error");
+      if (element) element.focus();
+      return false;
+    }
+  }
+  
+  // Validation email
+  const email = document.getElementById('delivery-email').value;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showNotification("Veuillez saisir un email valide", "error");
+    document.getElementById('delivery-email').focus();
+    return false;
+  }
+  
+  // Validation téléphone (français)
+  const phone = document.getElementById('delivery-phone').value.replace(/\s/g, '');
+  const phoneRegex = /^(?:\+33|0)[1-9](?:[0-9]{8})$/;
+  if (!phoneRegex.test(phone)) {
+    showNotification("Veuillez saisir un numéro de téléphone français valide", "error");
+    document.getElementById('delivery-phone').focus();
+    return false;
+  }
+  
+  // Validation date (pas dans le passé)
+  const selectedDate = new Date(document.getElementById('delivery-date').value);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  if (selectedDate <= today) {
+    showNotification("La date de livraison doit être au minimum demain", "error");
+    document.getElementById('delivery-date').focus();
+    return false;
+  }
+  
+  return true;
+}
+
+function getDeliveryInfo() {
+  const deliveryCheckbox = document.getElementById('delivery-option');
+  if (!deliveryCheckbox || !deliveryCheckbox.checked) return null;
+  
+  return {
+    email: document.getElementById('delivery-email').value.trim(),
+    phone: document.getElementById('delivery-phone').value.trim(),
+    address: document.getElementById('delivery-address').value.trim(),
+    date: document.getElementById('delivery-date').value,
+    time: document.getElementById('delivery-time').value,
+    instructions: document.getElementById('delivery-instructions').value.trim()
+  };
+}
+
+// Fonction pour envoyer les informations de livraison par email
+function sendDeliveryEmail(deliveryInfo, cartItems) {
+  // Créer le contenu de l'email
+  const emailContent = {
+    to: 'restaurant@chezmario.fr', // Remplacez par l'email du restaurant
+    subject: 'Nouvelle commande avec livraison - Chez Mario',
+    deliveryInfo: deliveryInfo,
+    cartItems: cartItems,
+    timestamp: new Date().toLocaleString('fr-FR')
+  };
+  
+  // Envoyer via votre API backend
+  fetch('https://demoresto.onrender.com/api/send-delivery-email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + getToken()
+    },
+    body: JSON.stringify(emailContent)
+  })
+  .then(res => {
+    if (res.ok) {
+      console.log('Email de livraison envoyé avec succès');
+    } else {
+      console.error('Erreur lors de l\'envoi de l\'email de livraison');
+    }
+  })
+  .catch(err => {
+    console.error('Erreur lors de l\'envoi de l\'email:', err);
+  });
+}
 
 document.addEventListener("DOMContentLoaded", function() {
   const form = document.getElementById("form-contact");
@@ -819,6 +972,11 @@ document.addEventListener("DOMContentLoaded", function() {
 const confirmButton = document.getElementById("confirm-order-button");
 if (confirmButton) {
   confirmButton.addEventListener("click", () => {
+    // Valider le formulaire de livraison si nécessaire
+    if (!validateDeliveryForm()) {
+      return;
+    }
+    
     fetch('https://demoresto.onrender.com/api/cart', {
       method: 'GET',
       headers: {
@@ -828,19 +986,44 @@ if (confirmButton) {
     .then(res => res.json())
     .then(cart => {
       if (!cart || cart.length === 0) {
-        showNotification("Votre panier est vide","error");
+        showNotification("Votre panier est vide", "error");
       } else {
-        // Enregistre le panier pour la page paiement
+        const deliveryInfo = getDeliveryInfo();
+        const baseTotal = window.baseCartTotal || 0;
+        const deliveryFee = deliveryInfo ? 5.00 : 0;
+        
+        // Préparer les données de commande
+        const orderData = {
+          cart: cart,
+          delivery: deliveryInfo,
+          baseTotal: baseTotal,
+          deliveryFee: deliveryFee,
+          finalTotal: baseTotal + deliveryFee
+        };
+        
+        // Enregistrer les données pour la page paiement
         localStorage.setItem("cart", JSON.stringify(cart));
-        window.location.href = "paiement.html";
+        localStorage.setItem("orderData", JSON.stringify(orderData));
+        
+        // Envoyer l'email de livraison si activée
+        if (deliveryInfo) {
+          sendDeliveryEmail(deliveryInfo, cart);
+          showNotification("Informations de livraison enregistrées !", "success");
+        }
+        
+        // Rediriger vers la page de paiement
+        setTimeout(() => {
+          window.location.href = "paiement.html";
+        }, 1000);
       }
     })
     .catch(err => {
       console.error("Erreur lors de la récupération du panier :", err);
-      showNotification("Impossible de vérifier le panier","error");
+      showNotification("Impossible de vérifier le panier", "error");
     });
   });
 }
+
 
 function updateEmptyCartMessage() {
   const cartBody = document.getElementById("cart-body");
@@ -1123,7 +1306,6 @@ function redirectToLoginPage() {
   window.location.href = "login.html";
 }
 
-
 // Fonctions de navigation
 function navigateToMenu() {
   window.location.href = "menu.html";
@@ -1146,3 +1328,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     displayUserProfileInformation();
   }
 });
+
+let inactivityTimer;
+const INACTIVITY_LIMIT = 20 * 60 * 1000; // 20 minutes
+
+function resetInactivityTimer() {
+  clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(() => {
+    // Supprimer le token et rediriger l'utilisateur vers la page de connexion
+    localStorage.removeItem("token");
+    showNotification("Vous avez été déconnecté pour cause d'inactivité.", "error");
+    window.location.href = "login.html"; // à adapter selon ton appli
+  }, INACTIVITY_LIMIT);
+}
+
+// Événements utilisateur qui réinitialisent le timer
+["mousemove", "keydown", "click", "scroll"].forEach(event => {
+  document.addEventListener(event, resetInactivityTimer);
+});
+
+resetInactivityTimer(); // Lancer le timer au chargement de la page

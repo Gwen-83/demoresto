@@ -620,3 +620,134 @@ def update_horaires():
 @bp.route('/dashboard')
 def dashboard_page():
     return send_from_directory('static', 'dashboard.html')
+
+def send_email(to_email, subject, html_content, cc_email=None):
+    """Fonction utilitaire pour envoyer des emails"""
+    try:
+        smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+        smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        smtp_user = os.environ.get('SMTP_SENDER')
+        smtp_password = os.environ.get('SMTP_PASSWORD')
+        
+        if not all([smtp_user, smtp_password]):
+            raise ValueError("Configuration SMTP manquante")
+
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = smtp_user
+        msg['To'] = to_email
+        
+        if cc_email:
+            msg['Cc'] = cc_email
+
+        html_part = MIMEText(html_content, 'html', 'utf-8')
+        msg.attach(html_part)
+
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            recipients = [to_email]
+            if cc_email:
+                recipients.append(cc_email)
+            server.send_message(msg, to_addrs=recipients)
+            
+        return True
+    except Exception as e:
+        current_app.logger.error(f"Erreur envoi email: {e}")
+        return False
+
+@bp.route('/api/send-delivery-email', methods=['POST'])
+@jwt_required()
+def send_delivery_email():
+    try:
+        data = request.get_json()
+        delivery_info = data.get('deliveryInfo')
+        cart_items = data.get('cartItems')
+        timestamp = data.get('timestamp')
+        
+        if not all([delivery_info, cart_items]):
+            return jsonify({"error": "Données manquantes"}), 400
+
+        # Construction du HTML de l'email (similaire à votre version Node.js)
+        cart_items_html = ""
+        total_price = 0
+        
+        for item in cart_items:
+            item_total = item['product']['price'] * item['quantity']
+            total_price += item_total
+            cart_items_html += f"""
+                <tr>
+                    <td>{item['product']['name']}</td>
+                    <td>{item['quantity']}</td>
+                    <td>{item['product']['price']:.2f}€</td>
+                    <td>{item_total:.2f}€</td>
+                </tr>
+            """
+
+        email_html = f"""
+            <h2>🚚 Nouvelle commande avec livraison - Chez Mario</h2>
+            
+            <h3>📋 Détails de la commande</h3>
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+                <thead>
+                    <tr style="background-color: #f2f2f2;">
+                        <th>Produit</th>
+                        <th>Quantité</th>
+                        <th>Prix unitaire</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {cart_items_html}
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #f9f9f9; font-weight: bold;">
+                        <td colspan="3">Sous-total</td>
+                        <td>{total_price:.2f}€</td>
+                    </tr>
+                    <tr style="background-color: #f9f9f9; font-weight: bold;">
+                        <td colspan="3">Frais de livraison</td>
+                        <td>5.00€</td>
+                    </tr>
+                    <tr style="background-color: #e6f3ff; font-weight: bold; font-size: 16px;">
+                        <td colspan="3">TOTAL</td>
+                        <td>{total_price + 5:.2f}€</td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <h3>📍 Informations de livraison</h3>
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                <p><strong>📧 Email :</strong> {delivery_info['email']}</p>
+                <p><strong>📞 Téléphone :</strong> {delivery_info['phone']}</p>
+                <p><strong>🏠 Adresse :</strong><br>{delivery_info['address'].replace(chr(10), '<br>')}</p>
+                <p><strong>📅 Date :</strong> {delivery_info['date']}</p>
+                <p><strong>🕐 Heure :</strong> {delivery_info['time']}</p>
+                {f"<p><strong>📝 Instructions :</strong><br>{delivery_info.get('instructions', '').replace(chr(10), '<br>')}</p>" if delivery_info.get('instructions') else ''}
+            </div>
+            
+            <hr style="margin: 20px 0;">
+            <p style="color: #666; font-size: 12px;">
+                <strong>Commande passée le :</strong> {timestamp}<br>
+            </p>
+        """
+
+        # Envoi de l'email
+        restaurant_email = os.environ.get('RECEIVER_EMAIL', 'restaurant@chezmario.fr')
+        subject = f"🚚 Nouvelle commande avec livraison - {delivery_info['date']} à {delivery_info['time']}"
+        
+        success = send_email(
+            to_email=restaurant_email,
+            subject=subject,
+            html_content=email_html,
+            cc_email=delivery_info['email']
+        )
+        
+        if success:
+            return jsonify({"success": True, "message": "Email envoyé avec succès"}), 200
+        else:
+            return jsonify({"success": False, "error": "Erreur lors de l'envoi"}), 500
+            
+    except Exception as e:
+        current_app.logger.error(f"Erreur send_delivery_email: {e}")
+        return jsonify({"success": False, "error": "Erreur serveur"}), 500
