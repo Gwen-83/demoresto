@@ -58,7 +58,12 @@ class Order(db.Model):
             'items': [item.to_dict() for item in self.items],
             'total': round(self.total(), 2)
         }
-    
+
+class TokenBlocklist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    jti = db.Column(db.String(36), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -71,12 +76,6 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-
-
-class TokenBlocklist(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    jti = db.Column(db.String(36), nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Reservation(db.Model):
     __tablename__ = 'reservations'
