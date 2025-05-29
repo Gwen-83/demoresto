@@ -22,7 +22,6 @@ receiver_email=os.getenv("RECEIVER_EMAIL")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 bp = Blueprint("main", __name__)
-bp_chatbot = Blueprint("chatbot", __name__)
 
 @bp.route("/api/products")
 @limiter.limit("5/minute")
@@ -744,7 +743,7 @@ def send_delivery_email():
         current_app.logger.error(f"Erreur send_delivery_email: {e}")
         return jsonify({"success": False, "error": "Erreur serveur"}), 500
 
-@bp_chatbot.route("/chatbot", methods=["POST"])
+@bp.route("/chatbot", methods=["POST"])
 def chatbot():
     data = request.json
     user_message = data.get("message", "")
