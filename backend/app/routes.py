@@ -1055,8 +1055,14 @@ def validate_order_admin(order_id):
         subject = "Votre commande a été validée"
         html_content = f"""
         <p>Bonjour,</p>
-        <p>Votre commande #{order.id} a été <b>validée</b> par le restaurant.</p>
+        <p>Votre commande <b>#{order.id}</b> a été <b>validée</b> par le restaurant.</p>
         <p>Merci pour votre confiance !</p>
+        <hr>
+        <h4>Détails de la commande :</h4>
+        <ul>
+        {''.join(f"<li>{item.quantity} x {item.product.name} ({item.product.price:.2f}€)</li>" for item in order.items)}
+        </ul>
+        <p><b>Total :</b> {order.total():.2f}€</p>
         """
         send_email(order.user.email, subject, html_content)
     return jsonify({"message": "Commande validée."}), 200
@@ -1084,8 +1090,14 @@ def reject_order_admin(order_id):
         subject = "Votre commande a été refusée"
         html_content = f"""
         <p>Bonjour,</p>
-        <p>Nous sommes désolés, votre commande #{order.id} a été <b>refusée</b> par le restaurant.</p>
+        <p>Nous sommes désolés, votre commande <b>#{order.id}</b> a été <b>refusée</b> par le restaurant.</p>
         {f"<p>Motif : {reason}</p>" if reason else ""}
+        <hr>
+        <h4>Détails de la commande :</h4>
+        <ul>
+        {''.join(f"<li>{item.quantity} x {item.product.name} ({item.product.price:.2f}€)</li>" for item in order.items)}
+        </ul>
+        <p><b>Total :</b> {order.total():.2f}€</p>
         <p>Pour toute question, contactez-nous.</p>
         """
         send_email(order.user.email, subject, html_content)
