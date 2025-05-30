@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app, Flask, send_from_directory
-from .models import Product, CartItem, User, TokenBlocklist, Reservation
+from .models import Product, CartItem, User, TokenBlocklist, Reservation, Order
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, create_access_token
@@ -780,30 +780,10 @@ def get_user_order_history():
     try:
         user_id = int(get_jwt_identity())
         
-        # Trouver toutes les commandes associées à cet utilisateur
-        # On cherche les CartItems qui ont un order_id (donc qui font partie d'une commande)
-        cart_items = CartItem.query.filter(
-            CartItem.user_id == user_id,
-            CartItem.order_id.isnot(None)
-        ).all()
-        
-        # Regrouper par commande
-        orders_dict = {}
-        for item in cart_items:
-            if item.order_id not in orders_dict:
-                orders_dict[item.order_id] = {
-                    'order': item.order,
-                    'items': []
-                }
-            orders_dict[item.order_id]['items'].append(item)
-        
-        # Formater les résultats
+        # Récupérer toutes les commandes de l'utilisateur
+        orders = Order.query.filter_by(user_id=user_id).order_by(Order.created_at.desc()).all()
         result = []
-        for order_id, data in orders_dict.items():
-            order = data['order']
-            items = data['items']
-            
-            # Créer un dictionnaire pour chaque commande
+        for order in orders:
             order_data = {
                 'id': order.id,
                 'date': order.created_at.strftime('%d/%m/%Y %H:%M'),
@@ -811,30 +791,19 @@ def get_user_order_history():
                 'items': [],
                 'total': 0
             }
-            
-            # Ajouter les détails de chaque article
-            for item in items:
+            for item in order.items:
                 product = item.product
                 item_total = item.quantity * product.price
                 order_data['total'] += item_total
-                
                 order_data['items'].append({
                     'product_name': product.name,
                     'quantity': item.quantity,
                     'unit_price': product.price,
                     'total_price': item_total
                 })
-            
-            # Arrondir le total à 2 décimales
             order_data['total'] = round(order_data['total'], 2)
-            
             result.append(order_data)
-        
-        # Trier par date (plus récent en premier)
-        result.sort(key=lambda x: x['date'], reverse=True)
-        
         return jsonify(result), 200
-        
     except Exception as e:
         print(f"Erreur lors de la récupération de l'historique des commandes: {e}")
         return jsonify({"error": str(e)}), 500

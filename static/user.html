@@ -481,12 +481,10 @@
 <script>
 // Fonction pour charger les réservations de l'utilisateur
 async function loadUserReservations() {
-  console.log('🔍 Début du chargement des réservations...');
   
   try {
     // Vérifier le token
     const token = localStorage.getItem('token');
-    console.log('🔑 Token présent:', !!token);
     
     if (!token) {
       throw new Error('Non authentifié - aucun token trouvé');
@@ -494,7 +492,6 @@ async function loadUserReservations() {
 
     // Essayer d'abord avec l'URL complète
     const apiUrl = 'https://demoresto.onrender.com/api/reservations';
-    console.log('🌐 Appel API vers:', apiUrl);
     
     const response = await fetch(apiUrl, {
       headers: {
@@ -503,23 +500,16 @@ async function loadUserReservations() {
       }
     });
 
-    console.log('📡 Réponse API - Status:', response.status);
-    console.log('📡 Réponse API - OK:', response.ok);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Erreur API:', errorText);
       throw new Error(`Erreur ${response.status}: ${errorText}`);
     }
 
     const reservations = await response.json();
-    console.log('📋 Réservations reçues:', reservations);
-    console.log('📊 Nombre de réservations:', reservations.length);
 
     displayReservations(reservations);
     
   } catch (error) {
-    console.error('💥 Erreur complète:', error);
     
     // Afficher une erreur plus détaillée
     document.getElementById('reservations-grid').innerHTML = `
@@ -555,7 +545,6 @@ async function loadOrderHistory() {
     }
     
     const orders = await response.json();
-    console.log('Commandes reçues:', orders);
     
     displayOrderHistory(orders);
   } catch (error) {
@@ -707,7 +696,6 @@ async function checkUserInfo() {
 
     // Décoder le token JWT pour voir les infos (basique, sans vérification de signature)
     const payload = JSON.parse(atob(token.split('.')[1]));
-    console.log('👤 Infos utilisateur dans le token:', payload);
     
     // Vérifier les informations utilisateur via l'API
     const response = await fetch('https://demoresto.onrender.com/api/user/profile', {
@@ -719,7 +707,6 @@ async function checkUserInfo() {
 
     if (response.ok) {
       const userInfo = await response.json();
-      console.log('👤 Profil utilisateur:', userInfo);
     } else {
       console.log('❌ Impossible de récupérer le profil utilisateur');
     }
@@ -858,7 +845,6 @@ async function verifyUserAuthentication() {
 // Initialiser au chargement de la page
 document.addEventListener('DOMContentLoaded', async () => {
   if (document.getElementById('profile-content-section')) {
-    console.log('🚀 Initialisation du profil utilisateur...');
     
     try {
       // Vérifier l'authentification de l'utilisateur

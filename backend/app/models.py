@@ -44,8 +44,10 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='en attente')  # ex: "validée", "en cours", etc.
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Ajouté
 
     items = db.relationship('CartItem', backref='order', lazy=True)
+    user = db.relationship('User', backref='orders')  # Ajouté
 
     def total(self):
         return sum(item.quantity * item.product.price for item in self.items)
