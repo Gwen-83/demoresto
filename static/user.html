@@ -569,18 +569,23 @@ function displayOrderHistory(orders) {
   container.innerHTML = orders.map(order => {
     // Correction : utiliser order.created_at (UTC ISO) si disponible
     let dateStr = order.date;
-    if (order.created_at) {
-      // created_at est déjà en UTC ISO (ex: 2024-06-08T11:46:00.000000)
-      // On retire les microsecondes si besoin
+    let heureStr = '';
+    // Ajout : récupération date/heure de livraison ou retrait si dispo
+    if (order.delivery_info) {
+      // Commande avec livraison
+      dateStr = order.delivery_info.date;
+      heureStr = order.delivery_info.time;
+    } else if (order.pickup_info) {
+      // Commande à emporter
+      dateStr = order.pickup_info.date;
+      heureStr = order.pickup_info.time;
+    } else if (order.created_at) {
       let iso = order.created_at.replace(/\.\d+$/, '');
-      // Crée un objet Date en UTC
       const d = new Date(iso + 'Z');
-      // Affiche uniquement la date (sans l'heure)
       dateStr = d.toLocaleDateString('fr-FR', {
         day: '2-digit', month: '2-digit', year: 'numeric'
       });
     } else if (order.date) {
-      // Si order.date contient aussi l'heure (ex: "08/06/2024 11:46"), on ne garde que la date
       dateStr = order.date.split(' ')[0];
     }
 
@@ -593,7 +598,9 @@ function displayOrderHistory(orders) {
     `).join('');
     return `
       <div class="order-card" style="margin-bottom:1rem;padding:1rem;border:1px solid #eee;border-radius:6px;">
-        <div style="font-weight:bold;">Commande #${order.id} - ${dateStr}</div>
+        <div style="font-weight:bold;">
+          Commande #${order.id} - ${dateStr}${heureStr ? ' à ' + heureStr : ''}
+        </div>
         <div style="margin-top:0.5rem;">
           ${itemsList}
         </div>
@@ -623,7 +630,7 @@ async function checkUserInfo() {
       }
     });
 
-    if (response.ok) {
+    if response.ok) {
       const userInfo = await response.json();
     } else {
       console.log('❌ Impossible de récupérer le profil utilisateur');

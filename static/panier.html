@@ -111,6 +111,37 @@
         <textarea id="delivery-instructions" placeholder="Étage, digicode, instructions particulières..."></textarea>
       </div>
     </div>
+
+    <!-- Nouveau : Formulaire de retrait sur place -->
+    <div class="pickup-form" id="pickup-form" style="display: none;">
+      <div class="pickup-info">
+        <strong>🛍️ Retrait sur place</strong>
+        <br>Choisissez la date et l'heure à laquelle vous souhaitez récupérer votre commande.
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="pickup-date">Date de retrait <span class="required">*</span></label>
+          <input type="date" id="pickup-date" required>
+        </div>
+        <div class="form-group">
+          <label for="pickup-time">Heure souhaitée <span class="required">*</span></label>
+          <select id="pickup-time" required>
+            <option value="">Sélectionner une heure</option>
+            <option value="11:30">11h30</option>
+            <option value="12:00">12h00</option>
+            <option value="12:30">12h30</option>
+            <option value="13:00">13h00</option>
+            <option value="13:30">13h30</option>
+            <option value="18:30">18h30</option>
+            <option value="19:00">19h00</option>
+            <option value="19:30">19h30</option>
+            <option value="20:00">20h00</option>
+            <option value="20:30">20h30</option>
+            <option value="21:00">21h00</option>
+          </select>
+        </div>
+      </div>
+    </div>
   </div>
 
   <h2 id="cart-total">Total : 0.00€</h2>
@@ -127,23 +158,39 @@
 
   function toggleDelivery() {
     const checkbox = document.getElementById('delivery-option');
-    const form = document.getElementById('delivery-form');
+    const deliveryForm = document.getElementById('delivery-form');
+    const pickupForm = document.getElementById('pickup-form');
     
     deliveryEnabled = checkbox.checked;
     
     if (deliveryEnabled) {
-      form.classList.add('active');
+      deliveryForm.classList.add('active');
+      pickupForm.style.display = 'none';
       // Définir la date minimale à aujourd'hui
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('delivery-date').min = today;
     } else {
-      form.classList.remove('active');
-      // Réinitialiser les champs
+      deliveryForm.classList.remove('active');
+      // Réinitialiser les champs livraison
       clearDeliveryForm();
+      // Afficher le formulaire de retrait
+      pickupForm.style.display = 'block';
+      // Définir la date minimale à aujourd'hui
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('pickup-date').min = today;
     }
     
     updateCartTotal();
   }
+
+  // Afficher le formulaire de retrait par défaut si livraison décochée au chargement
+  window.addEventListener('DOMContentLoaded', () => {
+    if (!document.getElementById('delivery-option').checked) {
+      document.getElementById('pickup-form').style.display = 'block';
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('pickup-date').min = today;
+    }
+  });
 
   function clearDeliveryForm() {
     document.getElementById('delivery-email').value = '';
@@ -204,6 +251,23 @@
     return true;
   }
 
+  function validatePickupForm() {
+    if (deliveryEnabled) return true;
+    const date = document.getElementById('pickup-date').value;
+    const time = document.getElementById('pickup-time').value;
+    if (!date) {
+      showNotification("Veuillez choisir une date de retrait", "error");
+      document.getElementById('pickup-date').focus();
+      return false;
+    }
+    if (!time) {
+      showNotification("Veuillez choisir une heure de retrait", "error");
+      document.getElementById('pickup-time').focus();
+      return false;
+    }
+    return true;
+  }
+
   function getDeliveryInfo() {
     if (!deliveryEnabled) return null;
     
@@ -214,6 +278,14 @@
       date: document.getElementById('delivery-date').value,
       time: document.getElementById('delivery-time').value,
       instructions: document.getElementById('delivery-instructions').value
+    };
+  }
+
+  function getPickupInfo() {
+    if (deliveryEnabled) return null;
+    return {
+      date: document.getElementById('pickup-date').value,
+      time: document.getElementById('pickup-time').value
     };
   }
 
@@ -241,32 +313,50 @@
     }
   };
 
-  function sendDeliveryEmail(deliveryInfo) {
-    fetch('https://demoresto.onrender.com/api/send-delivery-email', {
+  // Remplacer l'appel à sendDeliveryEmail par sendOrderEmail (généralisé)
+  function sendOrderEmail(orderInfo) {
+    fetch('https://demoresto.onrender.com/api/send-order-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + getToken()
       },
-      body: JSON.stringify({
-        deliveryInfo: deliveryInfo,
-        cartItems: JSON.parse(localStorage.getItem('cart')),
-        timestamp: new Date().toLocaleString('fr-FR')
-      })
+      body: JSON.stringify(orderInfo)
     })
     .then(res => res.json())
     .then(data => {
       if (data.success) {
-        showNotification("Email de livraison envoyé avec succès", "success");
+        showNotification("Confirmation envoyée au restaurant", "success");
       } else {
-        showNotification(data.error || "Erreur lors de l'envoi de l'email", "error");
+        showNotification(data.error || "Erreur lors de l'envoi de la confirmation", "error");
       }
     })
     .catch(err => {
       console.error('Erreur envoi email:', err);
-      showNotification("Erreur lors de l'envoi de l'email", "error");
+      showNotification("Erreur lors de l'envoi de la confirmation", "error");
     });
   }
+
+  // Exemple d'intégration lors de la confirmation de commande :
+  document.getElementById('confirm-order-button').addEventListener('click', function() {
+    // ...vérification panier...
+    if (deliveryEnabled) {
+      if (!validateDeliveryForm()) return;
+    } else {
+      if (!validatePickupForm()) return;
+    }
+    // ...vérification panier vide...
+
+    const orderInfo = {
+      delivery: deliveryEnabled,
+      deliveryInfo: deliveryEnabled ? getDeliveryInfo() : null,
+      pickupInfo: !deliveryEnabled ? getPickupInfo() : null,
+      cartItems: JSON.parse(localStorage.getItem('cart')),
+      timestamp: new Date().toLocaleString('fr-FR')
+    };
+    sendOrderEmail(orderInfo);
+    // ...suite logique de validation commande...
+  });
 </script>
 </body>
 </html>

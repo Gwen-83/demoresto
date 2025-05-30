@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, create_access_token
 import smtplib
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import stripe
 from flask_limiter.util import get_remote_address
 from flask_limiter import Limiter
@@ -833,3 +834,131 @@ def validate_order():
 
     db.session.commit()
     return jsonify({"message": "Commande validée", "order_id": order.id}), 201
+
+@bp.route('/api/send-order-email', methods=['POST'])
+@jwt_required()
+def send_order_email():
+    try:
+        data = request.get_json()
+        delivery = data.get('delivery', False)
+        delivery_info = data.get('deliveryInfo')
+        pickup_info = data.get('pickupInfo')
+        cart_items = data.get('cartItems')
+        timestamp = data.get('timestamp')
+
+        if not cart_items:
+            return jsonify({"error": "Données panier manquantes"}), 400
+
+        # Construction du HTML de l'email
+        cart_items_html = ""
+        total_price = 0
+        for item in cart_items:
+            item_total = item['product']['price'] * item['quantity']
+            total_price += item_total
+            cart_items_html += f"""
+                <tr>
+                    <td>{item['product']['name']}</td>
+                    <td>{item['quantity']}</td>
+                    <td>{item['product']['price']:.2f}€</td>
+                    <td>{item_total:.2f}€</td>
+                </tr>
+            """
+
+        if delivery:
+            # Livraison
+            extra_fees = 5.00
+            total_final = total_price + extra_fees
+            details_html = f"""
+                <h3>📍 Informations de livraison</h3>
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                    <p><strong>📧 Email :</strong> {delivery_info['email']}</p>
+                    <p><strong>📞 Téléphone :</strong> {delivery_info['phone']}</p>
+                    <p><strong>🏠 Adresse :</strong><br>{delivery_info['address'].replace(chr(10), '<br>')}</p>
+                    <p><strong>📅 Date :</strong> {delivery_info['date']}</p>
+                    <p><strong>🕐 Heure :</strong> {delivery_info['time']}</p>
+                    {f"<p><strong>📝 Instructions :</strong><br>{delivery_info.get('instructions', '').replace(chr(10), '<br>')}</p>" if delivery_info.get('instructions') else ''}
+                </div>
+            """
+            date_str = delivery_info['date']
+            time_str = delivery_info['time']
+            client_email = delivery_info['email']
+        else:
+            # Retrait sur place
+            extra_fees = 0
+            total_final = total_price
+            details_html = f"""
+                <h3>🛍️ Retrait sur place</h3>
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                    <p><strong>📅 Date de retrait :</strong> {pickup_info['date']}</p>
+                    <p><strong>🕐 Heure :</strong> {pickup_info['time']}</p>
+                </div>
+            """
+            date_str = pickup_info['date']
+            time_str = pickup_info['time']
+            # On tente de récupérer l'email utilisateur
+            user_id = int(get_jwt_identity())
+            user = User.query.get(user_id)
+            client_email = user.email if user else None
+
+        email_html = f"""
+            <h2>{'🚚 Nouvelle commande avec livraison' if delivery else '🛍️ Nouvelle commande à emporter'} - Chez Mario</h2>
+            <h3>📋 Détails de la commande</h3>
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+                <thead>
+                    <tr style="background-color: #f2f2f2;">
+                        <th>Produit</th>
+                        <th>Quantité</th>
+                        <th>Prix unitaire</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {cart_items_html}
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #f9f9f9; font-weight: bold;">
+                        <td colspan="3">Sous-total</td>
+                        <td>{total_price:.2f}€</td>
+                    </tr>
+                    {f'<tr style="background-color: #f9f9f9; font-weight: bold;"><td colspan="3">Frais de livraison</td><td>5.00€</td></tr>' if delivery else ''}
+                    <tr style="background-color: #e6f3ff; font-weight: bold; font-size: 16px;">
+                        <td colspan="3">TOTAL</td>
+                        <td>{total_final:.2f}€</td>
+                    </tr>
+                </tfoot>
+            </table>
+            {details_html}
+            <hr style="margin: 20px 0;">
+            <p style="color: #666; font-size: 12px;">
+                <strong>Commande passée le :</strong> {timestamp}<br>
+            </p>
+        """
+
+        restaurant_email = os.environ.get('RECEIVER_EMAIL', 'restaurant@chezmario.fr')
+        subject = f"{'🚚 Livraison' if delivery else '🛍️ Retrait'} - {date_str} à {time_str}"
+
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = smtp_sender
+        msg['To'] = restaurant_email
+        if client_email:
+            msg['Cc'] = client_email
+
+        html_part = MIMEText(email_html, 'html', 'utf-8')
+        msg.attach(html_part)
+
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(smtp_sender, smtp_password)
+                recipients = [restaurant_email]
+                if client_email:
+                    recipients.append(client_email)
+                server.send_message(msg, to_addrs=recipients)
+            return jsonify({"success": True, "message": "Email envoyé avec succès"}), 200
+        except Exception as e:
+            current_app.logger.error(f"Erreur envoi email: {e}")
+            return jsonify({"success": False, "error": "Erreur lors de l'envoi de l'email"}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Erreur send_order_email: {e}")
+        return jsonify({"success": False, "error": "Erreur serveur"}), 500
