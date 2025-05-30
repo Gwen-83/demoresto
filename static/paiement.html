@@ -70,19 +70,22 @@
     </thead>
     <tbody id="payment-summary-body"></tbody>
   </table>
-  <!-- Section pourboire -->
-  <div id="tip-section" style="margin: 20px 0;">
-    <h3>Ajouter un pourboire ?</h3>
-    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+  <!-- Section pourboire améliorée -->
+  <div id="tip-section" class="tip-section-box">
+    <div class="tip-title-row">
+      <img src="https://img.icons8.com/fluency/32/tip.png" alt="Pourboire" style="vertical-align:middle;margin-right:8px;">
+      <h3>Ajouter un pourboire&nbsp;?</h3>
+    </div>
+    <div class="tip-buttons-row">
       <button type="button" class="tip-btn" data-tip="5">+5%</button>
       <button type="button" class="tip-btn" data-tip="10">+10%</button>
       <button type="button" class="tip-btn" data-tip="20">+20%</button>
-      <span>Ou montant personnalisé :</span>
-      <input type="number" id="custom-tip" min="0" step="0.01" placeholder="€" style="width: 80px;">
-      <button type="button" id="apply-custom-tip">OK</button>
-      <button type="button" id="remove-tip" style="margin-left:10px;">Retirer le pourboire</button>
+      <span class="tip-or">ou</span>
+      <input type="number" id="custom-tip" min="0" step="0.01" placeholder="Montant (€)" class="tip-custom-input">
+      <button type="button" id="apply-custom-tip" class="tip-custom-btn">OK</button>
+      <button type="button" id="remove-tip" class="tip-remove-btn" title="Retirer le pourboire">✕</button>
     </div>
-    <div id="tip-info" style="margin-top: 8px; color: #2e7d32;"></div>
+    <div id="tip-info" class="tip-info-message"></div>
   </div>
   <h3 id="payment-total">Total : 0.00€</h3>
 </section>
@@ -153,6 +156,14 @@ function clearTip() {
 
 function updateTipInfo() {
   const info = document.getElementById('tip-info');
+  // Mise à jour de la sélection visuelle des boutons
+  document.querySelectorAll('.tip-btn').forEach(btn => {
+    btn.classList.remove('selected');
+    if (tipType === 'percent' && parseInt(btn.dataset.tip) === tipPercent) {
+      btn.classList.add('selected');
+    }
+  });
+  document.getElementById('custom-tip').value = (tipType === 'fixed' && tipValue > 0) ? tipValue : '';
   if (!tipType) {
     info.textContent = '';
     return;
