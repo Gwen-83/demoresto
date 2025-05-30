@@ -70,6 +70,20 @@
     </thead>
     <tbody id="payment-summary-body"></tbody>
   </table>
+  <!-- Section pourboire -->
+  <div id="tip-section" style="margin: 20px 0;">
+    <h3>Ajouter un pourboire ?</h3>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <button type="button" class="tip-btn" data-tip="5">+5%</button>
+      <button type="button" class="tip-btn" data-tip="10">+10%</button>
+      <button type="button" class="tip-btn" data-tip="20">+20%</button>
+      <span>Ou montant personnalisé :</span>
+      <input type="number" id="custom-tip" min="0" step="0.01" placeholder="€" style="width: 80px;">
+      <button type="button" id="apply-custom-tip">OK</button>
+      <button type="button" id="remove-tip" style="margin-left:10px;">Retirer le pourboire</button>
+    </div>
+    <div id="tip-info" style="margin-top: 8px; color: #2e7d32;"></div>
+  </div>
   <h3 id="payment-total">Total : 0.00€</h3>
 </section>
 
@@ -85,12 +99,62 @@ function getToken() {
   return localStorage.getItem('token');
 }
 
+// Ajout : gestion du pourboire
+let tipValue = 0;
+let tipType = null; // "percent" ou "fixed"
+let tipPercent = 0;
+let baseTotal = 0;
+let deliveryFee = 0;
+
+function saveTipToStorage() {
+  localStorage.setItem('tip', JSON.stringify({type: tipType, value: tipValue, percent: tipPercent}));
+}
+function loadTipFromStorage() {
+  const tip = localStorage.getItem('tip');
+  if (tip) {
+    try {
+      const t = JSON.parse(tip);
+      tipType = t.type;
+      tipValue = t.value;
+      tipPercent = t.percent || 0;
+    } catch {}
+  }
+}
+function clearTip() {
+  tipType = null;
+  tipValue = 0;
+  tipPercent = 0;
+  localStorage.removeItem('tip');
+}
+
+function updateTipInfo() {
+  const info = document.getElementById('tip-info');
+  if (!tipType) {
+    info.textContent = '';
+    return;
+  }
+  if (tipType === 'percent') {
+    info.textContent = `Pourboire ajouté : ${tipPercent}% (${tipValue.toFixed(2)}€)`;
+  } else if (tipType === 'fixed') {
+    info.textContent = `Pourboire ajouté : ${tipValue.toFixed(2)}€`;
+  }
+}
+
+function updatePaymentTotalDisplay() {
+  let total = baseTotal;
+  if (deliveryFee) total += deliveryFee;
+  if (tipValue) total += tipValue;
+  document.getElementById('payment-total').textContent = `Total : ${total.toFixed(2)}€`;
+}
+
 function loadPaymentDetails() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
   const orderData = JSON.parse(localStorage.getItem('orderData')) || {};
   const tbody = document.getElementById('payment-summary-body');
   const totalElement = document.getElementById('payment-total');
-  let total = 0;
+  tbody.innerHTML = '';
+  baseTotal = 0;
+  deliveryFee = 0;
 
   cart.forEach(item => {
     const row = document.createElement('tr');
@@ -99,9 +163,8 @@ function loadPaymentDetails() {
         <td>${item.quantity}</td>
         <td>${(item.product.price * item.quantity).toFixed(2)}€</td>
     `;
-
     tbody.appendChild(row);
-    total += item.product.price * item.quantity;
+    baseTotal += item.product.price * item.quantity;
   });
 
   // Ajouter les frais de livraison si activés
@@ -113,45 +176,72 @@ function loadPaymentDetails() {
       <td>5.00€</td>
     `;
     tbody.appendChild(deliveryRow);
-    total += 5.00;
+    deliveryFee = 5.00;
   }
 
-  totalElement.textContent = `Total : ${total.toFixed(2)}€`;
+  // Charger le pourboire depuis le stockage
+  loadTipFromStorage();
+  // Recalcule le montant du pourboire si pourcentage
+  if (tipType === 'percent') {
+    tipValue = ((baseTotal + deliveryFee) * tipPercent / 100);
+  }
+  updateTipInfo();
+
+  // Afficher la ligne pourboire si présent
+  let tipRow = document.getElementById('tip-row');
+  if (tipValue > 0) {
+    if (!tipRow) {
+      tipRow = document.createElement('tr');
+      tipRow.id = 'tip-row';
+      tbody.appendChild(tipRow);
+    }
+    tipRow.innerHTML = `
+      <td>Pourboire</td>
+      <td></td>
+      <td>${tipValue.toFixed(2)}€</td>
+    `;
+  } else if (tipRow) {
+    tipRow.remove();
+  }
+
+  updatePaymentTotalDisplay();
 }
 
-async function clearCartItems() {
-  console.log("Début clearCartItems");
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  console.log('Contenu du panier:', cart);
-
-  if (cart.length === 0) {
-    return Promise.resolve();
+function handleTipButton(percent) {
+  tipType = 'percent';
+  tipPercent = percent;
+  tipValue = ((baseTotal + deliveryFee) * percent / 100);
+  saveTipToStorage();
+  loadPaymentDetails();
+}
+function handleCustomTip() {
+  const val = parseFloat(document.getElementById('custom-tip').value);
+  if (isNaN(val) || val < 0) {
+    alert("Montant invalide");
+    return;
   }
+  tipType = 'fixed';
+  tipValue = val;
+  tipPercent = 0;
+  saveTipToStorage();
+  loadPaymentDetails();
+}
+function handleRemoveTip() {
+  clearTip();
+  loadPaymentDetails();
+}
 
-  const deletePromises = cart.map(item => {
-    console.log('Suppression item avec id:', item.id);
-    return fetch(`https://demoresto.onrender.com/api/cart/${item.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': 'Bearer ' + getToken()
-      }
-    }).then(res => {
-      if (!res.ok) {
-        return res.json().then(err => Promise.reject(err));
-      }
-      return res.json();
+document.addEventListener('DOMContentLoaded', function() {
+  loadPaymentDetails();
+  // Boutons pourboire
+  document.querySelectorAll('.tip-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      handleTipButton(parseInt(this.dataset.tip));
     });
   });
-
-  try {
-    const results = await Promise.all(deletePromises);
-    console.log('Suppression OK', results);
-    localStorage.removeItem('cart');
-  } catch (error) {
-    console.error('Erreur suppression:', error);
-    throw error;
-  }
-}
+  document.getElementById('apply-custom-tip').addEventListener('click', handleCustomTip);
+  document.getElementById('remove-tip').addEventListener('click', handleRemoveTip);
+});
 
 window.onload = loadPaymentDetails;
 </script>
@@ -162,6 +252,7 @@ const stripe = Stripe("pk_test_51RQYw9Alm0wdSVmSEImNmCNmsFrIpyLQYJvj2vcHLRH0abZN
 async function simulatePayment() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
   const orderData = JSON.parse(localStorage.getItem('orderData')) || {};
+  loadTipFromStorage();
 
   // Transformer le panier pour Stripe en incluant les frais de livraison
   const items = cart.map(item => ({
@@ -184,6 +275,20 @@ async function simulatePayment() {
           name: "Frais de livraison"
         },
         unit_amount: 500 // 5.00€ en centimes
+      },
+      quantity: 1
+    });
+  }
+
+  // Ajouter le pourboire si présent
+  if (tipValue > 0) {
+    items.push({
+      price_data: {
+        currency: "eur",
+        product_data: {
+          name: "Pourboire"
+        },
+        unit_amount: Math.round(tipValue * 100)
       },
       quantity: 1
     });
@@ -213,36 +318,14 @@ async function simulatePayment() {
       });
       // Vider le panier local
       localStorage.removeItem('cart');
+      // Vider le pourboire local
+      localStorage.removeItem('tip');
       await stripe.redirectToCheckout({ sessionId: session.id });
     } else {
       showNotification("Erreur Stripe", "error");
     }
   } catch (error) {
     showNotification("Erreur de paiement", "error");
-  }
-}
-
-function showNotification(message, type = "success") {
-  const notif = document.getElementById('notification');
-  const msg = document.getElementById('notification-message');
-
-  if (!notif || !msg) return;
-
-  msg.innerText = message;
-
-  notif.classList.remove('hidden', 'success', 'error', 'info');
-  notif.classList.add(type);
-
-  setTimeout(() => {
-    hideNotification();
-  }, 4000); // Masque automatiquement après 4 sec
-}
-
-function hideNotification() {
-  const notif = document.getElementById('notification');
-  if (notif) {
-    notif.classList.add('hidden');
-    notif.classList.remove('success', 'error', 'info');
   }
 }
 </script>
