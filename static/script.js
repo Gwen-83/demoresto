@@ -1368,3 +1368,47 @@ function resetInactivityTimer() {
 
 resetInactivityTimer(); // Lancer le timer au chargement de la page
 
+function validateDeliveryForm() {
+  const email = document.getElementById('delivery-email').value.trim();
+  const phone = document.getElementById('delivery-phone').value.trim();
+  const address = document.getElementById('delivery-address').value.trim();
+  const date = document.getElementById('delivery-date').value;
+  const time = document.getElementById('delivery-time').value;
+
+  if (!email) {
+    showNotification("Veuillez saisir votre email pour la livraison.", "error");
+    document.getElementById('delivery-email').focus();
+    return false;
+  }
+  if (!phone) {
+    showNotification("Veuillez saisir votre numéro de téléphone pour la livraison.", "error");
+    document.getElementById('delivery-phone').focus();
+    return false;
+  }
+  if (!address) {
+    showNotification("Veuillez saisir votre adresse de livraison.", "error");
+    document.getElementById('delivery-address').focus();
+    return false;
+  }
+  if (!date) {
+    showNotification("Veuillez choisir une date de livraison.", "error");
+    document.getElementById('delivery-date').focus();
+    return false;
+  }
+  if (!time) {
+    showNotification("Veuillez choisir une heure de livraison.", "error");
+    document.getElementById('delivery-time').focus();
+    return false;
+  }
+  // Date pas dans le passé
+  const selectedDate = new Date(date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (selectedDate < today) {
+    showNotification("La date de livraison ne peut pas être dans le passé", "error");
+    document.getElementById('delivery-date').focus();
+    return false;
+  }
+  return true;
+}
+
