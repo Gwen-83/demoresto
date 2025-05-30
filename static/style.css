@@ -3094,10 +3094,10 @@ form#register-form a:hover {
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(153,0,0,0.08);
   padding: 24px 20px 18px 20px;
-  margin: 30px 0 10px 0;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 0 18px 0;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
 }
 
 .tip-title-row {
