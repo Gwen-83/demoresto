@@ -201,16 +201,41 @@
     document.getElementById('delivery-instructions').value = '';
   }
 
+  // Correction : recalculer baseTotal à chaque modification du panier
   function updateCartTotal() {
-    const totalElement = document.getElementById('cart-total');
-    let total = baseTotal;
-    
+    // Recalcule le total du panier à partir des lignes du tableau
+    let total = 0;
+    const cartRows = document.querySelectorAll('#cart-body tr');
+    cartRows.forEach(row => {
+      const totalCell = row.querySelector('td:last-child');
+      if (totalCell) {
+        const match = totalCell.textContent.match(/(\d+[\.,]?\d*)/);
+        if (match) {
+          total += parseFloat(match[1].replace(',', '.'));
+        }
+      }
+    });
+    baseTotal = total;
     if (deliveryEnabled) {
       total += 5.00;
     }
-    
-    totalElement.textContent = `Total : ${total.toFixed(2)}€`;
+    document.getElementById('cart-total').textContent = `Total : ${total.toFixed(2)}€`;
   }
+
+  // Hook sur les modifications du panier pour recalculer le total
+  function observeCartChanges() {
+    const cartBody = document.getElementById('cart-body');
+    const observer = new MutationObserver(() => {
+      updateCartTotal();
+    });
+    observer.observe(cartBody, { childList: true, subtree: true });
+  }
+
+  // Appeler observeCartChanges au chargement
+  window.addEventListener('DOMContentLoaded', () => {
+    // ...existing code...
+    observeCartChanges();
+  });
 
   function validateDeliveryForm() {
     if (!deliveryEnabled) return true;
@@ -346,12 +371,16 @@
       if (!validatePickupForm()) return;
     }
     // ...vérification panier vide...
-
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    if (!cart || cart.length === 0) {
+      showNotification("Votre panier est vide.", "error");
+      return;
+    }
     const orderInfo = {
       delivery: deliveryEnabled,
       deliveryInfo: deliveryEnabled ? getDeliveryInfo() : null,
       pickupInfo: !deliveryEnabled ? getPickupInfo() : null,
-      cartItems: JSON.parse(localStorage.getItem('cart')),
+      cartItems: cart,
       timestamp: new Date().toLocaleString('fr-FR')
     };
     sendOrderEmail(orderInfo);
