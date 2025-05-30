@@ -779,9 +779,13 @@ def send_delivery_email():
 def get_user_order_history():
     try:
         user_id = int(get_jwt_identity())
-        
-        # Récupérer toutes les commandes de l'utilisateur
+        print(f"[DEBUG] get_user_order_history: user_id={user_id}")
+
         orders = Order.query.filter_by(user_id=user_id).order_by(Order.created_at.desc()).all()
+        print(f"[DEBUG] Orders trouvées: {len(orders)}")
+        for o in orders:
+            print(f"[DEBUG] Order id={o.id}, items={len(o.items)}")
+
         result = []
         for order in orders:
             order_data = {
@@ -803,6 +807,7 @@ def get_user_order_history():
                 })
             order_data['total'] = round(order_data['total'], 2)
             result.append(order_data)
+        print(f"[DEBUG] Payload envoyé: {result}")
         return jsonify(result), 200
     except Exception as e:
         print(f"Erreur lors de la récupération de l'historique des commandes: {e}")

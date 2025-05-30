@@ -184,6 +184,15 @@ async function simulatePayment() {
     const session = await response.json();
 
     if (session.id) {
+      // Avant de rediriger vers Stripe, valider la commande côté backend
+      await fetch("https://demoresto.onrender.com/api/validate-order", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + getToken()
+        }
+      });
+      // Vider le panier local
+      localStorage.removeItem('cart');
       await stripe.redirectToCheckout({ sessionId: session.id });
     } else {
       showNotification("Erreur Stripe", "error");
