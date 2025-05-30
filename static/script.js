@@ -1409,3 +1409,4 @@ function resetInactivityTimer() {
 });
 
 resetInactivityTimer(); // Lancer le timer au chargement de la page
+
