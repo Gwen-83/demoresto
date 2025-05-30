@@ -6,143 +6,26 @@
   <link rel="stylesheet" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Raleway&display=swap" rel="stylesheet">
-  <style>
-    /* ...existing code... */
-    .orders-admin-container {
-      background: #fffdf7;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      padding: 30px 20px;
-      max-width: 1100px;
-      margin: 30px auto;
-    }
-    .orders-subtabs {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      justify-content: center;
-    }
-    .order-subtab {
-      padding: 0.6rem 1.5rem;
-      border: none;
-      background: #f5f5f5;
-      color: #900;
-      font-weight: bold;
-      border-radius: 8px 8px 0 0;
-      font-size: 1.1em;
-      cursor: pointer;
-      border-bottom: 3px solid transparent;
-      transition: background 0.2s, color 0.2s, border-bottom 0.2s;
-    }
-    .order-subtab.active {
-      background: #fff;
-      color: #b91c1c;
-      border-bottom: 3px solid #b91c1c;
-    }
-    .order-admin-card {
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      padding: 24px 28px;
-      margin-bottom: 22px;
-      border-left: 6px solid #b91c1c;
-      transition: box-shadow 0.2s;
-    }
-    .order-admin-card .order-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .order-admin-card .order-id {
-      font-weight: bold;
-      color: #b91c1c;
-      font-size: 1.1em;
-    }
-    .order-admin-card .order-status {
-      padding: 0.3em 1em;
-      border-radius: 999px;
-      font-size: 0.95em;
-      font-weight: 600;
-      background: #fef3c7;
-      color: #92400e;
-      margin-left: 10px;
-    }
-    .order-admin-card .order-status.validated {
-      background: #dcfce7;
-      color: #166534;
-    }
-    .order-admin-card .order-status.pending {
-      background: #fef3c7;
-      color: #92400e;
-    }
-    .order-admin-card .order-status.refused {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-    .order-admin-card .order-status.prepared {
-      background: #dbeafe;
-      color: #1e40af;
-    }
-    .order-admin-card .order-details {
-      margin-top: 10px;
-      margin-bottom: 10px;
-      font-size: 0.98em;
-    }
-    .order-admin-card .order-items-list {
-      margin: 0.5em 0 1em 0;
-      padding-left: 1em;
-    }
-    .order-admin-card .order-items-list li {
-      margin-bottom: 2px;
-    }
-    .order-admin-card .order-total {
-      font-weight: bold;
-      color: #b91c1c;
-      margin-top: 0.5em;
-    }
-    .order-admin-card .order-actions {
-      margin-top: 1em;
-      display: flex;
-      gap: 0.7em;
-    }
-    .order-admin-card .order-action-btn {
-      padding: 0.5em 1.2em;
-      border-radius: 6px;
-      font-size: 1em;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .order-admin-card .order-action-btn.validate {
-      background: #28a745;
-      color: #fff;
-    }
-    .order-admin-card .order-action-btn.validate:hover {
-      background: #218838;
-    }
-    .order-admin-card .order-action-btn.reject {
-      background: #dc3545;
-      color: #fff;
-    }
-    .order-admin-card .order-action-btn.reject:hover {
-      background: #c82333;
-    }
-    @media (max-width: 700px) {
-      .orders-admin-container {
-        padding: 10px 2px;
-      }
-      .order-admin-card {
-        padding: 14px 6px;
-      }
-      .order-admin-card .order-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
-      }
-    }
-  </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TKH4D424FE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-TKH4D424FE');
+  </script>
+  <!-- Hotjar Tracking Code for https://demoresto.onrender.com/ -->
+  <script>
+      (function(h,o,t,j,a,r){
+          h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+          h._hjSettings={hjid:6421174,hjsv:6};
+          a=o.getElementsByTagName('head')[0];
+          r=o.createElement('script');r.async=1;
+          r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+          a.appendChild(r);
+      })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+  </script>
 </head>
 <body>
 <div id="notification" class="notification hidden">
