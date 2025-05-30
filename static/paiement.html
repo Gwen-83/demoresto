@@ -95,6 +95,30 @@
 </section>
 
 <script>
+function showNotification(message, type = "success") {
+  const notif = document.getElementById('notification');
+  const msg = document.getElementById('notification-message');
+  if (!notif || !msg) return;
+  msg.innerText = message;
+  notif.classList.remove('hidden', 'success', 'error', 'info');
+  notif.classList.add(type);
+  setTimeout(() => {
+    hideNotification();
+  }, 4000);
+}
+function hideNotification() {
+  const notif = document.getElementById('notification');
+  if (notif) {
+    notif.classList.add('hidden');
+    notif.classList.remove('success', 'error', 'info');
+  }
+}
+
+if (!token || !cart || cart.length === 0) {
+  // Redirection AVANT chargement de la page
+  window.location.href = "panier.html?error=unauthorized";
+}
+
 function getToken() {
   return localStorage.getItem('token');
 }
