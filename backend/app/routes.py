@@ -325,7 +325,7 @@ def send_reservation():
         db.session.rollback()
         return jsonify({"error": "Erreur lors de la sauvegarde."}), 500
 
-    # Envoyer l'email de notification à l'admin
+    # Email admin (texte simple)
     message = f"""
     Nouvelle réservation reçue (ID: {reservation_id}) :
 
@@ -350,6 +350,25 @@ def send_reservation():
             server.send_message(msg)
     except Exception as e:
         print(f"Erreur envoi email: {e}")  # Log l'erreur mais ne fait pas échouer la réservation
+
+    # Email client (HTML)
+    html_content = f"""
+    <h2>Votre demande de réservation a bien été reçue !</h2>
+    <p>Bonjour,</p>
+    <p>Merci d'avoir réservé chez <b>Chez Mario</b>. Voici un récapitulatif de votre demande :</p>
+    <ul>
+        <li><b>Date :</b> {date}</li>
+        <li><b>Heure :</b> {heure}</li>
+        <li><b>Nombre de couverts :</b> {couverts}</li>
+        <li><b>Téléphone :</b> {tel}</li>
+        {f"<li><b>Commentaire :</b> {commentaire}</li>" if commentaire else ""}
+    </ul>
+    <p>Nous vous confirmerons votre réservation par email dans les plus brefs délais.<br>
+    Merci pour votre confiance !</p>
+    <hr>
+    <p style="font-size:12px;color:#888;">Ceci est un accusé de réception automatique. Pour toute question, contactez-nous.</p>
+    """
+    send_email(sender_email, "Votre demande de réservation chez Chez Mario", html_content)
 
     return jsonify({
         "message": "Réservation envoyée avec succès.",
@@ -432,33 +451,21 @@ def validate_reservation(reservation_id):
         reservation.status = 'validee'
         db.session.commit()
         
-        # Envoyer un email de confirmation au client
-        message = f"""
-        Bonjour,
-
-        Votre réservation chez Mario a été confirmée !
-
-        Détails de votre réservation :
-        - Date : {reservation.date}
-        - Heure : {reservation.heure}
-        - Nombre de couverts : {reservation.couverts}
-
-        Nous vous attendons avec plaisir !
-
-        L'équipe Chez Mario
+        # Envoyer un email de confirmation au client (HTML)
+        html_content = f"""
+        <h2>Votre réservation chez Chez Mario est confirmée !</h2>
+        <p>Bonjour,</p>
+        <p>Nous avons le plaisir de vous confirmer votre réservation :</p>
+        <ul>
+            <li><b>Date :</b> {reservation.date}</li>
+            <li><b>Heure :</b> {reservation.heure}</li>
+            <li><b>Nombre de couverts :</b> {reservation.couverts}</li>
+        </ul>
+        <p>Nous vous attendons avec plaisir !</p>
+        <hr>
+        <p style="font-size:12px;color:#888;">Pour toute question, contactez-nous.<br>L'équipe Chez Mario</p>
         """
-        
-        msg = MIMEText(message)
-        msg['Subject'] = 'Réservation confirmée - Chez Mario'
-        msg['From'] = smtp_sender
-        msg['To'] = reservation.email
-        
-        try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                server.login(smtp_sender, smtp_password)
-                server.send_message(msg)
-        except Exception as e:
-            print(f"Erreur envoi email confirmation: {e}")
+        send_email(reservation.email, "Confirmation de votre réservation - Chez Mario", html_content)
         
         return jsonify({"message": "Réservation validée avec succès."}), 200
         
@@ -491,35 +498,17 @@ def reject_reservation(reservation_id):
             reservation.commentaire_admin = reason  # Nouveau champ pour stocker le motif
         db.session.commit()
         
-        # Envoyer un email au client
-        message = f"""
-        Bonjour,
-
-        Nous sommes désolés mais votre réservation du {reservation.date} à {reservation.heure} n'a pas pu être confirmée.
-        
+        # Envoyer un email au client (HTML)
+        html_content = f"""
+        <h2>Votre réservation chez Chez Mario n'a pas pu être confirmée</h2>
+        <p>Bonjour,</p>
+        <p>Nous sommes désolés, votre demande de réservation du <b>{reservation.date}</b> à <b>{reservation.heure}</b> n'a pas pu être confirmée.</p>
+        {f"<p><b>Motif :</b> {reason}</p>" if reason else ""}
+        <p>N'hésitez pas à nous contacter pour une nouvelle réservation.</p>
+        <hr>
+        <p style="font-size:12px;color:#888;">L'équipe Chez Mario - 04 68 12 34 56</p>
         """
-        
-        if reason:
-            message += f"Motif : {reason}\n\n"
-        
-        message += """
-        N'hésitez pas à nous contacter pour une nouvelle réservation.
-
-        L'équipe Chez Mario
-        04 68 12 34 56
-        """
-        
-        msg = MIMEText(message)
-        msg['Subject'] = 'Réservation non confirmée - Chez Mario'
-        msg['From'] = smtp_sender
-        msg['To'] = reservation.email
-        
-        try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                server.login(smtp_sender, smtp_password)
-                server.send_message(msg)
-        except Exception as e:
-            print(f"Erreur envoi email refus: {e}")
+        send_email(reservation.email, "Votre réservation n'a pas pu être confirmée - Chez Mario", html_content)
         
         return jsonify({"message": "Réservation refusée."}), 200
         
@@ -546,6 +535,7 @@ def send_contact():
     if not is_valid_email(sender_email):
         return jsonify({"error": "Adresse e-mail invalide."}), 400
 
+    # Email admin (texte simple)
     message = f"""
     Nouveau message de contact :
 
@@ -565,9 +555,29 @@ def send_contact():
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(smtp_sender, smtp_password)
             server.send_message(msg)
-        return jsonify({"message": "Contact envoyée avec succès."}), 200
     except Exception as e:
         return jsonify({"error": "Échec de l'envoi de l'email."}), 500
+
+    # Email client (HTML)
+    html_content = f"""
+    <h2>Votre message a bien été reçu !</h2>
+    <p>Bonjour {prenom},</p>
+    <p>Merci de nous avoir contactés via notre site <b>Chez Mario</b>.</p>
+    <p>Nous avons bien reçu votre message et nous vous répondrons dans les plus brefs délais.</p>
+    <hr>
+    <p><b>Récapitulatif de votre demande :</b></p>
+    <ul>
+        <li><b>Nom :</b> {prenom} {nom}</li>
+        <li><b>Email :</b> {sender_email}</li>
+        <li><b>Objet :</b> {objet}</li>
+        <li><b>Message :</b> {message_content}</li>
+    </ul>
+    <hr>
+    <p style="font-size:12px;color:#888;">Ceci est un accusé de réception automatique. Pour toute question, contactez-nous.</p>
+    """
+    send_email(sender_email, "Votre message a bien été reçu - Chez Mario", html_content)
+
+    return jsonify({"message": "Contact envoyée avec succès."}), 200
 
 
 @bp.route('/create-checkout-session', methods=['POST'])
@@ -1050,19 +1060,23 @@ def validate_order_admin(order_id):
     order.status = 'validee'
     db.session.commit()
 
-    # Envoi d'un email de confirmation à l'utilisateur
+    # Envoi d'un email de confirmation à l'utilisateur (HTML)
     if order.user and order.user.email:
         subject = "Votre commande a été validée"
+        items_html = ''.join(f"<li>{item.quantity} x {item.product.name} ({item.product.price:.2f}€)</li>" for item in order.items)
         html_content = f"""
+        <h2>Votre commande chez Chez Mario est validée !</h2>
         <p>Bonjour,</p>
         <p>Votre commande <b>#{order.id}</b> a été <b>validée</b> par le restaurant.</p>
-        <p>Merci pour votre confiance !</p>
         <hr>
         <h4>Détails de la commande :</h4>
         <ul>
-        {''.join(f"<li>{item.quantity} x {item.product.name} ({item.product.price:.2f}€)</li>" for item in order.items)}
+        {items_html}
         </ul>
         <p><b>Total :</b> {order.total():.2f}€</p>
+        <p>Merci pour votre confiance !</p>
+        <hr>
+        <p style="font-size:12px;color:#888;">Pour toute question, contactez-nous.<br>L'équipe Chez Mario</p>
         """
         send_email(order.user.email, subject, html_content)
     return jsonify({"message": "Commande validée."}), 200
@@ -1085,20 +1099,24 @@ def reject_order_admin(order_id):
     order.status = 'refusee'
     db.session.commit()
 
-    # Envoi d'un email de refus à l'utilisateur
+    # Envoi d'un email de refus à l'utilisateur (HTML)
     if order.user and order.user.email:
         subject = "Votre commande a été refusée"
+        items_html = ''.join(f"<li>{item.quantity} x {item.product.name} ({item.product.price:.2f}€)</li>" for item in order.items)
         html_content = f"""
+        <h2>Votre commande chez Chez Mario n'a pas pu être validée</h2>
         <p>Bonjour,</p>
         <p>Nous sommes désolés, votre commande <b>#{order.id}</b> a été <b>refusée</b> par le restaurant.</p>
-        {f"<p>Motif : {reason}</p>" if reason else ""}
+        {f"<p><b>Motif :</b> {reason}</p>" if reason else ""}
         <hr>
         <h4>Détails de la commande :</h4>
         <ul>
-        {''.join(f"<li>{item.quantity} x {item.product.name} ({item.product.price:.2f}€)</li>" for item in order.items)}
+        {items_html}
         </ul>
         <p><b>Total :</b> {order.total():.2f}€</p>
         <p>Pour toute question, contactez-nous.</p>
+        <hr>
+        <p style="font-size:12px;color:#888;">L'équipe Chez Mario</p>
         """
         send_email(order.user.email, subject, html_content)
     return jsonify({"message": "Commande refusée."}), 200
