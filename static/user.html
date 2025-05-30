@@ -618,8 +618,8 @@ function displayOrderHistory(orders) {
     
     // Formatter le statut pour l'affichage
     const displayStatus = {
-      'en attente': 'En attente',
-      'en cours': 'En cours',
+      'en_attente': 'En attente',
+      'en_cours': 'En cours',
       'terminée': 'Terminée',
       'livrée': 'Livrée',
       'annulée': 'Annulée'
@@ -662,8 +662,9 @@ function displayOrderHistory(orders) {
           
           <div class="order-details" id="order-details-${index}">
             <div class="detail-section">
-              <div class="detail-title">Informations de livraison</div>
+              <div class="detail-title">Informations de commande</div>
               <div>Statut: ${displayStatus}</div>
+              <div>Date: ${order.date}</div>
             </div>
           </div>
         </div>
@@ -829,6 +830,31 @@ function displayReservations(reservations) {
   displayReservationsList(upcoming);
 }
 
+async function verifyUserAuthentication() {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Non authentifié');
+    }
+
+    const response = await fetch('https://demoresto.onrender.com/api/verify-token', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Token invalide');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erreur d\'authentification:', error);
+    window.location.href = '/login.html';
+    return false;
+  }
+}
+
 // Initialiser au chargement de la page
 document.addEventListener('DOMContentLoaded', async () => {
   if (document.getElementById('profile-content-section')) {
@@ -856,6 +882,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 });
+
+async function displayUserProfileInformation() {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch('https://demoresto.onrender.com/api/user/profile', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Erreur lors de la récupération des informations du profil');
+    }
+
+    const userInfo = await response.json();
+    
+    document.getElementById('username-info-display').textContent = userInfo.username;
+    document.getElementById('user-role-display').textContent = userInfo.is_admin ? 'Administrateur' : 'Client';
+    document.getElementById('user-avatar-display').textContent = userInfo.username.charAt(0).toUpperCase();
+    document.getElementById('profile-welcome-message').textContent = `Bienvenue, ${userInfo.username} !`;
+  } catch (error) {
+    console.error('Erreur:', error);
+    displayErrorMessage("Erreur lors du chargement des informations du profil");
+  }
+}
 </script>
 </body>
 </html>
