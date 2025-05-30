@@ -79,12 +79,22 @@ class User(db.Model):
     password_hash = db.Column(db.Text, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    allergenes_exclus = db.Column(db.String(255), default="")  # Allergènes à éviter (séparés par virgule)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+            "is_admin": self.is_admin,
+            "allergenes_exclus": self.allergenes_exclus.split(',') if self.allergenes_exclus else []
+        }
 
 class Reservation(db.Model):
     __tablename__ = 'reservations'

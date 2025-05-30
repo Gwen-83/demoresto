@@ -385,15 +385,31 @@ def get_user_profile():
         if not user:
             return jsonify({"error": "Utilisateur introuvable"}), 404
 
-        return jsonify({
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "is_admin": user.is_admin
-        }), 200
+        return jsonify(user.to_dict()), 200
 
     except Exception as e:
         print("Erreur serveur dans /api/user/profile :", e)
+        return jsonify({"error": str(e)}), 500
+
+@bp.route("/api/user/profile", methods=["PUT"])
+@jwt_required()
+def update_user_profile():
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "Utilisateur introuvable"}), 404
+
+        data = request.get_json() or {}
+        allergenes_exclus = data.get("allergenes_exclus")
+        if isinstance(allergenes_exclus, list):
+            user.allergenes_exclus = ",".join(allergenes_exclus)
+        elif isinstance(allergenes_exclus, str):
+            user.allergenes_exclus = allergenes_exclus
+        db.session.commit()
+        return jsonify(user.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
 @bp.route("/api/reservations", methods=["GET"])

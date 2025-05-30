@@ -1,65 +1,46 @@
-// Slider
+// --- SLIDER ---
+// Gère l'affichage automatique des slides sur la page d'accueil
 const slides = document.querySelectorAll('.slide');
 let index = 0;
-
 function showSlide(i) {
-  slides.forEach((slide, idx) => {
-    slide.classList.toggle('active', idx === i);
-  });
+  slides.forEach((slide, idx) => slide.classList.toggle('active', idx === i));
 }
-
 function nextSlide() {
   index = (index + 1) % slides.length;
   showSlide(index);
 }
-
 setInterval(nextSlide, 4000);
 
+// --- MENU BURGER (mobile) ---
+// Affiche/masque la navigation latérale sur mobile
 document.addEventListener('DOMContentLoaded', () => {
   const toggleButton = document.querySelector('.menu-toggle');
   const navLeft = document.querySelector('.nav-left');
-
-  toggleButton.addEventListener('click', () => {
-    navLeft.classList.toggle('show');
-  });
+  toggleButton.addEventListener('click', () => navLeft.classList.toggle('show'));
 });
 
-// Auth utils
-function getToken() {
-  return localStorage.getItem('token');
-}
+// --- AUTHENTIFICATION ---
+// Gestion du token utilisateur dans le localStorage
+function getToken() { return localStorage.getItem('token'); }
+function setToken(token) { localStorage.setItem('token', token); }
 
-function setToken(token) {
-  localStorage.setItem('token', token);
-}
-
+// Déconnexion utilisateur, redirige si admin sur page admin
 function logout() {
-  const token = localStorage.getItem('token');
+  const token = getToken();
   const currentPage = window.location.pathname;
-
   let wasAdmin = false;
-
   if (token) {
-    // Vérifie le rôle de l'utilisateur avant de supprimer le token
     fetch('https://demoresto.onrender.com/api/verify-token', {
-      headers: {
-        'Authorization': 'Bearer ' + token
-      }
+      headers: { 'Authorization': 'Bearer ' + token }
     })
     .then(res => res.ok ? res.json() : null)
-    .then(data => {
-      if (data && data.role === 'admin') {
-        wasAdmin = true;
-      }
-    })
+    .then(data => { if (data && data.role === 'admin') wasAdmin = true; })
     .finally(() => {
-      // Nettoyage côté client uniquement
       localStorage.removeItem('token');
       localStorage.removeItem('username');
       updateAuthButton();
       const status = document.getElementById('user-status');
       if (status) status.innerText = '';
-
       if (wasAdmin && currentPage.includes('admin.html')) {
         window.location.href = 'index.html';
       } else {
@@ -67,7 +48,6 @@ function logout() {
       }
     });
   } else {
-    // Pas de token : comportement par défaut
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     updateAuthButton();
@@ -77,19 +57,16 @@ function logout() {
   }
 }
 
+// Met à jour le bouton Connexion/Déconnexion selon l'état utilisateur
 function updateAuthButton() {
   const btn = document.getElementById('auth-button');
   const status = document.getElementById('user-status');
   const username = localStorage.getItem('username');
-  const token = localStorage.getItem('token');
-
+  const token = getToken();
   if (!btn) return;
-
   if (username && token) {
     fetch('https://demoresto.onrender.com/api/verify-token', {
-      headers: {
-        'Authorization': 'Bearer ' + token
-      }
+      headers: { 'Authorization': 'Bearer ' + token }
     })
     .then(res => {
       if (res.ok) {
@@ -97,75 +74,48 @@ function updateAuthButton() {
           btn.textContent = 'Déconnexion';
           btn.onclick = logout;
           if (status) status.innerText = `Connecté à : ${username}`;
-
-          // 👇 Affiche le lien admin si l'utilisateur est admin
           if (data.role === 'admin') {
             const adminLink = document.getElementById('admin-link');
             if (adminLink) adminLink.style.display = 'inline-block';
           }
         });
-      }else {
-        logout(); // Token invalide
+      } else {
+        logout();
       }
     })
-    .catch(() => logout()); // Erreur réseau
+    .catch(() => logout());
   } else {
     btn.textContent = 'Connexion';
     btn.onclick = () => window.location.href = 'login.html';
     if (status) status.innerText = 'Déconnecté';
   }
 }
-
-
 window.addEventListener('DOMContentLoaded', updateAuthButton);
 
-// Affichage du panier
-if (window.location.pathname.includes('panier.html')) {
-  loadCart();
-}
+// --- PANIER ---
+// Chargement du panier si sur la page panier
+if (window.location.pathname.includes('panier.html')) loadCart();
 
+// Met à jour la quantité d'un article dans le panier
 function setQuantity(itemId, newQuantity) {
   newQuantity = parseInt(newQuantity);
-  if (isNaN(newQuantity)) {
-    loadCart(); // Remet la quantité précédente
-    return;
-  }
-
+  if (isNaN(newQuantity)) { loadCart(); return; }
   updateCart(itemId, newQuantity);
 }
 
+// Incrémente/décrémente la quantité d'un article
 function changeQuantity(itemId, currentQuantity, delta) {
-  let newQuantity = currentQuantity + delta;
-  if (newQuantity > 30) {
-    newQuantity = 30;
-  }
-  if (newQuantity < 1) {
-    newQuantity = 1;
-  }
+  let newQuantity = Math.max(1, Math.min(30, currentQuantity + delta));
   updateCart(itemId, newQuantity);
 }
 
+// Met à jour la quantité côté serveur et recharge le panier
 function updateCart(cartItemId, newQuantity) {
-  if (newQuantity > 30) {
-    // Met à jour visuellement l’input s'il existe
+  if (newQuantity > 30 || newQuantity < 1) {
     const input = document.querySelector(`input.quantity-input[onchange*="setQuantity(${cartItemId}"]`);
-    if (input) {
-      input.value = 30;
-    }
-
+    if (input) input.value = Math.max(1, Math.min(30, newQuantity));
     return;
   }
-
-  if (newQuantity < 1) {
-    // Rétablit la valeur minimale dans l'input
-    const input = document.querySelector(`input.quantity-input[onchange*="setQuantity(${cartItemId}"]`);
-    if (input) {
-      input.value = 1;
-    }
-
-    return;
-  }
-  // Si la quantité est valide, on fait la requête
   fetch(`https://demoresto.onrender.com/api/cart/${cartItemId}`, {
     method: 'PUT',
     headers: {
@@ -175,69 +125,51 @@ function updateCart(cartItemId, newQuantity) {
     body: JSON.stringify({ quantity: newQuantity })
   })
   .then(res => res.json())
-  .then(() => {
-    loadCart();
-  });
+  .then(() => loadCart());
 }
 
+// Vide tous les articles du panier côté serveur et localStorage
 async function clearCartItems() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-  // S'il n'y a rien à supprimer
-  if (cart.length === 0) {
-    return Promise.resolve();
-  }
-
-  // Supprime chaque item via son ID (on suppose item.id est bien présent dans chaque élément)
+  if (cart.length === 0) return Promise.resolve();
   const deletePromises = cart.map(item =>
     fetch(`https://demoresto.onrender.com/api/cart/${item.id}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': 'Bearer ' + getToken()
-      }
+      headers: { 'Authorization': 'Bearer ' + getToken() }
     })
   );
-
-  // Attends que toutes les suppressions soient terminées
   await Promise.all(deletePromises);
-
-  // Vide aussi localStorage côté client si nécessaire
   localStorage.removeItem('cart');
-
   return Promise.resolve();
 }
 
+// Supprime un article du panier
 function removeFromCart(cartItemId) {
   fetch(`https://demoresto.onrender.com/api/cart/${cartItemId}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': 'Bearer ' + getToken()
-    }
+    headers: { 'Authorization': 'Bearer ' + getToken() }
   })
   .then(() => location.reload());
 }
 
+// --- NOTIFICATIONS ---
+// Affiche une notification temporaire
 function showNotification(message, type = "success") {
   const notif = document.getElementById('notification');
   const msg = document.getElementById('notification-message');
-
   if (!notif || !msg) return;
-
   msg.innerText = message;
-
   notif.classList.remove('hidden', 'success', 'error', 'info');
   notif.classList.add(type);
-
-  setTimeout(() => {
-    hideNotification();
-  }, 4000); // Masque automatiquement après 4 sec
+  setTimeout(hideNotification, 4000);
 }
-
 function hideNotification() {
   const notif = document.getElementById('notification');
   if (notif) notif.classList.add('hidden');
 }
 
+// --- LOGIN ---
+// Connexion utilisateur, stockage du token et redirection selon le rôle
 async function loginUser(username, password, redirectAfterLogin = true) {
   try {
     const res = await fetch("/api/login", {
@@ -245,32 +177,19 @@ async function loginUser(username, password, redirectAfterLogin = true) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
     });
-
     const data = await res.json();
-
     if (res.ok && data.access_token) {
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('username', username);
-
       if (redirectAfterLogin) {
         const roleRes = await fetch('/api/verify-token', {
-          headers: {
-            'Authorization': 'Bearer ' + data.access_token
-          }
+          headers: { 'Authorization': 'Bearer ' + data.access_token }
         });
-
         const info = await roleRes.json();
-
-        if (info.role === 'admin') {
-          window.location.href = "/admin.html";
-        } else {
-          window.location.href = "/index.html";
-        }
+        window.location.href = info.role === 'admin' ? "/admin.html" : "/index.html";
       }
     } else {
-      // Affiche le message renvoyé par le backend
-      const message = data.message || "Échec de la connexion.";
-      showNotification(message, "error");
+      showNotification(data.message || "Échec de la connexion.", "error");
     }
   } catch (err) {
     console.error("Erreur lors de la connexion :", err);
@@ -278,170 +197,97 @@ async function loginUser(username, password, redirectAfterLogin = true) {
   }
 }
 
+// --- FILTRES PRODUITS ---
+// Récupère les filtres actifs (tags, allergènes)
 function getActiveFilters() {
-  const filters = {
-    tags: [],
-    allergens: []
-  };
-  
-  // Récupérer les filtres de tags
-  const tagCheckboxes = document.querySelectorAll('.filter-tag:checked');
-  tagCheckboxes.forEach(cb => {
-    filters.tags.push(cb.value);
-  });
-  
-  // Récupérer les filtres d'allergènes
-  const allergenCheckboxes = document.querySelectorAll('.filter-allergen:checked');
-  allergenCheckboxes.forEach(cb => {
-    filters.allergens.push(cb.value);
-  });
-  
+  const filters = { tags: [], allergens: [] };
+  document.querySelectorAll('.filter-tag:checked').forEach(cb => filters.tags.push(cb.value));
+  document.querySelectorAll('.filter-allergen:checked').forEach(cb => filters.allergens.push(cb.value));
   return filters;
 }
 
+// Vérifie si un produit correspond aux filtres actifs
 function productMatchesFilters(product, filters) {
-  // Si aucun filtre n'est actif, afficher tous les produits
-  if (filters.tags.length === 0 && filters.allergens.length === 0) {
-    return true;
-  }
-  
-  // Vérifier les tags
-  if (filters.tags.length > 0) {
-    const productTags = product.tags || [];
-    const hasMatchingTag = filters.tags.some(tag => productTags.includes(tag));
-    if (!hasMatchingTag) return false;
-  }
-  
-  // Vérifier les allergènes
-  if (filters.allergens.length > 0) {
-    const productAllergens = product.allergens || [];
-    const hasExcludedAllergen = filters.allergens.some(allergen => 
-      productAllergens.includes(allergen)
-    );
-    if (hasExcludedAllergen) return false;
-  }
-  
+  if (filters.tags.length === 0 && filters.allergens.length === 0) return true;
+  if (filters.tags.length > 0 && !filters.tags.some(tag => (product.tags || []).includes(tag))) return false;
+  if (filters.allergens.length > 0 && filters.allergens.some(allergen => (product.allergens || []).includes(allergen))) return false;
   return true;
 }
 
-document.querySelectorAll('.filter-tag, .filter-allergen').forEach(cb => {
-  cb.addEventListener('change', () => {
-    document.getElementById('menu-container').innerHTML = ''; // Reset
-    fetchAndRenderProducts(); // Rappelle la fonction principale de rendu
-  });
-});
-
+// Rafraîchit la liste des produits selon les filtres
 function fetchAndRenderProducts() {
   fetch('https://demoresto.onrender.com/api/products')
     .then(response => response.json())
     .then(products => {
       const menuContainer = document.getElementById('menu-container');
-      
-      // Vérifier si l'élément existe avant de le manipuler
-      if (!menuContainer) {
-        console.warn("Élément #menu-container non trouvé");
-        return;
-      }
-      
-      menuContainer.innerHTML = ''; // Vide le menu avant tout
-
-      const categories = {
-        entree: [],
-        plat: [],
-        dessert: [],
-        boisson: []
-      };
-
+      if (!menuContainer) { console.warn("Élément #menu-container non trouvé"); return; }
+      menuContainer.innerHTML = '';
+      const categories = { entree: [], plat: [], dessert: [], boisson: [] };
       const filters = getActiveFilters();
       products.forEach(product => {
         if (!productMatchesFilters(product, filters)) return;
-
         const cat = product.category?.toLowerCase();
-        if (cat && categories[cat]) {
-          categories[cat].push(product);
-        }
+        if (cat && categories[cat]) categories[cat].push(product);
       });
-
       const hasProducts = Object.values(categories).some(items => items.length > 0);
       const noProductsMessage = document.getElementById('no-products-message');
       if (noProductsMessage) {
-        if (!hasProducts) {
-          noProductsMessage.style.display = 'block';
-          return;
-        } else {
-          noProductsMessage.style.display = 'none';
-        }
+        noProductsMessage.style.display = hasProducts ? 'none' : 'block';
+        if (!hasProducts) return;
       }
-
       for (const [category, items] of Object.entries(categories)) {
         if (items.length === 0) continue;
-        
         const section = document.createElement('section');
         section.id = category + 's';
         section.classList.add('menu-section');
-
         const title = document.createElement('h2');
         title.textContent = capitalize(category);
         section.appendChild(title);
-
         const itemsContainer = document.createElement('div');
         itemsContainer.classList.add('menu-items');
-
         items.forEach(product => {
           const itemDiv = document.createElement('div');
           itemDiv.classList.add('menu-item');
-
           const img = document.createElement('img');
           img.src = product.image || 'public/placeholder.jpg';
           img.alt = product.name;
           itemDiv.appendChild(img);
-
           const name = document.createElement('h3');
           name.textContent = product.name;
           itemDiv.appendChild(name);
-
           const desc = document.createElement('p');
           desc.textContent = product.description;
           itemDiv.appendChild(desc);
-
           const price = document.createElement('span');
           price.classList.add('prix');
           price.textContent = `${product.price.toFixed(2)}€`;
           itemDiv.appendChild(price);
-
           const actionDiv = document.createElement('div');
           actionDiv.classList.add('product-action');
-
           const qtyInput = document.createElement('input');
           qtyInput.type = 'number';
           qtyInput.min = '1';
           qtyInput.value = '1';
           qtyInput.classList.add('product-qty');
           actionDiv.appendChild(qtyInput);
-
           const button = document.createElement('button');
           button.classList.add('add-to-cart');
           button.textContent = 'Ajouter au panier';
           button.setAttribute('data-name', product.name);
           button.setAttribute('data-price', product.price);
           actionDiv.appendChild(button);
-
           itemDiv.appendChild(actionDiv);
           itemsContainer.appendChild(itemDiv);
         });
-
         section.appendChild(itemsContainer);
         menuContainer.appendChild(section);
       }
-
-      // Ajouter les event listeners aux boutons d'ajout au panier
       attachCartEventListeners();
     })
-    .catch(error => {
-      console.error('Erreur lors du chargement des produits:', error);
-    });
+    .catch(error => console.error('Erreur lors du chargement des produits:', error));
 }
 
+// Ajoute les listeners sur les boutons "Ajouter au panier"
 function attachCartEventListeners() {
   document.querySelectorAll('.add-to-cart').forEach(button => {
     button.addEventListener('click', () => {
@@ -449,28 +295,22 @@ function attachCartEventListeners() {
       const price = parseFloat(button.dataset.price);
       const qtyInput = button.previousElementSibling;
       let quantity = parseInt(qtyInput.value);
-
       if (isNaN(quantity) || quantity < 1) {
         showNotification("La quantité minimale est 1.", "error");
         qtyInput.value = 1;
         return;
       }
-
       if (quantity > 30) {
         showNotification("La quantité maximale autorisée est 30.", "error");
         qtyInput.value = 30;
         return;
       }
-
       if (!getToken()) {
         showNotification("Veuillez vous connecter pour ajouter un produit au panier.", "error");
         return;
       }
-
       fetch('https://demoresto.onrender.com/api/products', {
-        headers: {
-          'Authorization': 'Bearer ' + getToken()
-        }
+        headers: { 'Authorization': 'Bearer ' + getToken() }
       })
         .then(res => {
           if (!res.ok) {
@@ -488,9 +328,7 @@ function attachCartEventListeners() {
             showNotification("Produit introuvable.", "error");
             return;
           }
-
           const productId = product.id;
-
           fetch('https://demoresto.onrender.com/api/cart', {
             method: 'POST',
             headers: {
@@ -502,10 +340,7 @@ function attachCartEventListeners() {
             .then(async res => {
               if (!res.ok) {
                 let errorMsg = "Erreur lors de l'ajout au panier.";
-                try {
-                  const err = await res.json();
-                  if (err.error) errorMsg = err.error;
-                } catch { }
+                try { const err = await res.json(); if (err.error) errorMsg = err.error; } catch { }
                 if (res.status === 401) {
                   showNotification("Veuillez vous connecter ou créer un compte pour ajouter un produit au panier.");
                 } else {
@@ -513,29 +348,18 @@ function attachCartEventListeners() {
                 }
                 return;
               }
-
               const data = await res.json();
-              if (data.message) {
-                showNotification(data.message, "success");
-              } else {
-                showNotification("Produit ajouté au panier !", "success");
-              }
+              showNotification(data.message || "Produit ajouté au panier !", "success");
             });
         })
-        .catch(error => {
-          console.error(error);
-        });
+        .catch(error => console.error(error));
     });
   });
-} 
+}
 
+// --- INITIALISATION DES FILTRES ET MENU ---
+// Gestion du dropdown de filtres et des listeners de filtres
 document.addEventListener('DOMContentLoaded', function () {
-  // Initialiser le menu des produits si on est sur la page menu
-  if (document.getElementById('menu-container')) {
-    fetchAndRenderProducts();
-  }
-
-  // Gestion du dropdown de filtres
   const dropdown = document.querySelector('.dropdown-filter');
   if (dropdown) {
     const button = dropdown.querySelector('.dropdown-button');
@@ -570,26 +394,43 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.filter-tag, .filter-allergen').forEach(cb => {
     cb.addEventListener('change', fetchAndRenderProducts);
   });
+
+  // --- Allergènes auto : si connecté, coche les filtres selon le profil ---
+  const token = localStorage.getItem('token');
+  if (token && window.location.pathname.includes('menu.html')) {
+    fetch('https://demoresto.onrender.com/api/user/profile', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.ok ? res.json() : null)
+    .then(user => {
+      if (user && user.allergenes_exclus && Array.isArray(user.allergenes_exclus)) {
+        user.allergenes_exclus.forEach(allergene => {
+          const cb = Array.from(document.querySelectorAll('.filter-allergen')).find(c => c.value === allergene);
+          if (cb) cb.checked = true;
+        });
+        fetchAndRenderProducts();
+      }
+    });
+  }
 });
 
 document.addEventListener('DOMContentLoaded', fetchAndRenderProducts);
 
-document.querySelectorAll('.filter-tag, .filter-allergen').forEach(cb => {
-  cb.addEventListener('change', fetchAndRenderProducts);
-});
-
-
+// --- UTILITAIRE ---
+// Met la première lettre en majuscule
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-if (window.location.pathname.endsWith('admin.html')) {
-  loadProducts();
-}
+// --- ADMINISTRATION PRODUITS ---
+// Chargement des produits pour l'admin
+if (window.location.pathname.endsWith('admin.html')) loadProducts();
 
 let isEditing = false;
 let currentEditId = null;
+const productMap = new Map();
 
+// Charge les produits dans le tableau admin
 function loadProducts() {
   const table = document.getElementById('productTable');
   if (!table) {
@@ -635,14 +476,14 @@ function loadProducts() {
     });
 }
 
+// Récupère les allergènes sélectionnés dans le formulaire admin
 function getSelectedAllergens() {
   const select = document.getElementById("allergens");
   const selected = Array.from(select.selectedOptions).map(option => option.value);
   return selected.join(",");
 }
 
-const productMap = new Map();
-
+// Ajoute ou modifie un produit (admin)
 function addProduct() {
   const token = localStorage.getItem('token');
   const product = {
@@ -680,6 +521,7 @@ function addProduct() {
   });
 }
 
+// Supprime un produit (admin)
 function deleteProduct(id) {
   const token = localStorage.getItem('token');
   fetch(`/api/products/${id}`, {
@@ -700,6 +542,7 @@ function deleteProduct(id) {
   });
 }
 
+// Prépare le formulaire pour modification d'un produit (admin)
 function startEdit(product) {
   document.getElementById('form-title').textContent = 'Modifier un produit';
   document.getElementById('name').value = product.name;
@@ -724,6 +567,7 @@ function startEdit(product) {
   currentEditId = product.id;
 }
 
+// Annule la modification en cours (admin)
 function cancelEdit() {
   document.getElementById('form-title').textContent = 'Ajouter un produit';
   document.getElementById('name').value = '';
@@ -742,8 +586,7 @@ function cancelEdit() {
   currentEditId = null;
 }
 
-window.onload = loadProducts;
-
+// Lance l'édition depuis la map (admin)
 function startEditFromMap(id) {
   const product = productMap.get(id);
   if (product) {
@@ -753,6 +596,8 @@ function startEditFromMap(id) {
   }
 }
 
+// --- PANIER (suite) ---
+// Met à jour l'affichage du total panier (avec/sans livraison)
 function updateCartTotalDisplay(cartTotal) {
   // Stocker le total de base (sans livraison)
   window.baseCartTotal = cartTotal;
@@ -769,6 +614,7 @@ function updateCartTotalDisplay(cartTotal) {
   document.getElementById('cart-total').textContent = `Total : ${finalTotal.toFixed(2)}€`;
 }
 
+// Charge le panier de l'utilisateur
 function loadCart() {
   const token = getToken();
   const emptyMessage = document.getElementById('empty-cart-message');
@@ -837,6 +683,8 @@ function loadCart() {
   });
 }
 
+// --- LIVRAISON/RETRAIT ---
+// Gère l'affichage des formulaires livraison/retrait et la validation des horaires
 function toggleDelivery() {
   const deliveryCheckbox = document.getElementById('delivery-option');
   const deliveryForm = document.getElementById('delivery-form');
@@ -888,9 +736,9 @@ function clearPickupForm() {
   });
 }
 
-// --- HORAIRES OUVERTURE POUR LIVRAISON/RETRAIT ---
+// --- HORAIRES OUVERTURE ---
+// Gestion des horaires d'ouverture pour livraison/retrait
 let horairesOuverture = {};
-// Charger les horaires d'ouverture au chargement de la page panier
 if (window.location.pathname.includes('panier.html')) {
   fetch('https://demoresto.onrender.com/api/horaires.json')
     .then(res => res.json())
@@ -900,7 +748,7 @@ if (window.location.pathname.includes('panier.html')) {
     });
 }
 
-// Utilitaires horaires
+// Utilitaires horaires (conversion, parsing, validation)
 function getDayName(dateStr) {
   const jours = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
   const date = new Date(dateStr);
@@ -1042,7 +890,7 @@ function setupDeliveryPickupDateListeners() {
   }
 }
 
-// Nouvelle validation combinée
+// Validation combinée livraison/retrait avant commande
 function validateOrderChoice() {
   const deliveryChecked = document.getElementById('delivery-option').checked;
   const pickupChecked = document.getElementById('pickup-option').checked;
@@ -1140,6 +988,8 @@ function getDeliveryInfo() {
   };
 }
 
+// --- CONFIRMATION DE COMMANDE ---
+// Validation du panier et redirection vers paiement
 const confirmButton = document.getElementById("confirm-order-button");
 if (confirmButton) {
   confirmButton.addEventListener("click", () => {
@@ -1216,6 +1066,8 @@ if (confirmButton) {
   });
 }
 
+// --- FORMULAIRE DE CONTACT ---
+// Empêche le spam, envoie la demande de contact, affiche notification
 document.addEventListener("DOMContentLoaded", function() {
   const form = document.getElementById("form-contact");
   if (form) {
@@ -1249,7 +1101,7 @@ document.addEventListener("DOMContentLoaded", function() {
         body: JSON.stringify({
           prenom: formData.get("prenom"),
           nom: formData.get("nom"),
-          email: formData.get("email"), // <-- corrected property name
+          email: formData.get("email"),
           objet: formData.get("objet"),
           message: formData.get("message")
         })
@@ -1271,6 +1123,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 });
 
+// --- AFFICHAGE MESSAGE PANIER VIDE ---
 function updateEmptyCartMessage() {
   const cartBody = document.getElementById("cart-body");
   const emptyMessage = document.getElementById("empty-cart-message");
@@ -1282,6 +1135,8 @@ function updateEmptyCartMessage() {
   }
 }
 
+// --- HORAIRES (ADMIN & CONTACT) ---
+// Gestion de l'affichage et modification des horaires d'ouverture
 document.addEventListener('DOMContentLoaded', () => {
   const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
   let horairesTemp = {};
@@ -1595,6 +1450,7 @@ function resetInactivityTimer() {
 
 resetInactivityTimer(); // Lancer le timer au chargement de la page
 
+// --- VALIDATION FORMULAIRE LIVRAISON ---
 function validateDeliveryForm() {
   const email = document.getElementById('delivery-email').value.trim();
   const phone = document.getElementById('delivery-phone').value.trim();
