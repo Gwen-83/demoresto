@@ -792,12 +792,24 @@ def get_user_order_history():
 
         result = []
         for order in orders:
+            # Utiliser la date/heure demandée si présente, sinon fallback sur created_at
+            requested_date = order.requested_date
+            requested_time = order.requested_time
+            if requested_date and requested_time:
+                date_label = f"{requested_date} {requested_time}"
+            elif requested_date:
+                date_label = requested_date
+            else:
+                date_label = order.created_at.strftime('%d/%m/%Y %H:%M')
+
             order_data = {
                 'id': order.id,
-                'date': order.created_at.strftime('%d/%m/%Y %H:%M'),
+                'date': date_label,
                 'status': order.status,
                 'items': [],
-                'total': 0
+                'total': 0,
+                'requested_date': order.requested_date,
+                'requested_time': order.requested_time
             }
             for item in order.items:
                 product = item.product
@@ -821,13 +833,23 @@ def get_user_order_history():
 @jwt_required()
 def validate_order():
     user_id = int(get_jwt_identity())
+    data = request.get_json() or {}
     # Récupérer tous les CartItems du panier de l'utilisateur (order_id=None)
     cart_items = CartItem.query.filter_by(user_id=user_id, order_id=None).all()
     if not cart_items:
         return jsonify({"error": "Panier vide"}), 400
 
+    # Ajout : récupérer la date/heure demandée depuis le frontend
+    requested_date = data.get('requested_date')
+    requested_time = data.get('requested_time')
+
     # Créer la commande
-    order = Order(user_id=user_id, status='en attente')  # <-- status cohérent avec le frontend
+    order = Order(
+        user_id=user_id,
+        status='en attente',
+        requested_date=requested_date,
+        requested_time=requested_time
+    )
     db.session.add(order)
     db.session.flush()  # Pour obtenir l'id de la commande
 

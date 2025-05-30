@@ -574,26 +574,26 @@ function displayOrderHistory(orders) {
   function renderOrders() {
     const displayOrders = showAll ? orders : orders.slice(0, visibleCount);
     container.innerHTML = displayOrders.map(order => {
-      // Correction : utiliser order.created_at (UTC ISO) si disponible
-      let dateStr = order.date;
-      if (order.created_at) {
-        // created_at est déjà en UTC ISO (ex: 2024-06-08T11:46:00.000000)
-        // On retire les microsecondes si besoin
-        let iso = order.created_at.replace(/\.\d+$/, '');
-        // Crée un objet Date en UTC
-        const d = new Date(iso + 'Z');
-        // Affiche uniquement la date (sans l'heure)
+      // Affichage de la date demandée (livraison/retrait) si disponible
+      let dateStr = '';
+      if (order.requested_date && order.requested_time) {
+        // Formatage FR
+        const d = new Date(order.requested_date + 'T' + order.requested_time);
+        dateStr = d.toLocaleDateString('fr-FR', {
+          day: '2-digit', month: '2-digit', year: 'numeric'
+        }) + ' à ' + order.requested_time;
+      } else if (order.requested_date) {
+        const d = new Date(order.requested_date);
         dateStr = d.toLocaleDateString('fr-FR', {
           day: '2-digit', month: '2-digit', year: 'numeric'
         });
       } else if (order.date) {
-        // Si order.date contient aussi l'heure (ex: "08/06/2024 11:46"), on ne garde que la date
+        // Fallback : ancienne logique
         dateStr = order.date.split(' ')[0];
       }
 
       // Ajout : récupération des infos de livraison/retrait depuis localStorage si dispo
       let deliveryOrPickupInfo = '';
-      // On tente de récupérer les infos de la commande dans localStorage (si c'est la dernière commande)
       try {
         const orderData = JSON.parse(localStorage.getItem('orderData'));
         if (orderData && orderData.cart && orderData.cart.length > 0 && orderData.cart[0].product.id === order.items[0].product_id) {

@@ -47,6 +47,10 @@ class Order(db.Model):
     status = db.Column(db.String(20), default='en attente')  # ex: "validée", "en cours", etc.
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Ajouté
 
+    # Ajout : champs pour la date/heure demandée de livraison/retrait
+    requested_date = db.Column(db.String(20))  # format "YYYY-MM-DD"
+    requested_time = db.Column(db.String(10))  # format "HH:MM"
+
     items = db.relationship('CartItem', backref='order', lazy=True)
     user = db.relationship('User', backref='orders')  # Ajouté
 
@@ -59,7 +63,9 @@ class Order(db.Model):
             'created_at': self.created_at.isoformat(),
             'status': self.status,
             'items': [item.to_dict() for item in self.items],
-            'total': round(self.total(), 2)
+            'total': round(self.total(), 2),
+            'requested_date': self.requested_date,
+            'requested_time': self.requested_time
         }
 
 class TokenBlocklist(db.Model):
