@@ -979,6 +979,9 @@ def delete_user_account():
         for order in orders:
             CartItem.query.filter_by(order_id=order.id).delete()
             db.session.delete(order)
+        # Supprimer les réservations associées à l'email utilisateur
+        from .models import Reservation
+        Reservation.query.filter_by(email=user.email).delete()
         # Supprimer l'utilisateur
         db.session.delete(user)
         db.session.commit()
