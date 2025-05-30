@@ -807,3 +807,24 @@ def get_user_order_history():
     except Exception as e:
         print(f"Erreur lors de la récupération de l'historique des commandes: {e}")
         return jsonify({"error": str(e)}), 500
+
+@bp.route('/api/validate-order', methods=['POST'])
+@jwt_required()
+def validate_order():
+    user_id = int(get_jwt_identity())
+    # Récupérer tous les CartItems du panier de l'utilisateur (order_id=None)
+    cart_items = CartItem.query.filter_by(user_id=user_id, order_id=None).all()
+    if not cart_items:
+        return jsonify({"error": "Panier vide"}), 400
+
+    # Créer la commande
+    order = Order(user_id=user_id, status='en attente')
+    db.session.add(order)
+    db.session.flush()  # Pour obtenir l'id de la commande
+
+    # Associer les CartItems à la commande
+    for item in cart_items:
+        item.order_id = order.id
+
+    db.session.commit()
+    return jsonify({"message": "Commande validée", "order_id": order.id}), 201
