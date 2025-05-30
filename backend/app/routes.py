@@ -703,6 +703,9 @@ def send_delivery_email():
                 </tr>
             """
 
+        # Construction de l'adresse complète à partir des 3 champs
+        full_address = f"{delivery_info.get('address', '')}<br>{delivery_info.get('postal', '')} {delivery_info.get('city', '')}"
+
         email_html = f"""
             <h2>🚚 Nouvelle commande avec livraison - Chez Mario</h2>
             
@@ -739,7 +742,7 @@ def send_delivery_email():
             <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
                 <p><strong>📧 Email :</strong> {delivery_info['email']}</p>
                 <p><strong>📞 Téléphone :</strong> {delivery_info['phone']}</p>
-                <p><strong>🏠 Adresse :</strong><br>{delivery_info['address'].replace(chr(10), '<br>')}</p>
+                <p><strong>🏠 Adresse :</strong><br>{full_address}</p>
                 <p><strong>📅 Date :</strong> {delivery_info['date']}</p>
                 <p><strong>🕐 Heure :</strong> {delivery_info['time']}</p>
                 {f"<p><strong>📝 Instructions :</strong><br>{delivery_info.get('instructions', '').replace(chr(10), '<br>')}</p>" if delivery_info.get('instructions') else ''}
@@ -868,12 +871,14 @@ def send_order_email():
             # Livraison
             extra_fees = 5.00
             total_final = total_price + extra_fees
+            # Construction de l'adresse complète à partir des 3 champs
+            full_address = f"{delivery_info.get('address', '')}<br>{delivery_info.get('postal', '')} {delivery_info.get('city', '')}"
             details_html = f"""
                 <h3>📍 Informations de livraison</h3>
                 <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
                     <p><strong>📧 Email :</strong> {delivery_info['email']}</p>
                     <p><strong>📞 Téléphone :</strong> {delivery_info['phone']}</p>
-                    <p><strong>🏠 Adresse :</strong><br>{delivery_info['address'].replace(chr(10), '<br>')}</p>
+                    <p><strong>🏠 Adresse :</strong><br>{full_address}</p>
                     <p><strong>📅 Date :</strong> {delivery_info['date']}</p>
                     <p><strong>🕐 Heure :</strong> {delivery_info['time']}</p>
                     {f"<p><strong>📝 Instructions :</strong><br>{delivery_info.get('instructions', '').replace(chr(10), '<br>')}</p>" if delivery_info.get('instructions') else ''}

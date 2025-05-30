@@ -1132,6 +1132,8 @@ function getDeliveryInfo() {
     email: document.getElementById('delivery-email').value.trim(),
     phone: document.getElementById('delivery-phone').value.trim(),
     address: document.getElementById('delivery-address').value.trim(),
+    postal: document.getElementById('delivery-postal').value.trim(),
+    city: document.getElementById('delivery-city').value.trim(),
     date: document.getElementById('delivery-date').value,
     time: document.getElementById('delivery-time').value,
     instructions: document.getElementById('delivery-instructions').value.trim()
@@ -1572,6 +1574,8 @@ function validateDeliveryForm() {
   const email = document.getElementById('delivery-email').value.trim();
   const phone = document.getElementById('delivery-phone').value.trim();
   const address = document.getElementById('delivery-address').value.trim();
+  const postal = document.getElementById('delivery-postal').value.trim();
+  const city = document.getElementById('delivery-city').value.trim();
   const date = document.getElementById('delivery-date').value;
   const time = document.getElementById('delivery-time').value;
 
@@ -1586,8 +1590,18 @@ function validateDeliveryForm() {
     return false;
   }
   if (!address) {
-    showNotification("Veuillez saisir votre adresse de livraison.", "error");
+    showNotification("Veuillez saisir votre adresse (numéro et rue) pour la livraison.", "error");
     document.getElementById('delivery-address').focus();
+    return false;
+  }
+  if (!postal) {
+    showNotification("Veuillez saisir votre code postal pour la livraison.", "error");
+    document.getElementById('delivery-postal').focus();
+    return false;
+  }
+  if (!city) {
+    showNotification("Veuillez saisir votre ville pour la livraison.", "error");
+    document.getElementById('delivery-city').focus();
     return false;
   }
   if (!date) {
