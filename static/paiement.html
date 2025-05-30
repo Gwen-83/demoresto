@@ -208,6 +208,14 @@ function showNotification(message, type = "success") {
     hideNotification();
   }, 4000); // Masque automatiquement après 4 sec
 }
+
+function hideNotification() {
+  const notif = document.getElementById('notification');
+  if (notif) {
+    notif.classList.add('hidden');
+    notif.classList.remove('success', 'error', 'info');
+  }
+}
 </script>
 <footer>
   <div class="footer-logo">
