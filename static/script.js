@@ -888,6 +888,160 @@ function clearPickupForm() {
   });
 }
 
+// --- HORAIRES OUVERTURE POUR LIVRAISON/RETRAIT ---
+let horairesOuverture = {};
+// Charger les horaires d'ouverture au chargement de la page panier
+if (window.location.pathname.includes('panier.html')) {
+  fetch('https://demoresto.onrender.com/api/horaires.json')
+    .then(res => res.json())
+    .then(data => {
+      horairesOuverture = data;
+      setupDeliveryPickupDateListeners();
+    });
+}
+
+// Utilitaires horaires
+function getDayName(dateStr) {
+  const jours = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+  const date = new Date(dateStr);
+  return jours[date.getDay()];
+}
+function parseTimeString(timeStr) {
+  if (!timeStr) return null;
+  const match = timeStr.match(/^(\d{1,2})h(\d{2})$/);
+  if (match) {
+    const [, hours, minutes] = match;
+    return `${hours.padStart(2, '0')}:${minutes}`;
+  }
+  if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
+  return null;
+}
+function parseHoraires(horaireStr) {
+  if (!horaireStr || horaireStr === "Fermé") return null;
+  const periods = [];
+  const cleanedHoraire = horaireStr.replace(/\s+/g, ' ').trim();
+  if (cleanedHoraire.includes('/')) {
+    const parts = cleanedHoraire.split('/');
+    for (const part of parts) {
+      const times = part.trim().split(' - ');
+      if (times.length === 2) {
+        const start = parseTimeString(times[0].trim());
+        const end = parseTimeString(times[1].trim());
+        if (start && end) periods.push({ start, end });
+      }
+    }
+  } else {
+    const times = cleanedHoraire.split(' - ');
+    if (times.length === 2) {
+      const start = parseTimeString(times[0].trim());
+      const end = parseTimeString(times[1].trim());
+      if (start && end) periods.push({ start, end });
+    }
+  }
+  return periods.length > 0 ? periods : null;
+}
+function isTimeInOpeningHours(selectedDate, selectedTime) {
+  const dayName = getDayName(selectedDate);
+  const horaireJour = horairesOuverture[dayName];
+  if (!horaireJour || horaireJour === "Fermé") {
+    return { valid: false, message: `Le restaurant est fermé le ${dayName.toLowerCase()}.` };
+  }
+  const periods = parseHoraires(horaireJour);
+  if (!periods) {
+    return { valid: false, message: `Horaires non disponibles pour le ${dayName.toLowerCase()}.` };
+  }
+  for (const period of periods) {
+    if (selectedTime >= period.start && selectedTime <= period.end) {
+      return { valid: true };
+    }
+  }
+  const horaireDisplay = periods.map(p => `${p.start.replace(':', 'h')}-${p.end.replace(':', 'h')}`).join(' / ');
+  return {
+    valid: false,
+    message: `L'heure sélectionnée n'est pas dans les horaires d'ouverture du ${dayName.toLowerCase()} (${horaireDisplay}).`
+  };
+}
+
+// Désactive les heures non valides dans le select selon la date
+function filterTimeOptions(dateInputId, timeSelectId, infoId) {
+  const dateInput = document.getElementById(dateInputId);
+  const timeSelect = document.getElementById(timeSelectId);
+  const infoElem = infoId ? document.getElementById(infoId) : null;
+  if (!dateInput || !timeSelect) return;
+  if (!dateInput.value) {
+    if (infoElem) infoElem.textContent = "Sélectionnez une date pour voir les horaires d'ouverture.";
+    Array.from(timeSelect.options).forEach(opt => opt.disabled = false);
+    return;
+  }
+  const dayName = getDayName(dateInput.value);
+  const horaireJour = horairesOuverture[dayName];
+  if (!horaireJour || horaireJour === "Fermé") {
+    if (infoElem) {
+      infoElem.textContent = `Le restaurant est fermé le ${dayName.toLowerCase()}.`;
+      infoElem.style.color = "#d32f2f";
+    }
+    Array.from(timeSelect.options).forEach(opt => {
+      if (opt.value) opt.disabled = true;
+    });
+    return;
+  }
+  if (infoElem) {
+    infoElem.textContent = `Horaires d'ouverture le ${dayName.toLowerCase()} : ${horaireJour}`;
+    infoElem.style.color = "#2e7d32";
+  }
+  const periods = parseHoraires(horaireJour);
+  Array.from(timeSelect.options).forEach(opt => {
+    if (!opt.value) {
+      opt.disabled = false;
+      return;
+    }
+    let valid = false;
+    for (const period of periods) {
+      if (opt.value >= period.start && opt.value <= period.end) {
+        valid = true;
+        break;
+      }
+    }
+    opt.disabled = !valid;
+  });
+}
+
+// Ajoute les listeners sur les inputs date pour livraison/retrait
+function setupDeliveryPickupDateListeners() {
+  // Livraison
+  const deliveryDate = document.getElementById('delivery-date');
+  const deliveryTime = document.getElementById('delivery-time');
+  if (deliveryDate && deliveryTime) {
+    deliveryDate.addEventListener('change', () => {
+      filterTimeOptions('delivery-date', 'delivery-time', 'delivery-date-info');
+    });
+    // Ajout d'un message info sous la date livraison
+    if (!document.getElementById('delivery-date-info')) {
+      const info = document.createElement('div');
+      info.id = 'delivery-date-info';
+      info.className = 'horaires-info';
+      deliveryDate.parentNode.appendChild(info);
+    }
+    // Initialiser au chargement
+    filterTimeOptions('delivery-date', 'delivery-time', 'delivery-date-info');
+  }
+  // Retrait
+  const pickupDate = document.getElementById('pickup-date');
+  const pickupTime = document.getElementById('pickup-time');
+  if (pickupDate && pickupTime) {
+    pickupDate.addEventListener('change', () => {
+      filterTimeOptions('pickup-date', 'pickup-time', 'pickup-date-info');
+    });
+    if (!document.getElementById('pickup-date-info')) {
+      const info = document.createElement('div');
+      info.id = 'pickup-date-info';
+      info.className = 'horaires-info';
+      pickupDate.parentNode.appendChild(info);
+    }
+    filterTimeOptions('pickup-date', 'pickup-time', 'pickup-date-info');
+  }
+}
+
 // Nouvelle validation combinée
 function validateOrderChoice() {
   const deliveryChecked = document.getElementById('delivery-option').checked;
@@ -897,6 +1051,35 @@ function validateOrderChoice() {
     return false;
   }
   if (deliveryChecked) {
+    // Validation des horaires d'ouverture pour livraison
+    const date = document.getElementById('delivery-date').value;
+    const time = document.getElementById('delivery-time').value;
+    if (!date) {
+      showNotification("Veuillez choisir une date de livraison", "error");
+      document.getElementById('delivery-date').focus();
+      return false;
+    }
+    if (!time) {
+      showNotification("Veuillez choisir une heure de livraison", "error");
+      document.getElementById('delivery-time').focus();
+      return false;
+    }
+    // Date pas dans le passé
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate < today) {
+      showNotification("La date de livraison ne peut pas être dans le passé", "error");
+      document.getElementById('delivery-date').focus();
+      return false;
+    }
+    // Vérification horaires ouverture
+    const horaireCheck = isTimeInOpeningHours(date, time);
+    if (!horaireCheck.valid) {
+      showNotification(horaireCheck.message, "error");
+      document.getElementById('delivery-time').focus();
+      return false;
+    }
     return validateDeliveryForm();
   }
   if (pickupChecked) {
@@ -920,6 +1103,13 @@ function validateOrderChoice() {
     if (selectedDate < today) {
       showNotification("La date de retrait ne peut pas être dans le passé", "error");
       document.getElementById('pickup-date').focus();
+      return false;
+    }
+    // Vérification horaires ouverture
+    const horaireCheck = isTimeInOpeningHours(date, time);
+    if (!horaireCheck.valid) {
+      showNotification(horaireCheck.message, "error");
+      document.getElementById('pickup-time').focus();
       return false;
     }
     return true;
