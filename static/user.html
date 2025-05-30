@@ -449,6 +449,7 @@
         <button class="primary-action-button" onclick="navigateToMenu()">Voir le Menu</button>
         <button class="primary-action-button" onclick="navigateToCart()">Mon Panier</button>
         <button class="danger-action-button" onclick="logout()">Se Déconnecter</button>
+        <button class="danger-action-button" onclick="deleteAccount()" style="margin-left: 0.5rem;">Supprimer le compte</button>
       </div>
     </div>
   </div>
@@ -822,6 +823,31 @@ async function displayUserProfileInformation() {
   } catch (error) {
     console.error('Erreur:', error);
     displayErrorMessage("Erreur lors du chargement des informations du profil");
+  }
+}
+
+// Ajout de la fonction de suppression de compte
+async function deleteAccount() {
+  if (!confirm("Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.")) {
+    return;
+  }
+  const token = localStorage.getItem('token');
+  try {
+    const response = await fetch('https://demoresto.onrender.com/api/user/delete', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (response.ok) {
+      alert("Votre compte a été supprimé.");
+      logout();
+    } else {
+      const data = await response.json();
+      alert(data.error || "Erreur lors de la suppression du compte.");
+    }
+  } catch (e) {
+    alert("Erreur réseau lors de la suppression du compte.");
   }
 }
 </script>

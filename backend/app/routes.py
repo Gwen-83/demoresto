@@ -962,3 +962,27 @@ def send_order_email():
     except Exception as e:
         current_app.logger.error(f"Erreur send_order_email: {e}")
         return jsonify({"success": False, "error": "Erreur serveur"}), 500
+
+@bp.route('/api/user/delete', methods=['DELETE'])
+@jwt_required()
+def delete_user_account():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "Utilisateur introuvable"}), 404
+
+    try:
+        # Supprimer les CartItems non commandés
+        CartItem.query.filter_by(user_id=user_id).delete()
+        # Supprimer les commandes (et leurs items via cascade)
+        orders = Order.query.filter_by(user_id=user_id).all()
+        for order in orders:
+            CartItem.query.filter_by(order_id=order.id).delete()
+            db.session.delete(order)
+        # Supprimer l'utilisateur
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({"message": "Compte supprimé avec succès."}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Erreur lors de la suppression du compte."}), 500
