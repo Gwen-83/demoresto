@@ -1,5 +1,6 @@
 from . import db
 from datetime import datetime
+import pytz
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class Product(db.Model):
@@ -42,7 +43,7 @@ class CartItem(db.Model):
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Europe/Paris')))
     status = db.Column(db.String(20), default='en attente')  # ex: "validée", "en cours", etc.
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Ajouté
 
