@@ -6,6 +6,143 @@
   <link rel="stylesheet" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Raleway&display=swap" rel="stylesheet">
+  <style>
+    /* ...existing code... */
+    .orders-admin-container {
+      background: #fffdf7;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 30px 20px;
+      max-width: 1100px;
+      margin: 30px auto;
+    }
+    .orders-subtabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      justify-content: center;
+    }
+    .order-subtab {
+      padding: 0.6rem 1.5rem;
+      border: none;
+      background: #f5f5f5;
+      color: #900;
+      font-weight: bold;
+      border-radius: 8px 8px 0 0;
+      font-size: 1.1em;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: background 0.2s, color 0.2s, border-bottom 0.2s;
+    }
+    .order-subtab.active {
+      background: #fff;
+      color: #b91c1c;
+      border-bottom: 3px solid #b91c1c;
+    }
+    .order-admin-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 24px 28px;
+      margin-bottom: 22px;
+      border-left: 6px solid #b91c1c;
+      transition: box-shadow 0.2s;
+    }
+    .order-admin-card .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .order-admin-card .order-id {
+      font-weight: bold;
+      color: #b91c1c;
+      font-size: 1.1em;
+    }
+    .order-admin-card .order-status {
+      padding: 0.3em 1em;
+      border-radius: 999px;
+      font-size: 0.95em;
+      font-weight: 600;
+      background: #fef3c7;
+      color: #92400e;
+      margin-left: 10px;
+    }
+    .order-admin-card .order-status.validated {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .order-admin-card .order-status.pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .order-admin-card .order-status.refused {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .order-admin-card .order-status.prepared {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .order-admin-card .order-details {
+      margin-top: 10px;
+      margin-bottom: 10px;
+      font-size: 0.98em;
+    }
+    .order-admin-card .order-items-list {
+      margin: 0.5em 0 1em 0;
+      padding-left: 1em;
+    }
+    .order-admin-card .order-items-list li {
+      margin-bottom: 2px;
+    }
+    .order-admin-card .order-total {
+      font-weight: bold;
+      color: #b91c1c;
+      margin-top: 0.5em;
+    }
+    .order-admin-card .order-actions {
+      margin-top: 1em;
+      display: flex;
+      gap: 0.7em;
+    }
+    .order-admin-card .order-action-btn {
+      padding: 0.5em 1.2em;
+      border-radius: 6px;
+      font-size: 1em;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .order-admin-card .order-action-btn.validate {
+      background: #28a745;
+      color: #fff;
+    }
+    .order-admin-card .order-action-btn.validate:hover {
+      background: #218838;
+    }
+    .order-admin-card .order-action-btn.reject {
+      background: #dc3545;
+      color: #fff;
+    }
+    .order-admin-card .order-action-btn.reject:hover {
+      background: #c82333;
+    }
+    @media (max-width: 700px) {
+      .orders-admin-container {
+        padding: 10px 2px;
+      }
+      .order-admin-card {
+        padding: 14px 6px;
+      }
+      .order-admin-card .order-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+    }
+  </style>
 </head>
 <body>
 <div id="notification" class="notification hidden">
@@ -150,7 +287,12 @@
 <div id="orders-tab" class="tab-content">
   <div class="orders-admin-container">
     <h2>Gestion des commandes</h2>
-    <div id="orders-list"></div>
+    <div class="orders-subtabs">
+      <button class="order-subtab active" data-tab="pending" onclick="switchOrderSubtab('pending')">En attente</button>
+      <button class="order-subtab" data-tab="validated" onclick="switchOrderSubtab('validated')">À préparer</button>
+    </div>
+    <div id="orders-list-pending"></div>
+    <div id="orders-list-validated" style="display:none"></div>
   </div>
 </div>
 
@@ -522,56 +664,103 @@ async function confirmReject() {
   }
 }
 
-// Ajout pour l'onglet Commandes
+// Onglet Commandes - Variables globales
 let orders = [];
+let currentOrderId = null;
 
+// Fonction pour basculer entre les sous-onglets des commandes
+function switchOrderSubtab(tab) {
+  document.querySelectorAll('.order-subtab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  document.getElementById('orders-list-pending').style.display = tab === 'pending' ? '' : 'none';
+  document.getElementById('orders-list-validated').style.display = tab === 'validated' ? '' : 'none';
+}
+
+// Charger les commandes depuis l'API (admin)
 async function loadOrdersAdmin() {
   const token = localStorage.getItem('token');
-  const ordersList = document.getElementById('orders-list');
-  ordersList.innerHTML = "Chargement...";
+  const pendingList = document.getElementById('orders-list-pending');
+  const validatedList = document.getElementById('orders-list-validated');
+  pendingList.innerHTML = "Chargement...";
+  validatedList.innerHTML = "";
   try {
     const res = await fetch('/api/admin/orders', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     if (!res.ok) {
-      ordersList.innerHTML = "Erreur lors du chargement des commandes.";
+      pendingList.innerHTML = "Erreur lors du chargement des commandes.";
+      validatedList.innerHTML = "";
       return;
     }
     orders = await res.json();
     renderOrdersAdmin();
   } catch (e) {
-    ordersList.innerHTML = "Erreur réseau.";
+    pendingList.innerHTML = "Erreur réseau.";
+    validatedList.innerHTML = "";
   }
 }
 
+// Rendu des commandes dans l'admin
 function renderOrdersAdmin() {
-  const ordersList = document.getElementById('orders-list');
+  const pendingList = document.getElementById('orders-list-pending');
+  const validatedList = document.getElementById('orders-list-validated');
   if (!orders || orders.length === 0) {
-    ordersList.innerHTML = "<p>Aucune commande.</p>";
+    pendingList.innerHTML = "<p>Aucune commande.</p>";
+    validatedList.innerHTML = "<p>Aucune commande.</p>";
     return;
   }
-  ordersList.innerHTML = orders.map(order => {
-    let statusLabel = order.status === 'en attente' ? 'En attente' :
-                      order.status === 'validee' ? 'Validée' :
-                      order.status === 'refusee' ? 'Refusée' : order.status;
-    let actions = '';
-    if (order.status === 'en attente') {
-      actions = `
-        <button onclick="validateOrderAdmin(${order.id})">Valider</button>
-        <button onclick="openRejectOrderModal(${order.id})">Refuser</button>
-      `;
-    }
-    return `
-      <div class="order-admin-card" style="border:1px solid #ccc;padding:1em;margin-bottom:1em;">
-        <div><b>Commande #${order.id}</b> - ${order.user_email || ''}</div>
-        <div>Date: ${order.requested_date || ''} ${order.requested_time || ''}</div>
-        <div>Status: <b>${statusLabel}</b></div>
-        <div>Total: ${order.total.toFixed(2)}€</div>
-        <div>Articles: ${order.items.map(i => `${i.quantity} x ${i.product.name}`).join(', ')}</div>
-        <div>${actions}</div>
+  // Séparer les commandes
+  const pendingOrders = orders.filter(o => o.status === 'en attente');
+  const validatedOrders = orders.filter(o => o.status === 'validee');
+  // Trier par date demandée croissante (ou created_at si pas de date demandée)
+  const sortByDate = (a, b) => {
+    const ad = a.requested_date ? new Date(a.requested_date + 'T' + (a.requested_time || '00:00')) : new Date(a.created_at);
+    const bd = b.requested_date ? new Date(b.requested_date + 'T' + (b.requested_time || '00:00')) : new Date(b.created_at);
+    return ad - bd;
+  };
+  pendingOrders.sort(sortByDate);
+  validatedOrders.sort(sortByDate);
+
+  // Générer HTML pour chaque liste
+  pendingList.innerHTML = pendingOrders.length === 0
+    ? "<p>Aucune commande en attente.</p>"
+    : pendingOrders.map(order => orderAdminCardHTML(order, true)).join('');
+  validatedList.innerHTML = validatedOrders.length === 0
+    ? "<p>Aucune commande à préparer.</p>"
+    : validatedOrders.map(order => orderAdminCardHTML(order, false)).join('');
+}
+
+// Générer le HTML d'une carte de commande pour l'admin
+function orderAdminCardHTML(order, showActions) {
+  let statusLabel = order.status === 'en attente' ? 'En attente' :
+                    order.status === 'validee' ? 'À préparer' :
+                    order.status === 'refusee' ? 'Refusée' : order.status;
+  let statusClass = order.status === 'en attente' ? 'pending' :
+                    order.status === 'validee' ? 'validated' :
+                    order.status === 'refusee' ? 'refused' : '';
+  return `
+    <div class="order-admin-card">
+      <div class="order-header">
+        <span class="order-id">Commande #${order.id}</span>
+        <span class="order-status ${statusClass}">${statusLabel}</span>
       </div>
-    `;
-  }).join('');
+      <div class="order-details">
+        <div><b>Client :</b> ${order.user_email || '-'}</div>
+        <div><b>Date :</b> ${order.requested_date || ''} ${order.requested_time || ''}</div>
+        <ul class="order-items-list">
+          ${order.items.map(i => `<li>${i.quantity} x ${i.product.name} <span style="color:#888;">(${i.product.price.toFixed(2)}€)</span></li>`).join('')}
+        </ul>
+        <div class="order-total">Total : ${order.total.toFixed(2)}€</div>
+      </div>
+      ${showActions ? `
+      <div class="order-actions">
+        <button class="order-action-btn validate" onclick="validateOrderAdmin(${order.id})">Valider</button>
+        <button class="order-action-btn reject" onclick="openRejectOrderModal(${order.id})">Refuser</button>
+      </div>
+      ` : ''}
+    </div>
+  `;
 }
 
 // Validation/refus commandes admin
@@ -585,9 +774,7 @@ async function validateOrderAdmin(orderId) {
   loadOrdersAdmin();
 }
 
-let currentOrderId = null;
 function openRejectOrderModal(orderId) {
-  currentOrderId = orderId;
   const reason = prompt("Motif du refus (optionnel) :");
   rejectOrderAdmin(orderId, reason);
 }
