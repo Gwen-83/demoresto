@@ -296,7 +296,7 @@
   </div>
 </div>
 
-<!-- Modal de refus -->
+<!-- Modal de refus de réservation -->
 <div id="rejectModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -310,6 +310,24 @@
     <div class="modal-actions">
       <button class="btn-modal btn-cancel" onclick="closeRejectModal()">Annuler</button>
       <button class="btn-modal btn-confirm" onclick="confirmReject()">Confirmer le refus</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de refus de commande -->
+<div id="orderRejectModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Refuser la commande</h3>
+      <span class="close" onclick="closeOrderRejectModal()">&times;</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Motif du refus (optionnel) :</label>
+      <textarea class="form-control" id="orderRejectReason" rows="4" placeholder="Expliquez la raison du refus..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal btn-cancel" onclick="closeOrderRejectModal()">Annuler</button>
+      <button class="btn-modal btn-confirm" onclick="confirmOrderReject()">Confirmer le refus</button>
     </div>
   </div>
 </div>
@@ -775,24 +793,38 @@ async function validateOrderAdmin(orderId) {
 }
 
 function openRejectOrderModal(orderId) {
-  const reason = prompt("Motif du refus (optionnel) :");
-  rejectOrderAdmin(orderId, reason);
+  currentOrderId = orderId;
+  document.getElementById('orderRejectModal').style.display = 'block';
+  document.getElementById('orderRejectReason').value = '';
 }
-async function rejectOrderAdmin(orderId, reason) {
+
+function closeOrderRejectModal() {
+  document.getElementById('orderRejectModal').style.display = 'none';
+  currentOrderId = null;
+}
+
+async function confirmOrderReject() {
+  if (!currentOrderId) return;
   const token = localStorage.getItem('token');
-  await fetch(`/api/order/${orderId}/reject`, {
+  const reason = document.getElementById('orderRejectReason').value;
+  await fetch(`/api/order/${currentOrderId}/reject`, {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ reason })
   });
   loadOrdersAdmin();
+  closeOrderRejectModal();
 }
 
-// Fermer le modal en cliquant à l'extérieur
+// Fermer les modals en cliquant à l'extérieur
 window.onclick = function(event) {
   const modal = document.getElementById('rejectModal');
   if (event.target === modal) {
     closeRejectModal();
+  }
+  const orderModal = document.getElementById('orderRejectModal');
+  if (event.target === orderModal) {
+    closeOrderRejectModal();
   }
 }
 
