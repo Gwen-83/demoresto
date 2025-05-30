@@ -2547,53 +2547,26 @@ form#register-form a:hover {
   }
 }
 
-#chatbot-container {
-  position: fixed;
-  bottom: 60px; /* au-dessus du bouton "haut de page" */
-  right: 20px;
-  width: 300px;
-  height: 400px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-  z-index: 1000;
-}
-
-#chatbot-header {
-  background: #4e73df;
-  color: white;
-  padding: 10px;
+/* Style pour le bouton Voir plus / Voir moins dans les sections profil */
+.secondary-button {
+  background-color: #fff;
+  color: #900;
+  border: 2px solid #900;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 1em;
   font-weight: bold;
-}
-
-#chatbot-messages {
-  flex-grow: 1;
-  padding: 10px;
-  overflow-y: auto;
-}
-
-#chatbot-input {
-  border: none;
-  padding: 10px;
-  width: 100%;
-  border-top: 1px solid #ccc;
-  outline: none;
-}
-
-#chatbot-toggle {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: #4e73df;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  font-size: 20px;
   cursor: pointer;
-  z-index: 1001;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+  box-shadow: 0 2px 8px rgba(153,0,0,0.05);
+  margin: 0 auto;
+  display: inline-block;
+}
+
+.secondary-button:hover,
+.secondary-button:focus {
+  background-color: #900;
+  color: #fff;
+  border-color: #b00;
+  transform: translateY(-2px) scale(1.03);
 }
