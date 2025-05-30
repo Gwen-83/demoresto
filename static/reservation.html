@@ -82,18 +82,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log("Horaires chargés :", horairesOuverture);
   updateHorairesInfo();
   autoFillUserEmail();
-  updateReservationSubmission();
+  setupReservationForm();
 });
 
-// Fonction pour charger les horaires depuis l'API
+// Fonction pour charger les horaires depuis l'API - CORRIGÉE
 async function loadHoraires() {
   try {
-    const response = await fetch('/api/horaires.json');
+    // Utiliser la même base URL que pour les autres appels API
+    const response = await fetch('https://demoresto.onrender.com/api/horaires.json');
     if (response.ok) {
       horairesOuverture = await response.json();
+      console.log("✅ Horaires chargés avec succès:", horairesOuverture);
+    } else {
+      console.error('❌ Erreur lors du chargement des horaires:', response.status);
     }
   } catch (error) {
-    console.error('Erreur lors du chargement des horaires:', error);
+    console.error('❌ Erreur lors du chargement des horaires:', error);
   }
 }
 
@@ -160,6 +164,8 @@ function isTimeInOpeningHours(selectedDate, selectedTime) {
   const dayName = getDayName(new Date(selectedDate));
   const horaireJour = horairesOuverture[dayName];
   
+  console.log(`🕐 Vérification pour ${dayName}:`, horaireJour);
+  
   if (!horaireJour || horaireJour === "Fermé") {
     return { valid: false, message: `Le restaurant est fermé le ${dayName.toLowerCase()}.` };
   }
@@ -184,19 +190,33 @@ function isTimeInOpeningHours(selectedDate, selectedTime) {
   };
 }
 
-// Fonction pour mettre à jour l'affichage des horaires
+// Fonction pour mettre à jour l'affichage des horaires - CORRIGÉE
 function updateHorairesInfo() {
   const dateInput = document.getElementById('date');
   const horaireInfo = document.getElementById('opening-hours-info');
   
+  console.log("📅 Mise à jour des horaires, date sélectionnée:", dateInput.value);
+  console.log("📋 Horaires disponibles:", horairesOuverture);
+  
   if (!dateInput.value) {
     horaireInfo.textContent = 'Sélectionnez une date pour voir les horaires d\'ouverture.';
+    horaireInfo.style.color = '#666';
+    return;
+  }
+
+  // Vérifier si les horaires sont chargés
+  if (!horairesOuverture || Object.keys(horairesOuverture).length === 0) {
+    horaireInfo.textContent = 'Chargement des horaires...';
+    horaireInfo.style.color = '#666';
+    console.log("⏳ Horaires pas encore chargés");
     return;
   }
 
   const selectedDate = new Date(dateInput.value);
   const dayName = getDayName(selectedDate);
   const horaireJour = horairesOuverture[dayName];
+  
+  console.log(`📊 Jour: ${dayName}, Horaire: ${horaireJour}`);
   
   if (!horaireJour || horaireJour === "Fermé") {
     horaireInfo.textContent = `Le restaurant est fermé le ${dayName.toLowerCase()}.`;
@@ -206,131 +226,6 @@ function updateHorairesInfo() {
     horaireInfo.style.color = '#2e7d32';
   }
 }
-
-// Écouter les changements de date
-document.getElementById('date').addEventListener('change', updateHorairesInfo);
-
-document.getElementById("reservation-form").addEventListener("submit", function(e) {
-  e.preventDefault();
-
-  const lastSubmission = parseInt(localStorage.getItem("lastReservationTime"), 10);
-  const nowTimestamp = Date.now();
-  const spamTimeout = 10 * 1000; // 5 minutes en ms
-
-  if (lastSubmission && nowTimestamp - lastSubmission < spamTimeout) {
-    const remainingTime = spamTimeout - (nowTimestamp - lastSubmission);
-    const minutes = Math.floor(remainingTime / 60000);
-    const seconds = Math.floor((remainingTime % 60000) / 1000);
-
-    showNotification(
-      `Veuillez attendre encore ${minutes} minute${minutes !== 1 ? "s" : ""} et ${seconds} seconde${seconds !== 1 ? "s" : ""} avant de réserver à nouveau.`,
-      "info"
-    );
-    return;
-  }
-
-  const form = this;
-  const formData = new FormData(form);
-  const couverts = parseInt(formData.get("couverts"), 10);
-
-  if (couverts > 20) {
-    showNotification("Le nombre de couverts est limité à 20.", "error");
-    return;
-  }
-
-  const selectedDate = formData.get("date");
-  const selectedTime = formData.get("heure");
-
-  if (!selectedDate || !selectedTime) {
-    showNotification("Veuillez sélectionner une date et une heure.", "error");
-    return;
-  }
-
-  const selectedDateTime = new Date(`${selectedDate}T${selectedTime}`);
-  const now = new Date();
-  const minReservationTime = new Date(now.getTime() + 2 * 60 * 60 * 1000); // +2h
-
-  const todayDate = now.toISOString().split("T")[0];
-
-  // 🟥 Cas 1 : date entière dans le passé
-  if (selectedDate < todayDate) {
-    showNotification("La date sélectionnée est déjà passée.", "error");
-    return;
-  }
-
-  // 🟧 Cas 2 : aujourd'hui mais heure déjà passée
-  if (selectedDate === todayDate && selectedDateTime < now) {
-    showNotification("L'heure sélectionnée est déjà passée.", "error");
-    return;
-  }
-
-  // 🟨 Cas 3 : pas assez de préavis
-  if (selectedDateTime < minReservationTime) {
-    showNotification("Les réservations doivent être faites au moins 2 heures à l'avance.", "error");
-    return;
-  }
-
-  // 🟩 Cas 4 : Vérifier les horaires d'ouverture
-  const timeValidation = isTimeInOpeningHours(selectedDate, selectedTime);
-  if (!timeValidation.valid) {
-    showNotification(timeValidation.message, "error");
-    return;
-  }
-
-  // ✅ Tout est bon
-  showNotification("Envoi en cours...", "info");
-
-  const company = formData.get("company");
-  if (company) {
-    showNotification("Bot détecté (champ caché rempli).", "error");
-    return;
-  }
-
-  fetch("/api/reservation", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + localStorage.getItem("token")
-    },
-    body: JSON.stringify({
-      email: formData.get("adresse"),            // ✅ CHANGÉ
-      telephone: formData.get("telephone"),
-      couverts: parseInt(formData.get("couverts"), 10),
-      date: formData.get("date"),
-      heure: formData.get("heure"),
-      commentaire: formData.get("commentaire")
-    })
-  })
-
-
-  .then(res => res.json().then(data => {
-    console.log("Réponse serveur :", data);
-    if (res.ok) {
-      localStorage.setItem("lastReservationTime", Date.now().toString());
-
-      // Stocker les données de la réservation pour l'affichage
-      localStorage.setItem("reservationDetails", JSON.stringify({
-        email: formData.get("adresse"),
-        telephone: formData.get("telephone"),
-        couverts: couverts,
-        date: selectedDate,
-        heure: selectedTime,
-        commentaire: formData.get("commentaire")
-      }));
-
-      // Rediriger vers la page de confirmation
-      window.location.href = "confirmation.html";
-    } else {
-      showNotification(data.error || "Une erreur est survenue.", "error");
-    }
-  }))
-  .catch(err => {
-    console.error(err);
-    showNotification("Erreur lors de l'envoi de la réservation.", "error");
-  });
-});
-
-// Script à ajouter au début du script.js ou dans reservation.html
 
 // Fonction pour auto-remplir l'email de l'utilisateur connecté
 async function autoFillUserEmail() {
@@ -356,7 +251,7 @@ async function autoFillUserEmail() {
       
       if (emailField && profile.email) {
         emailField.value = profile.email;
-        emailField.readOnly = true; // Empêcher la modification
+        emailField.readOnly = true;
         emailField.style.backgroundColor = '#f5f5f5';
         emailField.style.cursor = 'not-allowed';
         
@@ -375,15 +270,16 @@ async function autoFillUserEmail() {
   }
 }
 
-// Modifier la logique de soumission du formulaire
-function updateReservationSubmission() {
-  const form = document.getElementById("reservation-form");
-  
-  // Remplacer l'event listener existant
-  const newForm = form.cloneNode(true);
-  form.parentNode.replaceChild(newForm, form);
-  
-  newForm.addEventListener("submit", async function(e) {
+// Configuration du formulaire de réservation - NOUVELLE FONCTION
+function setupReservationForm() {
+  // Écouter les changements de date
+  document.getElementById('date').addEventListener('change', () => {
+    console.log("📅 Date changée, mise à jour des horaires");
+    updateHorairesInfo();
+  });
+
+  // Gestionnaire de soumission du formulaire
+  document.getElementById("reservation-form").addEventListener("submit", async function(e) {
     e.preventDefault();
 
     const lastSubmission = parseInt(localStorage.getItem("lastReservationTime"), 10);
@@ -452,7 +348,7 @@ function updateReservationSubmission() {
       return;
     }
 
-    // 🎯 CORRECTION PRINCIPALE : Utiliser l'email du profil utilisateur
+    // Utiliser l'email du profil utilisateur si connecté
     let userEmail = formData.get("adresse");
     
     const token = localStorage.getItem("token");
@@ -467,7 +363,7 @@ function updateReservationSubmission() {
         
         if (profileResponse.ok) {
           const profile = await profileResponse.json();
-          userEmail = profile.email; // Forcer l'utilisation de l'email du profil
+          userEmail = profile.email;
           console.log('📧 Email utilisé pour la réservation:', userEmail);
         }
       } catch (error) {
@@ -482,7 +378,7 @@ function updateReservationSubmission() {
         "Authorization": "Bearer " + token
       },
       body: JSON.stringify({
-        email: userEmail, // 🎯 Utiliser l'email du profil, pas celui du formulaire
+        email: userEmail,
         telephone: formData.get("telephone"),
         couverts: parseInt(formData.get("couverts"), 10),
         date: formData.get("date"),
@@ -496,7 +392,7 @@ function updateReservationSubmission() {
         localStorage.setItem("lastReservationTime", Date.now().toString());
 
         localStorage.setItem("reservationDetails", JSON.stringify({
-          email: userEmail, // Utiliser le bon email
+          email: userEmail,
           telephone: formData.get("telephone"),
           couverts: couverts,
           date: selectedDate,
@@ -514,14 +410,15 @@ function updateReservationSubmission() {
       showNotification("Erreur lors de l'envoi de la réservation.", "error");
     });
   });
-}
 
-document.getElementById("reset-button").addEventListener("click", function () {
-  const form = document.getElementById("reservation-form");
-  form.reset();
-  document.getElementById('opening-hours-info').textContent = 'Sélectionnez une date pour voir les horaires d\'ouverture.';
-  showNotification("Le formulaire a été vidé.", "info");
-});
+  // Gestionnaire pour vider le formulaire
+  document.getElementById("reset-button").addEventListener("click", function () {
+    const form = document.getElementById("reservation-form");
+    form.reset();
+    document.getElementById('opening-hours-info').textContent = 'Sélectionnez une date pour voir les horaires d\'ouverture.';
+    showNotification("Le formulaire a été vidé.", "info");
+  });
+}
 </script>
 
 <style>
