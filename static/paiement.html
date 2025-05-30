@@ -81,50 +81,16 @@
 </section>
 
 <script>
-function showNotification(message, type = "success") {
-  const notif = document.getElementById('notification');
-  const msg = document.getElementById('notification-message');
-  if (!notif || !msg) return;
-  msg.innerText = message;
-  notif.classList.remove('hidden', 'success', 'error', 'info');
-  notif.classList.add(type);
-  setTimeout(() => {
-    hideNotification();
-  }, 4000);
-}
-function hideNotification() {
-  const notif = document.getElementById('notification');
-  if (notif) {
-    notif.classList.add('hidden');
-    notif.classList.remove('success', 'error', 'info');
-  }
-}
-
-if (!token || !cart || cart.length === 0) {
-  // Redirection AVANT chargement de la page
-  window.location.href = "panier.html?error=unauthorized";
-}
-
 function getToken() {
   return localStorage.getItem('token');
-}
-
-let baseTotal = 0;
-let deliveryFee = 0;
-
-function updatePaymentTotalDisplay() {
-  let total = baseTotal;
-  if (deliveryFee) total += deliveryFee;
-  document.getElementById('payment-total').textContent = `Total : ${total.toFixed(2)}€`;
 }
 
 function loadPaymentDetails() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
   const orderData = JSON.parse(localStorage.getItem('orderData')) || {};
   const tbody = document.getElementById('payment-summary-body');
-  tbody.innerHTML = '';
-  baseTotal = 0;
-  deliveryFee = 0;
+  const totalElement = document.getElementById('payment-total');
+  let total = 0;
 
   cart.forEach(item => {
     const row = document.createElement('tr');
@@ -133,8 +99,9 @@ function loadPaymentDetails() {
         <td>${item.quantity}</td>
         <td>${(item.product.price * item.quantity).toFixed(2)}€</td>
     `;
+
     tbody.appendChild(row);
-    baseTotal += item.product.price * item.quantity;
+    total += item.product.price * item.quantity;
   });
 
   // Ajouter les frais de livraison si activés
@@ -146,15 +113,45 @@ function loadPaymentDetails() {
       <td>5.00€</td>
     `;
     tbody.appendChild(deliveryRow);
-    deliveryFee = 5.00;
+    total += 5.00;
   }
 
-  updatePaymentTotalDisplay();
+  totalElement.textContent = `Total : ${total.toFixed(2)}€`;
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  loadPaymentDetails();
-});
+async function clearCartItems() {
+  console.log("Début clearCartItems");
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  console.log('Contenu du panier:', cart);
+
+  if (cart.length === 0) {
+    return Promise.resolve();
+  }
+
+  const deletePromises = cart.map(item => {
+    console.log('Suppression item avec id:', item.id);
+    return fetch(`https://demoresto.onrender.com/api/cart/${item.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + getToken()
+      }
+    }).then(res => {
+      if (!res.ok) {
+        return res.json().then(err => Promise.reject(err));
+      }
+      return res.json();
+    });
+  });
+
+  try {
+    const results = await Promise.all(deletePromises);
+    console.log('Suppression OK', results);
+    localStorage.removeItem('cart');
+  } catch (error) {
+    console.error('Erreur suppression:', error);
+    throw error;
+  }
+}
 
 window.onload = loadPaymentDetails;
 </script>
@@ -222,6 +219,30 @@ async function simulatePayment() {
     }
   } catch (error) {
     showNotification("Erreur de paiement", "error");
+  }
+}
+
+function showNotification(message, type = "success") {
+  const notif = document.getElementById('notification');
+  const msg = document.getElementById('notification-message');
+
+  if (!notif || !msg) return;
+
+  msg.innerText = message;
+
+  notif.classList.remove('hidden', 'success', 'error', 'info');
+  notif.classList.add(type);
+
+  setTimeout(() => {
+    hideNotification();
+  }, 4000); // Masque automatiquement après 4 sec
+}
+
+function hideNotification() {
+  const notif = document.getElementById('notification');
+  if (notif) {
+    notif.classList.add('hidden');
+    notif.classList.remove('success', 'error', 'info');
   }
 }
 </script>

@@ -2639,7 +2639,7 @@ form#register-form a:hover {
   background: #fef3c7;
   color: #92400e;
 }
-.order-admin-card .order-status.refusee {
+.order-admin-card .order-status.refused {
   background: #fee2e2;
   color: #991b1b;
 }
