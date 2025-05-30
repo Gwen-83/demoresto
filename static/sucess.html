@@ -60,7 +60,48 @@
       }
     }
 
-    clearCartItems(); // appelle au chargement de la page
+    // Nouvelle fonction pour envoyer l'email de commande après paiement
+    async function sendOrderEmailAfterPayment() {
+      const token = localStorage.getItem('token');
+      const orderData = JSON.parse(localStorage.getItem('orderData') || '{}');
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      // Si pas d'info, ne rien faire
+      if (!orderData || (!orderData.delivery && !orderData.pickup)) return;
+
+      // Préparer les données pour l'API
+      const payload = {
+        delivery: !!orderData.delivery,
+        deliveryInfo: orderData.delivery || null,
+        pickupInfo: orderData.pickup || null,
+        cartItems: orderData.cart || cart,
+        timestamp: new Date().toLocaleString('fr-FR')
+      };
+
+      try {
+        const res = await fetch('/api/send-order-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify(payload)
+        });
+        // Optionnel : afficher une notification ou log
+        if (res.ok) {
+          console.log("Email de commande envoyé avec succès.");
+        } else {
+          console.warn("Erreur lors de l'envoi de l'email de commande.");
+        }
+      } catch (err) {
+        console.error("Erreur lors de l'envoi de l'email de commande :", err);
+      }
+    }
+
+    // Appelle au chargement de la page
+    (async function() {
+      await sendOrderEmailAfterPayment();
+      await clearCartItems();
+    })();
   </script>
 <footer>
   <div class="footer-logo">

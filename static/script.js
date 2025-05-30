@@ -1173,32 +1173,8 @@ if (confirmButton) {
         localStorage.setItem("cart", JSON.stringify(cart));
         localStorage.setItem("orderData", JSON.stringify(orderData));
 
-        // Appel unique pour envoi du mail (livraison ou retrait)
-        fetch('/api/send-order-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + getToken()
-          },
-          body: JSON.stringify({
-            delivery: deliveryChecked,
-            deliveryInfo: deliveryChecked ? getDeliveryInfo() : null,
-            pickupInfo: pickupChecked ? getPickupInfo() : null,
-            cartItems: cart,
-            timestamp: new Date().toLocaleString('fr-FR')
-          })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (!data.success) {
-            showNotification("Erreur lors de l'envoi de l'email de commande.", "error");
-          } else {
-            showNotification("Informations de commande enregistrées !", "success");
-          }
-        })
-        .catch(() => {
-          showNotification("Erreur lors de l'envoi de l'email de commande.", "error");
-        });
+        // --- SUPPRIMÉ : envoi de l'email ici ---
+        // fetch('/api/send-order-email', { ... })
 
         // Rediriger vers la page de paiement
         setTimeout(() => {
