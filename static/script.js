@@ -1172,11 +1172,34 @@ if (confirmButton) {
         // Enregistrer les données pour la page paiement
         localStorage.setItem("cart", JSON.stringify(cart));
         localStorage.setItem("orderData", JSON.stringify(orderData));
-        // Envoyer l'email de livraison si activée
-        if (deliveryChecked) {
-          sendDeliveryEmail(getDeliveryInfo(), cart);
-          showNotification("Informations de livraison enregistrées !", "success");
-        }
+
+        // Appel unique pour envoi du mail (livraison ou retrait)
+        fetch('/api/send-order-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + getToken()
+          },
+          body: JSON.stringify({
+            delivery: deliveryChecked,
+            deliveryInfo: deliveryChecked ? getDeliveryInfo() : null,
+            pickupInfo: pickupChecked ? getPickupInfo() : null,
+            cartItems: cart,
+            timestamp: new Date().toLocaleString('fr-FR')
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success) {
+            showNotification("Erreur lors de l'envoi de l'email de commande.", "error");
+          } else {
+            showNotification("Informations de commande enregistrées !", "success");
+          }
+        })
+        .catch(() => {
+          showNotification("Erreur lors de l'envoi de l'email de commande.", "error");
+        });
+
         // Rediriger vers la page de paiement
         setTimeout(() => {
           window.location.href = "paiement.html";
@@ -1187,32 +1210,6 @@ if (confirmButton) {
       console.error("Erreur lors de la récupération du panier :", err);
       showNotification("Impossible de vérifier le panier", "error");
     });
-  });
-}
-
-function sendDeliveryEmail(deliveryInfo, cartItems) {
-  // Envoie un email de livraison au backend
-  fetch('/api/send-delivery-email', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + getToken()
-    },
-    body: JSON.stringify({
-      delivery: true,
-      deliveryInfo: deliveryInfo,
-      cartItems: cartItems,
-      timestamp: new Date().toLocaleString('fr-FR')
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (!data.success) {
-      showNotification("Erreur lors de l'envoi de l'email de livraison.", "error");
-    }
-  })
-  .catch(() => {
-    showNotification("Erreur lors de l'envoi de l'email de livraison.", "error");
   });
 }
 
@@ -1638,4 +1635,3 @@ function validateDeliveryForm() {
   }
   return true;
 }
-
