@@ -1172,13 +1172,10 @@ if (confirmButton) {
         // Enregistrer les données pour la page paiement
         localStorage.setItem("cart", JSON.stringify(cart));
         localStorage.setItem("orderData", JSON.stringify(orderData));
-        // Envoyer l'email de livraison ou de retrait
+        // Envoyer l'email de livraison si activée
         if (deliveryChecked) {
           sendDeliveryEmail(getDeliveryInfo(), cart);
           showNotification("Informations de livraison enregistrées !", "success");
-        } else if (pickupChecked) {
-          sendOrderEmailRetrait(getPickupInfo(), cart);
-          showNotification("Informations de retrait enregistrées !", "success");
         }
         // Rediriger vers la page de paiement
         setTimeout(() => {
@@ -1193,17 +1190,17 @@ if (confirmButton) {
   });
 }
 
-// Nouvelle fonction pour envoyer un email lors d'un retrait sur place
-function sendOrderEmailRetrait(pickupInfo, cartItems) {
-  fetch('/api/send-order-email', {
+function sendDeliveryEmail(deliveryInfo, cartItems) {
+  // Envoie un email de livraison au backend
+  fetch('/api/send-delivery-email', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + getToken()
     },
     body: JSON.stringify({
-      delivery: false,
-      pickupInfo: pickupInfo,
+      delivery: true,
+      deliveryInfo: deliveryInfo,
       cartItems: cartItems,
       timestamp: new Date().toLocaleString('fr-FR')
     })
@@ -1211,11 +1208,11 @@ function sendOrderEmailRetrait(pickupInfo, cartItems) {
   .then(res => res.json())
   .then(data => {
     if (!data.success) {
-      showNotification("Erreur lors de l'envoi de l'email de retrait.", "error");
+      showNotification("Erreur lors de l'envoi de l'email de livraison.", "error");
     }
   })
   .catch(() => {
-    showNotification("Erreur lors de l'envoi de l'email de retrait.", "error");
+    showNotification("Erreur lors de l'envoi de l'email de livraison.", "error");
   });
 }
 
@@ -1641,4 +1638,3 @@ function validateDeliveryForm() {
   }
   return true;
 }
-
