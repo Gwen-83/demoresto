@@ -570,22 +570,41 @@ function displayOrderHistory(orders) {
     // Correction : utiliser order.created_at (UTC ISO) si disponible
     let dateStr = order.date;
     if (order.created_at) {
+      // created_at est déjà en UTC ISO (ex: 2024-06-08T11:46:00.000000)
+      // On retire les microsecondes si besoin
       let iso = order.created_at.replace(/\.\d+$/, '');
+      // Crée un objet Date en UTC
       const d = new Date(iso + 'Z');
+      // Affiche uniquement la date (sans l'heure)
       dateStr = d.toLocaleDateString('fr-FR', {
         day: '2-digit', month: '2-digit', year: 'numeric'
       });
     } else if (order.date) {
+      // Si order.date contient aussi l'heure (ex: "08/06/2024 11:46"), on ne garde que la date
       dateStr = order.date.split(' ')[0];
     }
 
-    // Ajout : récupération de la date/heure de livraison ou retrait si présentes
-    let extraInfo = '';
-    if (order.delivery && order.delivery.date && order.delivery.time) {
-      extraInfo = `<div style="margin-top:0.5rem;"><strong>Livraison prévue :</strong> ${order.delivery.date} à ${order.delivery.time}</div>`;
-    } else if (order.pickup && order.pickup.date && order.pickup.time) {
-      extraInfo = `<div style="margin-top:0.5rem;"><strong>Retrait prévu :</strong> ${order.pickup.date} à ${order.pickup.time}</div>`;
-    }
+    // Ajout : récupération des infos de livraison/retrait depuis localStorage si dispo
+    let deliveryOrPickupInfo = '';
+    // On tente de récupérer les infos de la commande dans localStorage (si c'est la dernière commande)
+    try {
+      const orderData = JSON.parse(localStorage.getItem('orderData'));
+      if (orderData && orderData.cart && orderData.cart.length > 0 && orderData.cart[0].product.id === order.items[0].product_id) {
+        if (orderData.delivery) {
+          deliveryOrPickupInfo = `
+            <div style="margin-top:0.5rem;">
+              <span style="font-weight:500;">Livraison prévue le ${orderData.delivery.date} à ${orderData.delivery.time}</span>
+            </div>
+          `;
+        } else if (orderData.pickup) {
+          deliveryOrPickupInfo = `
+            <div style="margin-top:0.5rem;">
+              <span style="font-weight:500;">Retrait prévu le ${orderData.pickup.date} à ${orderData.pickup.time}</span>
+            </div>
+          `;
+        }
+      }
+    } catch(e) {}
 
     const itemsList = order.items.map(item => `
       <div style="display:flex;justify-content:space-between;padding:2px 0;">
@@ -597,7 +616,7 @@ function displayOrderHistory(orders) {
     return `
       <div class="order-card" style="margin-bottom:1rem;padding:1rem;border:1px solid #eee;border-radius:6px;">
         <div style="font-weight:bold;">Commande #${order.id} - ${dateStr}</div>
-        ${extraInfo}
+        ${deliveryOrPickupInfo}
         <div style="margin-top:0.5rem;">
           ${itemsList}
         </div>

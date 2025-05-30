@@ -47,10 +47,6 @@ class Order(db.Model):
     status = db.Column(db.String(20), default='en attente')  # ex: "validée", "en cours", etc.
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Ajouté
 
-    # Ajout pour livraison/retrait
-    delivery_info = db.Column(db.Text, nullable=True)  # JSON string
-    pickup_info = db.Column(db.Text, nullable=True)    # JSON string
-
     items = db.relationship('CartItem', backref='order', lazy=True)
     user = db.relationship('User', backref='orders')  # Ajouté
 
@@ -58,27 +54,12 @@ class Order(db.Model):
         return sum(item.quantity * item.product.price for item in self.items)
 
     def to_dict(self):
-        import json
-        delivery = None
-        pickup = None
-        if self.delivery_info:
-            try:
-                delivery = json.loads(self.delivery_info)
-            except Exception:
-                delivery = None
-        if self.pickup_info:
-            try:
-                pickup = json.loads(self.pickup_info)
-            except Exception:
-                pickup = None
         return {
             'id': self.id,
             'created_at': self.created_at.isoformat(),
             'status': self.status,
             'items': [item.to_dict() for item in self.items],
-            'total': round(self.total(), 2),
-            'delivery': delivery,
-            'pickup': pickup
+            'total': round(self.total(), 2)
         }
 
 class TokenBlocklist(db.Model):

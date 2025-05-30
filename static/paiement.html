@@ -188,16 +188,11 @@ async function simulatePayment() {
       await fetch("https://demoresto.onrender.com/api/validate-order", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           "Authorization": "Bearer " + getToken()
-        },
-        body: JSON.stringify({
-          delivery: orderData.delivery,
-          pickup: orderData.pickup
-        })
+        }
       });
-      // Vider le panier côté backend et local
-      await clearCartItems();
+      // Vider le panier local
+      localStorage.removeItem('cart');
       await stripe.redirectToCheckout({ sessionId: session.id });
     } else {
       showNotification("Erreur Stripe", "error");

@@ -111,37 +111,6 @@
         <textarea id="delivery-instructions" placeholder="Étage, digicode, instructions particulières..."></textarea>
       </div>
     </div>
-
-    <!-- Section Retrait sur place -->
-    <div class="pickup-form" id="pickup-form">
-      <div class="delivery-info">
-        <strong>🛍️ Retrait sur place</strong>
-        <br>Veuillez choisir une date et une heure pour venir récupérer votre commande.
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="pickup-date">Date de retrait <span class="required">*</span></label>
-          <input type="date" id="pickup-date" required>
-        </div>
-        <div class="form-group">
-          <label for="pickup-time">Heure de retrait <span class="required">*</span></label>
-          <select id="pickup-time" required>
-            <option value="">Sélectionner une heure</option>
-            <option value="11:30">11h30</option>
-            <option value="12:00">12h00</option>
-            <option value="12:30">12h30</option>
-            <option value="13:00">13h00</option>
-            <option value="13:30">13h30</option>
-            <option value="18:30">18h30</option>
-            <option value="19:00">19h00</option>
-            <option value="19:30">19h30</option>
-            <option value="20:00">20h00</option>
-            <option value="20:30">20h30</option>
-            <option value="21:00">21h00</option>
-          </select>
-        </div>
-      </div>
-    </div>
   </div>
 
   <h2 id="cart-total">Total : 0.00€</h2>
@@ -155,33 +124,24 @@
 <script>
   let deliveryEnabled = false;
   let baseTotal = 0;
-  let horairesData = null;
-
-  // Charger les horaires d'ouverture au chargement de la page
-  fetch('/api/horaires.json')
-    .then(res => res.json())
-    .then(data => { horairesData = data; })
-    .catch(() => { horairesData = null; });
 
   function toggleDelivery() {
     const checkbox = document.getElementById('delivery-option');
-    const deliveryForm = document.getElementById('delivery-form');
-    const pickupForm = document.getElementById('pickup-form');
+    const form = document.getElementById('delivery-form');
+    
     deliveryEnabled = checkbox.checked;
+    
     if (deliveryEnabled) {
-      deliveryForm.classList.add('active');
-      pickupForm.classList.remove('active');
+      form.classList.add('active');
       // Définir la date minimale à aujourd'hui
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('delivery-date').min = today;
     } else {
-      deliveryForm.classList.remove('active');
-      pickupForm.classList.add('active');
-      // Définir la date minimale à aujourd'hui pour le retrait
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('pickup-date').min = today;
+      form.classList.remove('active');
+      // Réinitialiser les champs
       clearDeliveryForm();
     }
+    
     updateCartTotal();
   }
 
@@ -192,21 +152,22 @@
     document.getElementById('delivery-date').value = '';
     document.getElementById('delivery-time').value = '';
     document.getElementById('delivery-instructions').value = '';
-    document.getElementById('pickup-date').value = '';
-    document.getElementById('pickup-time').value = '';
   }
 
   function updateCartTotal() {
     const totalElement = document.getElementById('cart-total');
     let total = baseTotal;
+    
     if (deliveryEnabled) {
       total += 5.00;
     }
+    
     totalElement.textContent = `Total : ${total.toFixed(2)}€`;
   }
 
   function validateDeliveryForm() {
     if (!deliveryEnabled) return true;
+    
     const requiredFields = [
       'delivery-email',
       'delivery-phone', 
@@ -214,6 +175,7 @@
       'delivery-date',
       'delivery-time'
     ];
+    
     for (const fieldId of requiredFields) {
       const field = document.getElementById(fieldId);
       if (!field.value.trim()) {
@@ -222,6 +184,7 @@
         return false;
       }
     }
+    
     // Validation email
     const email = document.getElementById('delivery-email').value;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -229,6 +192,7 @@
       showNotification("Veuillez saisir un email valide", "error");
       return false;
     }
+    
     // Validation téléphone
     const phone = document.getElementById('delivery-phone').value;
     const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
@@ -236,48 +200,13 @@
       showNotification("Veuillez saisir un numéro de téléphone valide", "error");
       return false;
     }
-    // Validation horaires d'ouverture
-    if (!validateDateTimeInHoraires(document.getElementById('delivery-date').value, document.getElementById('delivery-time').value)) {
-      showNotification("La date ou l'heure choisie n'est pas dans les horaires d'ouverture.", "error");
-      return false;
-    }
-    // Ajout : vérifie que date et heure sont bien remplies
-    if (!document.getElementById('delivery-date').value) {
-      showNotification("Veuillez choisir une date de livraison.", "error");
-      document.getElementById('delivery-date').focus();
-      return false;
-    }
-    if (!document.getElementById('delivery-time').value) {
-      showNotification("Veuillez choisir une heure de livraison.", "error");
-      document.getElementById('delivery-time').focus();
-      return false;
-    }
-    return true;
-  }
-
-  function validatePickupForm() {
-    if (deliveryEnabled) return true;
-    const date = document.getElementById('pickup-date').value;
-    const time = document.getElementById('pickup-time').value;
-    if (!date) {
-      showNotification("Veuillez choisir une date de retrait.", "error");
-      document.getElementById('pickup-date').focus();
-      return false;
-    }
-    if (!time) {
-      showNotification("Veuillez choisir une heure de retrait.", "error");
-      document.getElementById('pickup-time').focus();
-      return false;
-    }
-    if (!validateDateTimeInHoraires(date, time)) {
-      showNotification("La date ou l'heure choisie n'est pas dans les horaires d'ouverture.", "error");
-      return false;
-    }
+    
     return true;
   }
 
   function getDeliveryInfo() {
     if (!deliveryEnabled) return null;
+    
     return {
       email: document.getElementById('delivery-email').value,
       phone: document.getElementById('delivery-phone').value,
@@ -288,50 +217,39 @@
     };
   }
 
-  function getPickupInfo() {
-    if (deliveryEnabled) return null;
-    return {
-      date: document.getElementById('pickup-date').value,
-      time: document.getElementById('pickup-time').value
-    };
-  }
+  // Modifier la fonction loadCart existante pour mettre à jour baseTotal
+  const originalLoadCart = loadCart;
+  loadCart = function() {
+    originalLoadCart();
+    
+    // Calculer le total de base après chargement
+    setTimeout(() => {
+      const totalText = document.getElementById('cart-total').textContent;
+      const match = totalText.match(/(\d+\.?\d*)/);
+      if (match) {
+        baseTotal = parseFloat(match[1]);
+        updateCartTotal();
+      }
+    }, 100);
+  };
 
-  // Vérifie si la date/heure choisie est dans les horaires d'ouverture
-  function validateDateTimeInHoraires(dateStr, timeStr) {
-    if (!horairesData) return true; // Si pas de données, ne bloque pas
-    const jours = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
-    const d = new Date(dateStr);
-    if (isNaN(d)) return false;
-    const jour = jours[d.getDay()];
-    const horaires = horairesData[jour];
-    if (!horaires || horaires === "Fermé") return false;
-    // Ex: "11h30 - 14h00 / 18h30 - 22h00"
-    const plages = horaires.split('/').map(s => s.trim());
-    const t = timeStr.replace(':','h');
-    for (const plage of plages) {
-      const [start, end] = plage.split('-').map(s => s.trim());
-      if (compareTime(t, start) >= 0 && compareTime(t, end) <= 0) return true;
+  window.onload = function() {
+    const params = new URLSearchParams(window.location.search);
+    const errorType = params.get("error");
+    if (errorType === "unauthorized") {
+      showNotification("Veuillez vous connecter et ajouter des articles au panier avant de passer au paiement.", "error");
     }
-    return false;
-  }
-  // Compare "11h30" et "12h00" => -1 si t1 < t2, 0 si égal, 1 si t1 > t2
-  function compareTime(t1, t2) {
-    const [h1,m1] = t1.split('h').map(Number);
-    const [h2,m2] = t2.split('h').map(Number);
-    if (h1 !== h2) return h1 - h2;
-    return m1 - m2;
-  }
+  };
 
-  // Modifier le bouton de confirmation pour inclure les informations de livraison ou de retrait
+  // Modifier le bouton de confirmation pour inclure les informations de livraison
   const confirmButton = document.getElementById("confirm-order-button");
   if (confirmButton) {
     confirmButton.addEventListener("click", () => {
-      // Valider le formulaire de livraison ou de retrait
-      if (deliveryEnabled) {
-        if (!validateDeliveryForm()) return;
-      } else {
-        if (!validatePickupForm()) return;
+      // Valider le formulaire de livraison si nécessaire
+      if (!validateDeliveryForm()) {
+        return;
       }
+      
       fetch('https://demoresto.onrender.com/api/cart', {
         method: 'GET',
         headers: {
@@ -343,20 +261,22 @@
         if (!cart || cart.length === 0) {
           showNotification("Votre panier est vide","error");
         } else {
-          // Préparer les données avec les informations de livraison ou de retrait
+          // Préparer les données avec les informations de livraison
           const orderData = {
             cart: cart,
             delivery: getDeliveryInfo(),
-            pickup: getPickupInfo(),
             total: baseTotal + (deliveryEnabled ? 5.00 : 0)
           };
-          // Enregistrer toutes les données pour la page paiement et user.html
+          
+          // Enregistrer toutes les données pour la page paiement
           localStorage.setItem("cart", JSON.stringify(cart));
           localStorage.setItem("orderData", JSON.stringify(orderData));
+          
           // Si livraison activée, envoyer les informations par email
           if (deliveryEnabled) {
             sendDeliveryEmail(getDeliveryInfo());
           }
+          
           window.location.href = "paiement.html";
         }
       })
@@ -393,13 +313,6 @@
       showNotification("Erreur lors de l'envoi de l'email", "error");
     });
   }
-
-  // Afficher le formulaire de retrait par défaut au chargement
-  window.addEventListener('DOMContentLoaded', () => {
-    if (!document.getElementById('delivery-option').checked) {
-      document.getElementById('pickup-form').classList.add('active');
-    }
-  });
 </script>
 </body>
 </html>
