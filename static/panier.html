@@ -241,52 +241,6 @@
     }
   };
 
-  // Modifier le bouton de confirmation pour inclure les informations de livraison
-  const confirmButton = document.getElementById("confirm-order-button");
-  if (confirmButton) {
-    confirmButton.addEventListener("click", () => {
-      // Valider le formulaire de livraison si nécessaire
-      if (!validateDeliveryForm()) {
-        return;
-      }
-      
-      fetch('https://demoresto.onrender.com/api/cart', {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer ' + getToken()
-        }
-      })
-      .then(res => res.json())
-      .then(cart => {
-        if (!cart || cart.length === 0) {
-          showNotification("Votre panier est vide","error");
-        } else {
-          // Préparer les données avec les informations de livraison
-          const orderData = {
-            cart: cart,
-            delivery: getDeliveryInfo(),
-            total: baseTotal + (deliveryEnabled ? 5.00 : 0)
-          };
-          
-          // Enregistrer toutes les données pour la page paiement
-          localStorage.setItem("cart", JSON.stringify(cart));
-          localStorage.setItem("orderData", JSON.stringify(orderData));
-          
-          // Si livraison activée, envoyer les informations par email
-          if (deliveryEnabled) {
-            sendDeliveryEmail(getDeliveryInfo());
-          }
-          
-          window.location.href = "paiement.html";
-        }
-      })
-      .catch(err => {
-        console.error("Erreur lors de la récupération du panier :", err);
-        showNotification("Impossible de vérifier le panier","error");
-      });
-    });
-  }
-
   function sendDeliveryEmail(deliveryInfo) {
     fetch('https://demoresto.onrender.com/api/send-delivery-email', {
       method: 'POST',
