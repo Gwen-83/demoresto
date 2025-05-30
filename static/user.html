@@ -579,6 +579,9 @@ function displayOrderHistory(orders) {
       dateStr = d.toLocaleDateString('fr-FR', {
         day: '2-digit', month: '2-digit', year: 'numeric'
       });
+    } else if (order.date) {
+      // Si order.date contient aussi l'heure (ex: "08/06/2024 11:46"), on ne garde que la date
+      dateStr = order.date.split(' ')[0];
     }
 
     const itemsList = order.items.map(item => `
