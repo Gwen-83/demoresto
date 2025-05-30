@@ -425,14 +425,6 @@
         <i class="fas fa-history"></i>
         Historique des commandes
       </h2>
-      
-      <div class="orders-tabs">
-        <button class="order-tab active" data-filter="all">Toutes</button>
-        <button class="order-tab" data-filter="completed">Livrées</button>
-        <button class="order-tab" data-filter="processing">En cours</button>
-        <button class="order-tab" data-filter="canceled">Annulées</button>
-      </div>
-      
       <div class="orders-grid" id="orders-grid">
         <div class="loading-indicator">Chargement de vos commandes...</div>
       </div>
@@ -522,34 +514,35 @@ async function loadUserReservations() {
   }
 }
 
-// Fonction pour charger l'historique des commandes
+// Fonction pour charger l'historique des commandes (simplifiée)
 async function loadOrderHistory() {
   try {
     const token = localStorage.getItem('token');
     if (!token) {
       throw new Error('Non authentifié - aucun token trouvé');
     }
-    
     const ordersGrid = document.getElementById('orders-grid');
     ordersGrid.innerHTML = '<div class="loading-indicator">Chargement des commandes...</div>';
-    
+
     const response = await fetch('https://demoresto.onrender.com/api/user/order-history', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
-    
+
     if (!response.ok) {
-      throw new Error(`Erreur ${response.status}: ${await response.text()}`);
+      const txt = await response.text();
+      console.log('Réponse non OK:', txt);
+      throw new Error(`Erreur ${response.status}: ${txt}`);
     }
-    
+
     const orders = await response.json();
-    
+    console.log('Commandes récupérées:', orders);
+
     displayOrderHistory(orders);
   } catch (error) {
     console.error('Erreur lors du chargement des commandes:', error);
-    
     document.getElementById('orders-grid').innerHTML = `
       <div class="no-orders" style="color: red;">
         <strong>Erreur de chargement des commandes:</strong><br>
@@ -559,10 +552,11 @@ async function loadOrderHistory() {
   }
 }
 
-// Fonction pour afficher l'historique des commandes
+// Fonction pour afficher l'historique des commandes (simplifiée)
 function displayOrderHistory(orders) {
   const container = document.getElementById('orders-grid');
-  
+  console.log('Affichage des commandes:', orders);
+
   if (!orders || orders.length === 0) {
     container.innerHTML = `
       <div class="no-orders">
@@ -571,121 +565,25 @@ function displayOrderHistory(orders) {
     `;
     return;
   }
-  
-  // Récupérer le filtre actif
-  const activeFilter = document.querySelector('.order-tab.active').dataset.filter;
-  
-  // Filtrer les commandes si nécessaire
-  let filteredOrders = orders;
-  if (activeFilter !== 'all') {
-    filteredOrders = orders.filter(order => {
-      // Harmonisation des statuts pour le filtre
-      const status = (order.status || '').toLowerCase();
-      if (activeFilter === 'completed') return status === 'terminée' || status === 'livrée';
-      if (activeFilter === 'processing') return status === 'en attente' || status === 'en cours';
-      if (activeFilter === 'canceled') return status === 'annulée';
-      return true;
-    });
-  }
-  
-  if (filteredOrders.length === 0) {
-    container.innerHTML = `
-      <div class="no-orders">
-        Aucune commande ne correspond au filtre sélectionné.
-      </div>
-    `;
-    return;
-  }
-  
-  // Créer le HTML pour chaque commande
-  container.innerHTML = filteredOrders.map((order, index) => {
-    // Déterminer la classe de statut
-    let statusClass = 'status-processing';
-    const status = (order.status || '').toLowerCase();
-    if (status === 'terminée' || status === 'livrée') {
-      statusClass = 'status-completed';
-    } else if (status === 'annulée') {
-      statusClass = 'status-canceled';
-    }
-    
-    // Formatter le statut pour l'affichage
-    const displayStatus = {
-      'en attente': 'En attente',
-      'en cours': 'En cours',
-      'terminée': 'Terminée',
-      'livrée': 'Livrée',
-      'annulée': 'Annulée'
-    }[status] || order.status;
-    
-    // Créer la liste des articles
+
+  container.innerHTML = orders.map(order => {
     const itemsList = order.items.map(item => `
-      <div class="order-item">
-        <div class="item-details">
-          <span class="item-quantity">${item.quantity}x</span>
-          <span class="item-name">${item.product_name}</span>
-        </div>
-        <div class="item-price">${(item.unit_price * item.quantity).toFixed(2)}€</div>
+      <div style="display:flex;justify-content:space-between;padding:2px 0;">
+        <span>${item.quantity} x ${item.product_name}</span>
+        <span>${item.unit_price.toFixed(2)}€</span>
+        <span>Total: ${(item.unit_price * item.quantity).toFixed(2)}€</span>
       </div>
     `).join('');
-    
     return `
-      <div class="order-card">
-        <div class="order-header">
-          <div>
-            <div class="order-date">${order.date}</div>
-            <div class="order-id">Commande #${order.id}</div>
-          </div>
-          <span class="order-status ${statusClass}">${displayStatus}</span>
+      <div class="order-card" style="margin-bottom:1rem;padding:1rem;border:1px solid #eee;border-radius:6px;">
+        <div style="font-weight:bold;">Commande #${order.id} - ${order.date}</div>
+        <div style="margin-top:0.5rem;">
+          ${itemsList}
         </div>
-        
-        <div class="order-content">
-          <div class="order-items">
-            ${itemsList}
-          </div>
-          
-          <div class="order-summary">
-            <span class="order-total-label">Total</span>
-            <span class="order-total-value">${order.total.toFixed(2)}€</span>
-          </div>
-          
-          <div class="toggle-details" onclick="toggleOrderDetails(${index})">
-            Afficher plus de détails
-          </div>
-          
-          <div class="order-details" id="order-details-${index}">
-            <div class="detail-section">
-              <div class="detail-title">Informations de commande</div>
-              <div>Statut: ${displayStatus}</div>
-              <div>Date: ${order.date}</div>
-            </div>
-          </div>
-        </div>
+        <div style="margin-top:0.5rem;font-weight:bold;">Total : ${order.total.toFixed(2)}€</div>
       </div>
     `;
   }).join('');
-  
-  // Ajouter les événements pour les onglets
-  document.querySelectorAll('.order-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.order-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      displayOrderHistory(orders);
-    });
-  });
-}
-
-// Fonction pour afficher/masquer les détails d'une commande
-function toggleOrderDetails(index) {
-  const detailsElement = document.getElementById(`order-details-${index}`);
-  const isVisible = detailsElement.classList.contains('visible');
-  
-  if (isVisible) {
-    detailsElement.classList.remove('visible');
-    detailsElement.previousElementSibling.textContent = 'Afficher plus de détails';
-  } else {
-    detailsElement.classList.add('visible');
-    detailsElement.previousElementSibling.textContent = 'Masquer les détails';
-  }
 }
 
 // Fonction pour vérifier les informations utilisateur
@@ -848,22 +746,15 @@ async function verifyUserAuthentication() {
 // Initialiser au chargement de la page
 document.addEventListener('DOMContentLoaded', async () => {
   if (document.getElementById('profile-content-section')) {
-    
     try {
       // Vérifier l'authentification de l'utilisateur
       const isUserAuthenticated = await verifyUserAuthentication();
-      
       if (isUserAuthenticated) {
-        // Afficher le contenu du profil
         document.getElementById('profile-loading-state').style.display = 'none';
         document.getElementById('profile-content-section').style.display = 'block';
-        
-        // Afficher les informations de l'utilisateur
         displayUserProfileInformation();
-        
-        // Charger les réservations et l'historique des commandes
         loadUserReservations();
-        loadOrderHistory();
+        loadOrderHistory(); // Appel simplifié
       }
     } catch (error) {
       console.error('Erreur lors de l\'initialisation:', error);
