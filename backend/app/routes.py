@@ -12,6 +12,7 @@ from flask_limiter import Limiter
 import os
 import re
 import json
+from sqlalchemy import or_
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -1016,3 +1017,76 @@ def delete_user_account():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Erreur lors de la suppression du compte."}), 500
+
+@bp.route('/api/admin/orders', methods=['GET'])
+@jwt_required()
+def get_all_orders():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+
+    orders = Order.query.order_by(Order.created_at.desc()).all()
+    result = []
+    for order in orders:
+        order_data = order.to_dict()
+        # Ajout de l'email utilisateur pour l'admin
+        order_data['user_email'] = order.user.email if order.user else None
+        result.append(order_data)
+    return jsonify(result), 200
+
+@bp.route('/api/order/<int:order_id>/validate', methods=['POST'])
+@jwt_required()
+def validate_order_admin(order_id):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({"error": "Commande introuvable."}), 404
+
+    order.status = 'validee'
+    db.session.commit()
+
+    # Envoi d'un email de confirmation à l'utilisateur
+    if order.user and order.user.email:
+        subject = "Votre commande a été validée"
+        html_content = f"""
+        <p>Bonjour,</p>
+        <p>Votre commande #{order.id} a été <b>validée</b> par le restaurant.</p>
+        <p>Merci pour votre confiance !</p>
+        """
+        send_email(order.user.email, subject, html_content)
+    return jsonify({"message": "Commande validée."}), 200
+
+@bp.route('/api/order/<int:order_id>/reject', methods=['POST'])
+@jwt_required()
+def reject_order_admin(order_id):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+
+    data = request.get_json()
+    reason = sanitize_input(data.get('reason', ''), max_length=500) if data else ''
+
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({"error": "Commande introuvable."}), 404
+
+    order.status = 'refusee'
+    db.session.commit()
+
+    # Envoi d'un email de refus à l'utilisateur
+    if order.user and order.user.email:
+        subject = "Votre commande a été refusée"
+        html_content = f"""
+        <p>Bonjour,</p>
+        <p>Nous sommes désolés, votre commande #{order.id} a été <b>refusée</b> par le restaurant.</p>
+        {f"<p>Motif : {reason}</p>" if reason else ""}
+        <p>Pour toute question, contactez-nous.</p>
+        """
+        send_email(order.user.email, subject, html_content)
+    return jsonify({"message": "Commande refusée."}), 200

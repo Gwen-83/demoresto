@@ -35,6 +35,7 @@
   <button class="tab-button active" onclick="switchTab('reservations')">Réservations</button>
   <button class="tab-button" onclick="switchTab('products')">Produits</button>
   <button class="tab-button" onclick="switchTab('schedules')">Horaires</button>
+  <button class="tab-button" onclick="switchTab('orders')">Commandes</button>
 </div>
 
 <!-- Onglet Réservations -->
@@ -145,6 +146,14 @@
   </div>
 </div>
 
+<!-- Onglet Commandes (NOUVEAU) -->
+<div id="orders-tab" class="tab-content">
+  <div class="orders-admin-container">
+    <h2>Gestion des commandes</h2>
+    <div id="orders-list"></div>
+  </div>
+</div>
+
 <!-- Modal de refus -->
 <div id="rejectModal" class="modal">
   <div class="modal-content">
@@ -229,6 +238,8 @@ function switchTab(tabName) {
   // Charger les données spécifiques à l'onglet
   if (tabName === 'reservations') {
     loadReservations();
+  } else if (tabName === 'orders') {
+    loadOrdersAdmin();
   }
 }
 
@@ -509,6 +520,85 @@ async function confirmReject() {
     console.error('Erreur:', error);
     showNotification('Erreur de connexion', 'error');
   }
+}
+
+// Ajout pour l'onglet Commandes
+let orders = [];
+
+async function loadOrdersAdmin() {
+  const token = localStorage.getItem('token');
+  const ordersList = document.getElementById('orders-list');
+  ordersList.innerHTML = "Chargement...";
+  try {
+    const res = await fetch('/api/admin/orders', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) {
+      ordersList.innerHTML = "Erreur lors du chargement des commandes.";
+      return;
+    }
+    orders = await res.json();
+    renderOrdersAdmin();
+  } catch (e) {
+    ordersList.innerHTML = "Erreur réseau.";
+  }
+}
+
+function renderOrdersAdmin() {
+  const ordersList = document.getElementById('orders-list');
+  if (!orders || orders.length === 0) {
+    ordersList.innerHTML = "<p>Aucune commande.</p>";
+    return;
+  }
+  ordersList.innerHTML = orders.map(order => {
+    let statusLabel = order.status === 'en attente' ? 'En attente' :
+                      order.status === 'validee' ? 'Validée' :
+                      order.status === 'refusee' ? 'Refusée' : order.status;
+    let actions = '';
+    if (order.status === 'en attente') {
+      actions = `
+        <button onclick="validateOrderAdmin(${order.id})">Valider</button>
+        <button onclick="openRejectOrderModal(${order.id})">Refuser</button>
+      `;
+    }
+    return `
+      <div class="order-admin-card" style="border:1px solid #ccc;padding:1em;margin-bottom:1em;">
+        <div><b>Commande #${order.id}</b> - ${order.user_email || ''}</div>
+        <div>Date: ${order.requested_date || ''} ${order.requested_time || ''}</div>
+        <div>Status: <b>${statusLabel}</b></div>
+        <div>Total: ${order.total.toFixed(2)}€</div>
+        <div>Articles: ${order.items.map(i => `${i.quantity} x ${i.product.name}`).join(', ')}</div>
+        <div>${actions}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Validation/refus commandes admin
+async function validateOrderAdmin(orderId) {
+  const token = localStorage.getItem('token');
+  if (!confirm("Valider cette commande ?")) return;
+  await fetch(`/api/order/${orderId}/validate`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  loadOrdersAdmin();
+}
+
+let currentOrderId = null;
+function openRejectOrderModal(orderId) {
+  currentOrderId = orderId;
+  const reason = prompt("Motif du refus (optionnel) :");
+  rejectOrderAdmin(orderId, reason);
+}
+async function rejectOrderAdmin(orderId, reason) {
+  const token = localStorage.getItem('token');
+  await fetch(`/api/order/${orderId}/reject`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason })
+  });
+  loadOrdersAdmin();
 }
 
 // Fermer le modal en cliquant à l'extérieur

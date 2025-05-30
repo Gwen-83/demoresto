@@ -571,6 +571,13 @@ function displayOrderHistory(orders) {
   let showAll = false;
   let visibleCount = 3;
 
+  function getOrderStatusLabel(status) {
+    if (status === 'en attente') return '<span class="order-status status-processing">En attente</span>';
+    if (status === 'validee') return '<span class="order-status status-completed">Validée</span>';
+    if (status === 'refusee') return '<span class="order-status status-canceled">Refusée</span>';
+    return `<span class="order-status">${status}</span>`;
+  }
+
   function renderOrders() {
     const displayOrders = showAll ? orders : orders.slice(0, visibleCount);
     container.innerHTML = displayOrders.map(order => {
@@ -622,7 +629,7 @@ function displayOrderHistory(orders) {
       `).join('');
       return `
         <div class="order-card" style="margin-bottom:1rem;padding:1rem;border:1px solid #eee;border-radius:6px;">
-          <div style="font-weight:bold;">Commande #${order.id} - ${dateStr}</div>
+          <div style="font-weight:bold;">Commande #${order.id} - ${dateStr} ${getOrderStatusLabel(order.status)}</div>
           ${deliveryOrPickupInfo}
           <div style="margin-top:0.5rem;">
             ${itemsList}
