@@ -936,6 +936,18 @@ function getPickupInfo() {
   };
 }
 
+function getDeliveryInfo() {
+  // Récupère les infos du formulaire de livraison
+  return {
+    email: document.getElementById('delivery-email').value.trim(),
+    phone: document.getElementById('delivery-phone').value.trim(),
+    address: document.getElementById('delivery-address').value.trim(),
+    date: document.getElementById('delivery-date').value,
+    time: document.getElementById('delivery-time').value,
+    instructions: document.getElementById('delivery-instructions').value.trim()
+  };
+}
+
 const confirmButton = document.getElementById("confirm-order-button");
 if (confirmButton) {
   confirmButton.addEventListener("click", () => {
