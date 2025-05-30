@@ -12,6 +12,8 @@ from flask_limiter import Limiter
 import os
 import re
 import json
+from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
+import sqlalchemy
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -789,12 +791,28 @@ def get_user_order_history():
 
         result = []
         for order in orders:
+            # Ajout : charger les infos livraison/retrait si présentes
+            delivery = None
+            pickup = None
+            if hasattr(order, 'delivery_info') and order.delivery_info:
+                try:
+                    delivery = json.loads(order.delivery_info)
+                except Exception:
+                    delivery = None
+            if hasattr(order, 'pickup_info') and order.pickup_info:
+                try:
+                    pickup = json.loads(order.pickup_info)
+                except Exception:
+                    pickup = None
+
             order_data = {
                 'id': order.id,
                 'date': order.created_at.strftime('%d/%m/%Y %H:%M'),
                 'status': order.status,
                 'items': [],
-                'total': 0
+                'total': 0,
+                'delivery': delivery,
+                'pickup': pickup
             }
             for item in order.items:
                 product = item.product
@@ -818,13 +836,22 @@ def get_user_order_history():
 @jwt_required()
 def validate_order():
     user_id = int(get_jwt_identity())
+    data = request.get_json() or {}
+    delivery = data.get('delivery')
+    pickup = data.get('pickup')
     # Récupérer tous les CartItems du panier de l'utilisateur (order_id=None)
     cart_items = CartItem.query.filter_by(user_id=user_id, order_id=None).all()
     if not cart_items:
         return jsonify({"error": "Panier vide"}), 400
 
-    # Créer la commande
-    order = Order(user_id=user_id, status='en attente')  # <-- status cohérent avec le frontend
+    # Créer la commande avec infos livraison/retrait
+    order = Order(
+        user_id=user_id,
+        status='en attente',
+        # Ajout des champs pour stocker les infos
+        delivery_info=json.dumps(delivery) if delivery else None,
+        pickup_info=json.dumps(pickup) if pickup else None
+    )
     db.session.add(order)
     db.session.flush()  # Pour obtenir l'id de la commande
 
