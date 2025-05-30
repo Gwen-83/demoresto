@@ -1172,10 +1172,13 @@ if (confirmButton) {
         // Enregistrer les données pour la page paiement
         localStorage.setItem("cart", JSON.stringify(cart));
         localStorage.setItem("orderData", JSON.stringify(orderData));
-        // Envoyer l'email de livraison si activée
+        // Envoyer l'email de livraison ou de retrait
         if (deliveryChecked) {
           sendDeliveryEmail(getDeliveryInfo(), cart);
           showNotification("Informations de livraison enregistrées !", "success");
+        } else if (pickupChecked) {
+          sendOrderEmailRetrait(getPickupInfo(), cart);
+          showNotification("Informations de retrait enregistrées !", "success");
         }
         // Rediriger vers la page de paiement
         setTimeout(() => {
@@ -1190,17 +1193,17 @@ if (confirmButton) {
   });
 }
 
-function sendDeliveryEmail(deliveryInfo, cartItems) {
-  // Envoie un email de livraison au backend
-  fetch('/api/send-delivery-email', {
+// Nouvelle fonction pour envoyer un email lors d'un retrait sur place
+function sendOrderEmailRetrait(pickupInfo, cartItems) {
+  fetch('/api/send-order-email', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + getToken()
     },
     body: JSON.stringify({
-      delivery: true,
-      deliveryInfo: deliveryInfo,
+      delivery: false,
+      pickupInfo: pickupInfo,
       cartItems: cartItems,
       timestamp: new Date().toLocaleString('fr-FR')
     })
@@ -1208,11 +1211,11 @@ function sendDeliveryEmail(deliveryInfo, cartItems) {
   .then(res => res.json())
   .then(data => {
     if (!data.success) {
-      showNotification("Erreur lors de l'envoi de l'email de livraison.", "error");
+      showNotification("Erreur lors de l'envoi de l'email de retrait.", "error");
     }
   })
   .catch(() => {
-    showNotification("Erreur lors de l'envoi de l'email de livraison.", "error");
+    showNotification("Erreur lors de l'envoi de l'email de retrait.", "error");
   });
 }
 
