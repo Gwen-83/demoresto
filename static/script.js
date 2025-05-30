@@ -1249,7 +1249,7 @@ document.addEventListener("DOMContentLoaded", function() {
         body: JSON.stringify({
           prenom: formData.get("prenom"),
           nom: formData.get("nom"),
-          adresse: formData.get("email"),
+          email: formData.get("email"), // <-- corrected property name
           objet: formData.get("objet"),
           message: formData.get("message")
         })
