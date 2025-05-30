@@ -241,6 +241,17 @@
       showNotification("La date ou l'heure choisie n'est pas dans les horaires d'ouverture.", "error");
       return false;
     }
+    // Ajout : vérifie que date et heure sont bien remplies
+    if (!document.getElementById('delivery-date').value) {
+      showNotification("Veuillez choisir une date de livraison.", "error");
+      document.getElementById('delivery-date').focus();
+      return false;
+    }
+    if (!document.getElementById('delivery-time').value) {
+      showNotification("Veuillez choisir une heure de livraison.", "error");
+      document.getElementById('delivery-time').focus();
+      return false;
+    }
     return true;
   }
 
@@ -248,8 +259,14 @@
     if (deliveryEnabled) return true;
     const date = document.getElementById('pickup-date').value;
     const time = document.getElementById('pickup-time').value;
-    if (!date || !time) {
-      showNotification("Veuillez choisir une date et une heure de retrait.", "error");
+    if (!date) {
+      showNotification("Veuillez choisir une date de retrait.", "error");
+      document.getElementById('pickup-date').focus();
+      return false;
+    }
+    if (!time) {
+      showNotification("Veuillez choisir une heure de retrait.", "error");
+      document.getElementById('pickup-time').focus();
       return false;
     }
     if (!validateDateTimeInHoraires(date, time)) {
