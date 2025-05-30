@@ -579,9 +579,11 @@ function displayOrderHistory(orders) {
   let filteredOrders = orders;
   if (activeFilter !== 'all') {
     filteredOrders = orders.filter(order => {
-      if (activeFilter === 'completed') return order.status === 'terminée' || order.status === 'livrée';
-      if (activeFilter === 'processing') return order.status === 'en cours' || order.status === 'en attente';
-      if (activeFilter === 'canceled') return order.status === 'annulée';
+      // Harmonisation des statuts pour le filtre
+      const status = (order.status || '').toLowerCase();
+      if (activeFilter === 'completed') return status === 'terminée' || status === 'livrée';
+      if (activeFilter === 'processing') return status === 'en attente' || status === 'en cours';
+      if (activeFilter === 'canceled') return status === 'annulée';
       return true;
     });
   }
@@ -599,20 +601,21 @@ function displayOrderHistory(orders) {
   container.innerHTML = filteredOrders.map((order, index) => {
     // Déterminer la classe de statut
     let statusClass = 'status-processing';
-    if (order.status === 'terminée' || order.status === 'livrée') {
+    const status = (order.status || '').toLowerCase();
+    if (status === 'terminée' || status === 'livrée') {
       statusClass = 'status-completed';
-    } else if (order.status === 'annulée') {
+    } else if (status === 'annulée') {
       statusClass = 'status-canceled';
     }
     
     // Formatter le statut pour l'affichage
     const displayStatus = {
-      'en_attente': 'En attente',
-      'en_cours': 'En cours',
+      'en attente': 'En attente',
+      'en cours': 'En cours',
       'terminée': 'Terminée',
       'livrée': 'Livrée',
       'annulée': 'Annulée'
-    }[order.status] || order.status;
+    }[status] || order.status;
     
     // Créer la liste des articles
     const itemsList = order.items.map(item => `

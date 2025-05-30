@@ -818,7 +818,7 @@ def validate_order():
         return jsonify({"error": "Panier vide"}), 400
 
     # Créer la commande
-    order = Order(user_id=user_id, status='en attente')
+    order = Order(user_id=user_id, status='en attente')  # <-- status cohérent avec le frontend
     db.session.add(order)
     db.session.flush()  # Pour obtenir l'id de la commande
 
