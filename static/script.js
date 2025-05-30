@@ -1000,6 +1000,31 @@ if (confirmButton) {
   });
 }
 
+function sendDeliveryEmail(deliveryInfo, cartItems) {
+  // Envoie un email de livraison au backend
+  fetch('/api/send-delivery-email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + getToken()
+    },
+    body: JSON.stringify({
+      delivery: true,
+      deliveryInfo: deliveryInfo,
+      cartItems: cartItems,
+      timestamp: new Date().toLocaleString('fr-FR')
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (!data.success) {
+      showNotification("Erreur lors de l'envoi de l'email de livraison.", "error");
+    }
+  })
+  .catch(() => {
+    showNotification("Erreur lors de l'envoi de l'email de livraison.", "error");
+  });
+}
 
 document.addEventListener("DOMContentLoaded", function() {
   const form = document.getElementById("form-contact");
