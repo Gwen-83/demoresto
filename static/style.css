@@ -2639,7 +2639,7 @@ form#register-form a:hover {
   background: #fef3c7;
   color: #92400e;
 }
-.order-admin-card .order-status.refused {
+.order-admin-card .order-status.refusee {
   background: #fee2e2;
   color: #991b1b;
 }
@@ -3090,6 +3090,10 @@ form#register-form a:hover {
 
 /* Pourboire : harmonisation visuelle */
 .tip-section-box {
+  display: block;         /* S'assure que le bloc prend toute la largeur */
+  width: 100%;            /* Prend toute la largeur du parent */
+  margin-top: 0;          /* Pas d'espace au-dessus */
+  margin-bottom: 18px;    /* Espace sous le bloc */
   background: #fffdf7;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(153,0,0,0.08);
@@ -3192,6 +3196,8 @@ form#register-form a:hover {
   .tip-section-box {
     padding: 14px 6px 10px 6px;
     max-width: 98vw;
+    display: block;
+    width: 100%;
   }
   .tip-buttons-row {
     flex-direction: column;
