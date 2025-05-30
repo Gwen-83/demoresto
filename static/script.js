@@ -838,142 +838,156 @@ function loadCart() {
 }
 
 function toggleDelivery() {
-  const checkbox = document.getElementById('delivery-option');
-  const form = document.getElementById('delivery-form');
-  
-  const deliveryEnabled = checkbox.checked;
-  
-  if (deliveryEnabled) {
-    form.classList.add('active');
-    // Définir la date minimale à demain
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-    document.getElementById('delivery-date').min = tomorrowStr;
+  const deliveryCheckbox = document.getElementById('delivery-option');
+  const deliveryForm = document.getElementById('delivery-form');
+  const pickupCheckbox = document.getElementById('pickup-option');
+  if (deliveryCheckbox.checked) {
+    deliveryForm.classList.add('active');
+    // Désactive l'autre option
+    pickupCheckbox.checked = false;
+    document.getElementById('pickup-form').classList.remove('active');
+    clearPickupForm();
+    // Date min aujourd'hui
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('delivery-date').min = today;
   } else {
-    form.classList.remove('active');
-    // Réinitialiser les champs
+    deliveryForm.classList.remove('active');
     clearDeliveryForm();
   }
-  
-  // Mettre à jour le total
   updateCartTotalDisplay(window.baseCartTotal || 0);
 }
 
-function clearDeliveryForm() {
+function togglePickup() {
+  const pickupCheckbox = document.getElementById('pickup-option');
+  const pickupForm = document.getElementById('pickup-form');
+  const deliveryCheckbox = document.getElementById('delivery-option');
+  if (pickupCheckbox.checked) {
+    pickupForm.classList.add('active');
+    // Désactive l'autre option
+    deliveryCheckbox.checked = false;
+    document.getElementById('delivery-form').classList.remove('active');
+    clearDeliveryForm();
+    // Date min aujourd'hui
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('pickup-date').min = today;
+  } else {
+    pickupForm.classList.remove('active');
+    clearPickupForm();
+  }
+  updateCartTotalDisplay(window.baseCartTotal || 0);
+}
+
+function clearPickupForm() {
   const fields = [
-    'delivery-email',
-    'delivery-phone',
-    'delivery-address',
-    'delivery-date',
-    'delivery-time',
-    'delivery-instructions'
+    'pickup-date',
+    'pickup-time'
   ];
-  
   fields.forEach(fieldId => {
     const field = document.getElementById(fieldId);
     if (field) field.value = '';
   });
 }
 
-function validateDeliveryForm() {
-  const deliveryCheckbox = document.getElementById('delivery-option');
-  if (!deliveryCheckbox || !deliveryCheckbox.checked) return true;
-  
-  const requiredFields = [
-    { id: 'delivery-email', name: 'Email' },
-    { id: 'delivery-phone', name: 'Téléphone' },
-    { id: 'delivery-address', name: 'Adresse' },
-    { id: 'delivery-date', name: 'Date de livraison' },
-    { id: 'delivery-time', name: 'Heure de livraison' }
-  ];
-  
-  for (const field of requiredFields) {
-    const element = document.getElementById(field.id);
-    if (!element || !element.value.trim()) {
-      showNotification(`Veuillez remplir le champ ${field.name}`, "error");
-      if (element) element.focus();
+// Nouvelle validation combinée
+function validateOrderChoice() {
+  const deliveryChecked = document.getElementById('delivery-option').checked;
+  const pickupChecked = document.getElementById('pickup-option').checked;
+  if (!deliveryChecked && !pickupChecked) {
+    showNotification("Veuillez choisir entre la livraison et le retrait sur place avant de continuer", "error");
+    return false;
+  }
+  if (deliveryChecked) {
+    return validateDeliveryForm();
+  }
+  if (pickupChecked) {
+    // Validation des champs de retrait
+    const date = document.getElementById('pickup-date').value;
+    const time = document.getElementById('pickup-time').value;
+    if (!date) {
+      showNotification("Veuillez choisir une date de retrait", "error");
+      document.getElementById('pickup-date').focus();
       return false;
     }
-  }
-  
-  // Validation email
-  const email = document.getElementById('delivery-email').value;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    showNotification("Veuillez saisir un email valide", "error");
-    document.getElementById('delivery-email').focus();
-    return false;
-  }
-  
-  // Validation téléphone (français)
-  const phone = document.getElementById('delivery-phone').value.replace(/\s/g, '');
-  const phoneRegex = /^(?:\+33|0)[1-9](?:[0-9]{8})$/;
-  if (!phoneRegex.test(phone)) {
-    showNotification("Veuillez saisir un numéro de téléphone français valide", "error");
-    document.getElementById('delivery-phone').focus();
-    return false;
-  }
-  
-  // Validation date (pas dans le passé)
-  const selectedDate = new Date(document.getElementById('delivery-date').value);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  if (selectedDate <= today) {
-    showNotification("La date de livraison doit être au minimum demain", "error");
-    document.getElementById('delivery-date').focus();
-    return false;
-  }
-  
-  return true;
-}
-
-function getDeliveryInfo() {
-  const deliveryCheckbox = document.getElementById('delivery-option');
-  if (!deliveryCheckbox || !deliveryCheckbox.checked) return null;
-  
-  return {
-    email: document.getElementById('delivery-email').value.trim(),
-    phone: document.getElementById('delivery-phone').value.trim(),
-    address: document.getElementById('delivery-address').value.trim(),
-    date: document.getElementById('delivery-date').value,
-    time: document.getElementById('delivery-time').value,
-    instructions: document.getElementById('delivery-instructions').value.trim()
-  };
-}
-
-// Fonction pour envoyer les informations de livraison par email
-function sendDeliveryEmail(deliveryInfo, cartItems) {
-  // Créer le contenu de l'email
-  const emailContent = {
-    to: 'restaurant@chezmario.fr', // Remplacez par l'email du restaurant
-    subject: 'Nouvelle commande avec livraison - Chez Mario',
-    deliveryInfo: deliveryInfo,
-    cartItems: cartItems,
-    timestamp: new Date().toLocaleString('fr-FR')
-  };
-  
-  // Envoyer via votre API backend
-  fetch('https://demoresto.onrender.com/api/send-delivery-email', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + getToken()
-    },
-    body: JSON.stringify(emailContent)
-  })
-  .then(res => {
-    if (res.ok) {
-      console.log('Email de livraison envoyé avec succès');
-    } else {
-      console.error('Erreur lors de l\'envoi de l\'email de livraison');
+    if (!time) {
+      showNotification("Veuillez choisir une heure de retrait", "error");
+      document.getElementById('pickup-time').focus();
+      return false;
     }
-  })
-  .catch(err => {
-    console.error('Erreur lors de l\'envoi de l\'email:', err);
+    // Date pas dans le passé
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate < today) {
+      showNotification("La date de retrait ne peut pas être dans le passé", "error");
+      document.getElementById('pickup-date').focus();
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+function getPickupInfo() {
+  const pickupChecked = document.getElementById('pickup-option').checked;
+  if (!pickupChecked) return null;
+  return {
+    date: document.getElementById('pickup-date').value,
+    time: document.getElementById('pickup-time').value
+  };
+}
+
+const confirmButton = document.getElementById("confirm-order-button");
+if (confirmButton) {
+  confirmButton.addEventListener("click", () => {
+    // Nouvelle validation combinée
+    if (!validateOrderChoice()) {
+      return;
+    }
+    fetch('https://demoresto.onrender.com/api/cart', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + getToken()
+      }
+    })
+    .then(res => res.json())
+    .then(cart => {
+      if (!cart || cart.length === 0) {
+        showNotification("Votre panier est vide", "error");
+      } else {
+        const deliveryChecked = document.getElementById('delivery-option').checked;
+        const pickupChecked = document.getElementById('pickup-option').checked;
+        const baseTotal = window.baseCartTotal || 0;
+        const deliveryFee = deliveryChecked ? 5.00 : 0;
+        // Préparer les données de commande
+        const orderData = {
+          cart: cart,
+          delivery: deliveryChecked ? getDeliveryInfo() : null,
+          pickup: pickupChecked ? getPickupInfo() : null,
+          baseTotal: baseTotal,
+          deliveryFee: deliveryFee,
+          finalTotal: baseTotal + deliveryFee
+        };
+        // Enregistrer les données pour la page paiement
+        localStorage.setItem("cart", JSON.stringify(cart));
+        localStorage.setItem("orderData", JSON.stringify(orderData));
+        // Envoyer l'email de livraison si activée
+        if (deliveryChecked) {
+          sendDeliveryEmail(getDeliveryInfo(), cart);
+          showNotification("Informations de livraison enregistrées !", "success");
+        }
+        // Rediriger vers la page de paiement
+        setTimeout(() => {
+          window.location.href = "paiement.html";
+        }, 1000);
+      }
+    })
+    .catch(err => {
+      console.error("Erreur lors de la récupération du panier :", err);
+      showNotification("Impossible de vérifier le panier", "error");
+    });
   });
 }
+
 
 document.addEventListener("DOMContentLoaded", function() {
   const form = document.getElementById("form-contact");
@@ -1029,62 +1043,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 });
-
-const confirmButton = document.getElementById("confirm-order-button");
-if (confirmButton) {
-  confirmButton.addEventListener("click", () => {
-    // Valider le formulaire de livraison si nécessaire
-    if (!validateDeliveryForm()) {
-      return;
-    }
-    
-    fetch('https://demoresto.onrender.com/api/cart', {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Bearer ' + getToken()
-      }
-    })
-    .then(res => res.json())
-    .then(cart => {
-      if (!cart || cart.length === 0) {
-        showNotification("Votre panier est vide", "error");
-      } else {
-        const deliveryInfo = getDeliveryInfo();
-        const baseTotal = window.baseCartTotal || 0;
-        const deliveryFee = deliveryInfo ? 5.00 : 0;
-        
-        // Préparer les données de commande
-        const orderData = {
-          cart: cart,
-          delivery: deliveryInfo,
-          baseTotal: baseTotal,
-          deliveryFee: deliveryFee,
-          finalTotal: baseTotal + deliveryFee
-        };
-        
-        // Enregistrer les données pour la page paiement
-        localStorage.setItem("cart", JSON.stringify(cart));
-        localStorage.setItem("orderData", JSON.stringify(orderData));
-        
-        // Envoyer l'email de livraison si activée
-        if (deliveryInfo) {
-          sendDeliveryEmail(deliveryInfo, cart);
-          showNotification("Informations de livraison enregistrées !", "success");
-        }
-        
-        // Rediriger vers la page de paiement
-        setTimeout(() => {
-          window.location.href = "paiement.html";
-        }, 1000);
-      }
-    })
-    .catch(err => {
-      console.error("Erreur lors de la récupération du panier :", err);
-      showNotification("Impossible de vérifier le panier", "error");
-    });
-  });
-}
-
 
 function updateEmptyCartMessage() {
   const cartBody = document.getElementById("cart-body");

@@ -111,6 +111,43 @@
         <textarea id="delivery-instructions" placeholder="Étage, digicode, instructions particulières..."></textarea>
       </div>
     </div>
+
+    <!-- Section Retrait sur place -->
+    <div class="pickup-section">
+      <div class="pickup-checkbox">
+        <input type="checkbox" id="pickup-option" onchange="togglePickup()">
+        <label for="pickup-option">Je souhaite retirer sur place</label>
+      </div>
+      <div class="pickup-form" id="pickup-form">
+        <div class="pickup-info">
+          <strong>🛍️ Informations de retrait sur place</strong>
+          <br>Veuillez choisir la date et l'heure de retrait.
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pickup-date">Date de retrait <span class="required">*</span></label>
+            <input type="date" id="pickup-date" required>
+          </div>
+          <div class="form-group">
+            <label for="pickup-time">Heure souhaitée <span class="required">*</span></label>
+            <select id="pickup-time" required>
+              <option value="">Sélectionner une heure</option>
+              <option value="11:30">11h30</option>
+              <option value="12:00">12h00</option>
+              <option value="12:30">12h30</option>
+              <option value="13:00">13h00</option>
+              <option value="13:30">13h30</option>
+              <option value="18:30">18h30</option>
+              <option value="19:00">19h00</option>
+              <option value="19:30">19h30</option>
+              <option value="20:00">20h00</option>
+              <option value="20:30">20h30</option>
+              <option value="21:00">21h00</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <h2 id="cart-total">Total : 0.00€</h2>
@@ -123,25 +160,45 @@
 <script src="script.js"></script>
 <script>
   let deliveryEnabled = false;
+  let pickupEnabled = false;
   let baseTotal = 0;
 
   function toggleDelivery() {
-    const checkbox = document.getElementById('delivery-option');
-    const form = document.getElementById('delivery-form');
-    
-    deliveryEnabled = checkbox.checked;
-    
-    if (deliveryEnabled) {
-      form.classList.add('active');
-      // Définir la date minimale à aujourd'hui
+    const deliveryCheckbox = document.getElementById('delivery-option');
+    const deliveryForm = document.getElementById('delivery-form');
+    const pickupCheckbox = document.getElementById('pickup-option');
+    if (deliveryCheckbox.checked) {
+      deliveryForm.classList.add('active');
+      // Désactive l'autre option
+      pickupCheckbox.checked = false;
+      document.getElementById('pickup-form').classList.remove('active');
+      // Date min aujourd'hui
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('delivery-date').min = today;
     } else {
-      form.classList.remove('active');
-      // Réinitialiser les champs
+      deliveryForm.classList.remove('active');
       clearDeliveryForm();
     }
-    
+    updateCartTotal();
+  }
+
+  function togglePickup() {
+    const pickupCheckbox = document.getElementById('pickup-option');
+    const pickupForm = document.getElementById('pickup-form');
+    const deliveryCheckbox = document.getElementById('delivery-option');
+    if (pickupCheckbox.checked) {
+      pickupForm.classList.add('active');
+      // Désactive l'autre option
+      deliveryCheckbox.checked = false;
+      document.getElementById('delivery-form').classList.remove('active');
+      clearDeliveryForm();
+      // Date min aujourd'hui
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('pickup-date').min = today;
+    } else {
+      pickupForm.classList.remove('active');
+      clearPickupForm();
+    }
     updateCartTotal();
   }
 
@@ -153,6 +210,10 @@
     document.getElementById('delivery-time').value = '';
     document.getElementById('delivery-instructions').value = '';
   }
+  function clearPickupForm() {
+    document.getElementById('pickup-date').value = '';
+    document.getElementById('pickup-time').value = '';
+  }
 
   function updateCartTotal() {
     const totalElement = document.getElementById('cart-total');
@@ -163,6 +224,45 @@
     }
     
     totalElement.textContent = `Total : ${total.toFixed(2)}€`;
+  }
+
+  // Nouvelle validation combinée
+  function validateOrderChoice() {
+    const deliveryChecked = document.getElementById('delivery-option').checked;
+    const pickupChecked = document.getElementById('pickup-option').checked;
+    if (!deliveryChecked && !pickupChecked) {
+      showNotification("Veuillez choisir entre la livraison et le retrait sur place avant de continuer", "error");
+      return false;
+    }
+    if (deliveryChecked) {
+      return validateDeliveryForm();
+    }
+    if (pickupChecked) {
+      // Validation des champs de retrait
+      const date = document.getElementById('pickup-date').value;
+      const time = document.getElementById('pickup-time').value;
+      if (!date) {
+        showNotification("Veuillez choisir une date de retrait", "error");
+        document.getElementById('pickup-date').focus();
+        return false;
+      }
+      if (!time) {
+        showNotification("Veuillez choisir une heure de retrait", "error");
+        document.getElementById('pickup-time').focus();
+        return false;
+      }
+      // Date pas dans le passé
+      const selectedDate = new Date(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        showNotification("La date de retrait ne peut pas être dans le passé", "error");
+        document.getElementById('pickup-date').focus();
+        return false;
+      }
+      return true;
+    }
+    return false;
   }
 
   function validateDeliveryForm() {
@@ -216,6 +316,14 @@
       instructions: document.getElementById('delivery-instructions').value
     };
   }
+  function getPickupInfo() {
+    const pickupChecked = document.getElementById('pickup-option').checked;
+    if (!pickupChecked) return null;
+    return {
+      date: document.getElementById('pickup-date').value,
+      time: document.getElementById('pickup-time').value
+    };
+  }
 
   // Modifier la fonction loadCart existante pour mettre à jour baseTotal
   const originalLoadCart = loadCart;
@@ -245,11 +353,9 @@
   const confirmButton = document.getElementById("confirm-order-button");
   if (confirmButton) {
     confirmButton.addEventListener("click", () => {
-      // Valider le formulaire de livraison si nécessaire
-      if (!validateDeliveryForm()) {
+      if (!validateOrderChoice()) {
         return;
       }
-      
       fetch('https://demoresto.onrender.com/api/cart', {
         method: 'GET',
         headers: {
@@ -261,22 +367,19 @@
         if (!cart || cart.length === 0) {
           showNotification("Votre panier est vide","error");
         } else {
-          // Préparer les données avec les informations de livraison
+          const deliveryChecked = document.getElementById('delivery-option').checked;
+          const pickupChecked = document.getElementById('pickup-option').checked;
           const orderData = {
             cart: cart,
-            delivery: getDeliveryInfo(),
-            total: baseTotal + (deliveryEnabled ? 5.00 : 0)
+            delivery: deliveryChecked ? getDeliveryInfo() : null,
+            pickup: pickupChecked ? getPickupInfo() : null,
+            total: baseTotal + (deliveryChecked ? 5.00 : 0)
           };
-          
-          // Enregistrer toutes les données pour la page paiement
           localStorage.setItem("cart", JSON.stringify(cart));
           localStorage.setItem("orderData", JSON.stringify(orderData));
-          
-          // Si livraison activée, envoyer les informations par email
-          if (deliveryEnabled) {
+          if (deliveryChecked) {
             sendDeliveryEmail(getDeliveryInfo());
           }
-          
           window.location.href = "paiement.html";
         }
       })
