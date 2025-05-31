@@ -1019,6 +1019,7 @@ form#register-form a:hover {
 .confirm-button-container {
   text-align: right;
   margin-right: 40px;
+  margin-bottom: 40px;
 }
 
 .contact-info {
