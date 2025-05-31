@@ -141,7 +141,7 @@
           <input type="checkbox" id="newsletter-consent" required>
           J'accepte de recevoir des emails de Chez Mario (offres, actualités) et j'ai lu la <a href="politique.html" target="_blank">politique de confidentialité</a>.
         </label>
-        <button type="submit" class="primary-action-button" style="margin-top:1rem;">S'abonner à la newsletter</button>
+        <button type="submit" class="primary-action-button" id="newsletter-btn" style="margin-top:1rem;">S'abonner à la newsletter</button>
         <span id="newsletter-status" style="margin-left:1rem;color:green;display:none;">Abonnement réussi !</span>
       </form>
     </div>
@@ -608,58 +608,116 @@ document.getElementById('allergenes-form').addEventListener('submit', async func
   } catch (e) {}
 });
 
-// Newsletter subscription logic
-document.getElementById('newsletter-form').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const consent = document.getElementById('newsletter-consent').checked;
+// Newsletter subscription logic (abonnement/désabonnement dynamique)
+async function updateNewsletterUI() {
   const token = localStorage.getItem('token');
-  if (!consent) return;
+  const btn = document.getElementById('newsletter-btn');
+  const checkbox = document.getElementById('newsletter-consent');
+  if (!token || !btn || !checkbox) return;
   try {
-    const res = await fetch('/api/newsletter/subscribe', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ consent: true })
+    const res = await fetch('/api/admin/newsletter/subscribers', {
+      headers: { 'Authorization': 'Bearer ' + token }
     });
-    if (res.ok) {
-      document.getElementById('newsletter-status').style.display = 'inline';
-      setTimeout(() => {
-        document.getElementById('newsletter-status').style.display = 'none';
-      }, 2000);
-    }
-  } catch (e) {}
-});
-
-// Ajout de la fonction de suppression de compte
-async function deleteAccount() {
-  if (!confirm("Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.")) {
-    return;
-  }
-  const token = localStorage.getItem('token');
-  try {
-    const response = await fetch('https://demoresto.onrender.com/api/user/delete', {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+    if (!res.ok) throw new Error();
+    const subs = await res.json();
+    const userRes = await fetch('https://demoresto.onrender.com/api/user/profile', {
+      headers: { 'Authorization': 'Bearer ' + token }
     });
-    if (response.ok) {
-      alert("Votre compte a été supprimé.");
-      logout();
-    } else {
-      const data = await response.json();
-      alert(data.error || "Erreur lors de la suppression du compte.");
-    }
+    const user = await userRes.json();
+    const isSubscribed = subs.some(s => s.email === user.email);
+    checkbox.checked = isSubscribed;
+    btn.textContent = isSubscribed ? "Se désabonner" : "S'abonner à la newsletter";
   } catch (e) {
-    alert("Erreur réseau lors de la suppression du compte.");
+    // Si erreur (pas admin), fallback : demander au backend l'état d'abonnement
+    const res = await fetch('/api/user/profile', { headers: { 'Authorization': 'Bearer ' + token } });
+    const user = await res.json();
+    fetch('/api/newsletter/subscribe', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consent: false })
+    }).then(() => {
+      document.getElementById('newsletter-consent').checked = false;
+      document.getElementById('newsletter-btn').textContent = "S'abonner à la newsletter";
+    });
   }
 }
 
-// Appel au chargement du profil
-document.addEventListener('DOMContentLoaded', () => {
-  loadUserAllergenesPreferences();
+document.addEventListener('DOMContentLoaded', updateNewsletterUI);
+
+document.getElementById('newsletter-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const checkbox = document.getElementById('newsletter-consent');
+  const btn = document.getElementById('newsletter-btn');
+  const token = localStorage.getItem('token');
+  if (!checkbox || !btn || !token) return;
+  if (checkbox.checked && btn.textContent === "S'abonner à la newsletter") {
+    // Abonnement
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ consent: true })
+      });
+      if (res.ok) {
+        btn.textContent = "Se désabonner";
+        document.getElementById('newsletter-status').textContent = "Abonnement réussi !";
+        document.getElementById('newsletter-status').style.display = 'inline';
+        setTimeout(() => {
+          document.getElementById('newsletter-status').style.display = 'none';
+        }, 2000);
+      }
+    } catch (e) {}
+  } else if (!checkbox.checked && btn.textContent === "Se désabonner") {
+    // Désabonnement
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ consent: false })
+      });
+      if (res.ok) {
+        btn.textContent = "S'abonner à la newsletter";
+        document.getElementById('newsletter-status').textContent = "Désabonnement effectué.";
+        document.getElementById('newsletter-status').style.display = 'inline';
+        setTimeout(() => {
+          document.getElementById('newsletter-status').style.display = 'none';
+        }, 2000);
+      }
+    } catch (e) {}
+  } else if (btn.textContent === "Se désabonner") {
+    // Si déjà abonné et clique sur le bouton (case cochée), on désabonne
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ consent: false })
+      });
+      if (res.ok) {
+        checkbox.checked = false;
+        btn.textContent = "S'abonner à la newsletter";
+        document.getElementById('newsletter-status').textContent = "Désabonnement effectué.";
+        document.getElementById('newsletter-status').style.display = 'inline';
+        setTimeout(() => {
+          document.getElementById('newsletter-status').style.display = 'none';
+        }, 2000);
+      }
+    } catch (e) {}
+  }
+});
+
+// Synchronise bouton/checkbox si on clique sur la case
+document.getElementById('newsletter-consent').addEventListener('change', function() {
+  const btn = document.getElementById('newsletter-btn');
+  btn.textContent = this.checked ? "Se désabonner" : "S'abonner à la newsletter";
 });
 </script>
 </body>

@@ -1147,18 +1147,26 @@ def newsletter_subscribe():
     data = request.get_json() or {}
     email = user.email if user else None
     consent = data.get('consent', False)
-    if not email or not consent:
-        return jsonify({"error": "Consentement requis"}), 400
+    if not email:
+        return jsonify({"error": "Email requis"}), 400
     existing = NewsletterSubscriber.query.filter_by(email=email).first()
-    if existing:
-        if not existing.consent:
-            existing.consent = True
+    if consent:
+        if existing:
+            if not existing.consent:
+                existing.consent = True
+                db.session.commit()
+            return jsonify({"message": "Déjà abonné"}), 200
+        sub = NewsletterSubscriber(email=email, consent=True)
+        db.session.add(sub)
+        db.session.commit()
+        return jsonify({"message": "Abonnement réussi"}), 201
+    else:
+        # Désabonnement
+        if existing and existing.consent:
+            existing.consent = False
             db.session.commit()
-        return jsonify({"message": "Déjà abonné"}), 200
-    sub = NewsletterSubscriber(email=email, consent=True)
-    db.session.add(sub)
-    db.session.commit()
-    return jsonify({"message": "Abonnement réussi"}), 201
+            return jsonify({"message": "Désabonnement effectué"}), 200
+        return jsonify({"message": "Déjà désabonné"}), 200
 
 @bp.route('/api/admin/newsletter/subscribers', methods=['GET'])
 @jwt_required()
