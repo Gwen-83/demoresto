@@ -2919,14 +2919,6 @@ form#register-form a:hover {
   color: #4b5563;
 }
 
-.order-summary {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-  font-weight: 600;
-}
-
 .order-total-label {
   color: #374151;
 }

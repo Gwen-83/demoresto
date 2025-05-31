@@ -1024,40 +1024,7 @@ if (confirmButton) {
         // Enregistrer les données pour la page paiement
         localStorage.setItem("cart", JSON.stringify(cart));
         localStorage.setItem("orderData", JSON.stringify(orderData));
-
-        // --- SUPPRIMER CETTE PARTIE ---
-        // let requested_date = null, requested_time = null;
-        // if (deliveryChecked && orderData.delivery) {
-        //   requested_date = orderData.delivery.date;
-        //   requested_time = orderData.delivery.time;
-        // } else if (pickupChecked && orderData.pickup) {
-        //   requested_date = orderData.pickup.date;
-        //   requested_time = orderData.pickup.time;
-        // }
-        // fetch('https://demoresto.onrender.com/api/validate-order', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Authorization': 'Bearer ' + getToken(),
-        //     'Content-Type': 'application/json'
-        //   },
-        //   body: JSON.stringify({
-        //     requested_date,
-        //     requested_time
-        //   })
-        // })
-        // .then(res => res.json())
-        // .then(() => {
-        //   // Rediriger vers la page de paiement
-        //   setTimeout(() => {
-        //     window.location.href = "paiement.html";
-        //   }, 1000);
-        // })
-        // .catch(err => {
-        //   console.error("Erreur lors de la validation de la commande :", err);
-        //   showNotification("Impossible de valider la commande", "error");
-        // });
-
-        // --- À LA PLACE, REDIRIGER DIRECTEMENT ---
+        
         window.location.href = "paiement.html";
       }
     })
