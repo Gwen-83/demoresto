@@ -748,7 +748,28 @@ async function loadNewsletterSubscribers() {
 }
 async function exportNewsletterCSV() {
   const token = localStorage.getItem('token');
-  window.open('/api/admin/newsletter/export?token=' + encodeURIComponent(token), '_blank');
+  try {
+    const res = await fetch('/api/admin/newsletter/export', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) {
+      alert("Erreur lors de l'export CSV.");
+      return;
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'newsletter_subscribers.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    }, 100);
+  } catch (e) {
+    alert("Erreur réseau lors de l'export CSV.");
+  }
 }
 document.getElementById('newsletter-send-form').addEventListener('submit', async function(e) {
   e.preventDefault();
