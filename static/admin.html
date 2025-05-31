@@ -56,6 +56,7 @@
   <button class="tab-button" onclick="switchTab('products')">Produits</button>
   <button class="tab-button" onclick="switchTab('schedules')">Horaires</button>
   <button class="tab-button" onclick="switchTab('orders')">Commandes</button>
+  <button class="tab-button" onclick="switchTab('newsletter')">Newsletter</button>
 </div>
 
 <!-- Onglet Réservations -->
@@ -179,6 +180,24 @@
   </div>
 </div>
 
+<!-- Onglet Newsletter (NOUVEAU) -->
+<div id="newsletter-tab" class="tab-content">
+  <div class="newsletter-admin-container">
+    <h2>Gestion de la newsletter</h2>
+    <div style="margin-bottom:1rem;">
+      <button onclick="exportNewsletterCSV()">Exporter les emails (CSV)</button>
+    </div>
+    <div id="newsletter-subscribers-list" style="margin-bottom:2rem;"></div>
+    <form id="newsletter-send-form" style="max-width:600px;">
+      <h3>Envoyer une newsletter</h3>
+      <input id="newsletter-subject" placeholder="Sujet" required style="width:100%;margin-bottom:0.5rem;">
+      <textarea id="newsletter-content" placeholder="Contenu HTML de la newsletter" rows="6" required style="width:100%;"></textarea>
+      <button type="submit" style="margin-top:0.5rem;">Envoyer à tous les abonnés</button>
+      <span id="newsletter-send-status" style="margin-left:1rem;color:green;display:none;">Newsletter envoyée !</span>
+    </form>
+  </div>
+</div>
+
 <!-- Modal de refus de réservation -->
 <div id="rejectModal" class="modal">
   <div class="modal-content">
@@ -283,6 +302,8 @@ function switchTab(tabName) {
     loadReservations();
   } else if (tabName === 'orders') {
     loadOrdersAdmin();
+  } else if (tabName === 'newsletter') {
+    loadNewsletterSubscribers();
   }
 }
 
@@ -698,6 +719,59 @@ async function confirmOrderReject() {
   loadOrdersAdmin();
   closeOrderRejectModal();
 }
+
+// Newsletter admin logic
+async function loadNewsletterSubscribers() {
+  const token = localStorage.getItem('token');
+  const listDiv = document.getElementById('newsletter-subscribers-list');
+  if (!listDiv) return;
+  listDiv.innerHTML = "Chargement...";
+  try {
+    const res = await fetch('/api/admin/newsletter/subscribers', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) {
+      listDiv.innerHTML = "Erreur lors du chargement.";
+      return;
+    }
+    const subs = await res.json();
+    if (!subs.length) {
+      listDiv.innerHTML = "<i>Aucun abonné à la newsletter.</i>";
+      return;
+    }
+    listDiv.innerHTML = `<b>${subs.length} abonnés :</b><ul style="margin-top:0.5rem;">` +
+      subs.map(s => `<li>${s.email} <span style="color:#888;">(${new Date(s.subscribed_at).toLocaleDateString('fr-FR')})</span></li>`).join('') +
+      "</ul>";
+  } catch (e) {
+    listDiv.innerHTML = "Erreur réseau.";
+  }
+}
+async function exportNewsletterCSV() {
+  const token = localStorage.getItem('token');
+  window.open('/api/admin/newsletter/export?token=' + encodeURIComponent(token), '_blank');
+}
+document.getElementById('newsletter-send-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const token = localStorage.getItem('token');
+  const subject = document.getElementById('newsletter-subject').value;
+  const content = document.getElementById('newsletter-content').value;
+  try {
+    const res = await fetch('/api/admin/newsletter/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ subject, content })
+    });
+    if (res.ok) {
+      document.getElementById('newsletter-send-status').style.display = 'inline';
+      setTimeout(() => {
+        document.getElementById('newsletter-send-status').style.display = 'none';
+      }, 2000);
+    }
+  } catch (e) {}
+});
 
 // Fermer les modals en cliquant à l'extérieur
 window.onclick = function(event) {

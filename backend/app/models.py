@@ -128,3 +128,17 @@ class Reservation(db.Model):
     
     def __repr__(self):
         return f'<Reservation {self.id}: {self.email} - {self.date} {self.heure}>'
+
+class NewsletterSubscriber(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    consent = db.Column(db.Boolean, default=False)
+    subscribed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "consent": self.consent,
+            "subscribed_at": self.subscribed_at.isoformat() if self.subscribed_at else None
+        }

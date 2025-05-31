@@ -130,6 +130,22 @@
       </form>
     </div>
 
+    <!-- Newsletter subscription section -->
+    <div class="profile-section">
+      <h2 class="section-title">
+        <i class="fas fa-envelope"></i>
+        Newsletter
+      </h2>
+      <form id="newsletter-form" style="max-width:500px;margin:0 auto;">
+        <label style="display:flex;align-items:center;gap:0.5rem;">
+          <input type="checkbox" id="newsletter-consent" required>
+          J'accepte de recevoir des emails de Chez Mario (offres, actualités) et j'ai lu la <a href="politique.html" target="_blank">politique de confidentialité</a>.
+        </label>
+        <button type="submit" class="primary-action-button" style="margin-top:1rem;">S'abonner à la newsletter</button>
+        <span id="newsletter-status" style="margin-left:1rem;color:green;display:none;">Abonnement réussi !</span>
+      </form>
+    </div>
+
     <div class="profile-section">
       <div class="user-actions-section">
         <button class="primary-action-button" onclick="navigateToMenu()">Voir le Menu</button>
@@ -587,6 +603,30 @@ document.getElementById('allergenes-form').addEventListener('submit', async func
       document.getElementById('allergenes-save-status').style.display = 'inline';
       setTimeout(() => {
         document.getElementById('allergenes-save-status').style.display = 'none';
+      }, 2000);
+    }
+  } catch (e) {}
+});
+
+// Newsletter subscription logic
+document.getElementById('newsletter-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const consent = document.getElementById('newsletter-consent').checked;
+  const token = localStorage.getItem('token');
+  if (!consent) return;
+  try {
+    const res = await fetch('/api/newsletter/subscribe', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ consent: true })
+    });
+    if (res.ok) {
+      document.getElementById('newsletter-status').style.display = 'inline';
+      setTimeout(() => {
+        document.getElementById('newsletter-status').style.display = 'none';
       }, 2000);
     }
   } catch (e) {}

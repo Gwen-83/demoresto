@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app, Flask, send_from_directory
-from .models import Product, CartItem, User, TokenBlocklist, Reservation, Order
+from .models import Product, CartItem, User, TokenBlocklist, Reservation, Order, NewsletterSubscriber
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, create_access_token
@@ -13,6 +13,8 @@ import os
 import re
 import json
 from sqlalchemy import or_
+import csv
+from io import StringIO
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -1136,3 +1138,92 @@ def reject_order_admin(order_id):
         """
         send_email(order.user.email, subject, html_content)
     return jsonify({"message": "Commande refusée."}), 200
+
+@bp.route('/api/newsletter/subscribe', methods=['POST'])
+@jwt_required()
+def newsletter_subscribe():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    data = request.get_json() or {}
+    email = user.email if user else None
+    consent = data.get('consent', False)
+    if not email or not consent:
+        return jsonify({"error": "Consentement requis"}), 400
+    existing = NewsletterSubscriber.query.filter_by(email=email).first()
+    if existing:
+        if not existing.consent:
+            existing.consent = True
+            db.session.commit()
+        return jsonify({"message": "Déjà abonné"}), 200
+    sub = NewsletterSubscriber(email=email, consent=True)
+    db.session.add(sub)
+    db.session.commit()
+    return jsonify({"message": "Abonnement réussi"}), 201
+
+@bp.route('/api/admin/newsletter/subscribers', methods=['GET'])
+@jwt_required()
+def newsletter_list():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+    subs = NewsletterSubscriber.query.filter_by(consent=True).order_by(NewsletterSubscriber.subscribed_at.desc()).all()
+    return jsonify([s.to_dict() for s in subs])
+
+@bp.route('/api/admin/newsletter/export', methods=['GET'])
+@jwt_required()
+def newsletter_export():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+    subs = NewsletterSubscriber.query.filter_by(consent=True).all()
+    si = StringIO()
+    writer = csv.writer(si)
+    writer.writerow(['email', 'subscribed_at'])
+    for s in subs:
+        writer.writerow([s.email, s.subscribed_at.isoformat() if s.subscribed_at else ""])
+    output = si.getvalue()
+    return current_app.response_class(
+        output,
+        mimetype='text/csv',
+        headers={"Content-Disposition": "attachment;filename=newsletter_subscribers.csv"}
+    )
+
+@bp.route('/api/admin/newsletter/send', methods=['POST'])
+@jwt_required()
+def newsletter_send():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+    data = request.get_json() or {}
+    subject = data.get('subject')
+    content = data.get('content')
+    if not subject or not content:
+        return jsonify({"error": "Sujet et contenu requis"}), 400
+    subs = NewsletterSubscriber.query.filter_by(consent=True).all()
+    emails = [s.email for s in subs]
+    if not emails:
+        return jsonify({"error": "Aucun abonné"}), 400
+    # Envoi en BCC pour confidentialité
+    try:
+        smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+        smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        smtp_user = os.environ.get('SMTP_SENDER')
+        smtp_password = os.environ.get('SMTP_PASSWORD')
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = smtp_user
+        msg['To'] = smtp_user
+        msg['Bcc'] = ','.join(emails)
+        html_part = MIMEText(content, 'html', 'utf-8')
+        msg.attach(html_part)
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg, to_addrs=emails)
+        return jsonify({"message": "Newsletter envoyée"}), 200
+    except Exception as e:
+        current_app.logger.error(f"Erreur envoi newsletter: {e}")
+        return jsonify({"error": "Erreur lors de l'envoi"}), 500
