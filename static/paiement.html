@@ -34,6 +34,58 @@
       align-self: flex-end;
       margin-top: 0.5em;
     }
+    /* Pourboire */
+    .tip-section {
+      width: 100%;
+      margin: 1em 0 0.5em 0;
+      padding: 1em;
+      background: #f8f9fa;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 0.7em;
+    }
+    .tip-buttons {
+      display: flex;
+      gap: 0.7em;
+      margin-bottom: 0.5em;
+    }
+    .tip-btn {
+      background: #e0e0e0;
+      border: none;
+      border-radius: 4px;
+      padding: 0.5em 1.2em;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .tip-btn.selected {
+      background: #1976d2;
+      color: #fff;
+      font-weight: bold;
+    }
+    .tip-custom {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+    }
+    .tip-custom input[type="number"] {
+      width: 70px;
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 1em;
+    }
+    .tip-info {
+      font-size: 0.95em;
+      color: #666;
+    }
+    .tip-amount-display {
+      font-weight: bold;
+      color: #1976d2;
+      margin-left: 0.5em;
+    }
   </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Raleway&display=swap" rel="stylesheet">
@@ -50,7 +102,7 @@
   <script>
       (function(h,o,t,j,a,r){
           h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
-          h._hjSettings={hjid:6421174,hjsv:6};
+          h._hjSettings={hjid=6421174,hjsv=6};
           a=o.getElementsByTagName('head')[0];
           r=o.createElement('script');r.async=1;
           r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
@@ -92,6 +144,23 @@
     </thead>
     <tbody id="payment-summary-body"></tbody>
   </table>
+  <!-- Section pourboire -->
+  <div class="tip-section">
+    <div class="tip-info">Vous souhaitez laisser un pourboire ?</div>
+    <div class="tip-buttons">
+      <button class="tip-btn" data-tip="5">+5%</button>
+      <button class="tip-btn" data-tip="10">+10%</button>
+      <button class="tip-btn" data-tip="20">+20%</button>
+    </div>
+    <div class="tip-custom">
+      <label for="tip-custom-input">Montant personnalisé&nbsp;:</label>
+      <input type="number" id="tip-custom-input" min="0" step="0.01" placeholder="€" />
+      <span>€</span>
+    </div>
+    <div>
+      Pourboire sélectionné&nbsp;: <span class="tip-amount-display" id="tip-amount-display">0.00€</span>
+    </div>
+  </div>
   <h3 id="payment-total">Total : 0.00€</h3>
 </section>
 
@@ -107,12 +176,16 @@ function getToken() {
   return localStorage.getItem('token');
 }
 
+let baseTotal = 0;
+let tipAmount = 0;
+
 function loadPaymentDetails() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
   const orderData = JSON.parse(localStorage.getItem('orderData')) || {};
   const tbody = document.getElementById('payment-summary-body');
   const totalElement = document.getElementById('payment-total');
-  let total = 0;
+  tbody.innerHTML = '';
+  baseTotal = 0;
 
   cart.forEach(item => {
     const row = document.createElement('tr');
@@ -121,9 +194,8 @@ function loadPaymentDetails() {
         <td>${item.quantity}</td>
         <td>${(item.product.price * item.quantity).toFixed(2)}€</td>
     `;
-
     tbody.appendChild(row);
-    total += item.product.price * item.quantity;
+    baseTotal += item.product.price * item.quantity;
   });
 
   // Ajouter les frais de livraison si activés
@@ -135,45 +207,51 @@ function loadPaymentDetails() {
       <td>5.00€</td>
     `;
     tbody.appendChild(deliveryRow);
-    total += 5.00;
+    baseTotal += 5.00;
   }
 
-  totalElement.textContent = `Total : ${total.toFixed(2)}€`;
+  // Initialiser le pourboire à 0
+  tipAmount = 0;
+  updateTipDisplay();
+  updateTotalDisplay();
 }
 
-async function clearCartItems() {
-  console.log("Début clearCartItems");
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  console.log('Contenu du panier:', cart);
+function updateTipDisplay() {
+  document.getElementById('tip-amount-display').textContent = `${tipAmount.toFixed(2)}€`;
+}
 
-  if (cart.length === 0) {
-    return Promise.resolve();
-  }
+function updateTotalDisplay() {
+  document.getElementById('payment-total').textContent = `Total : ${(baseTotal + tipAmount).toFixed(2)}€`;
+}
 
-  const deletePromises = cart.map(item => {
-    console.log('Suppression item avec id:', item.id);
-    return fetch(`https://demoresto.onrender.com/api/cart/${item.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': 'Bearer ' + getToken()
-      }
-    }).then(res => {
-      if (!res.ok) {
-        return res.json().then(err => Promise.reject(err));
-      }
-      return res.json();
-    });
+function setTipPercent(percent) {
+  tipAmount = Math.round(baseTotal * percent / 100 * 100) / 100;
+  document.getElementById('tip-custom-input').value = '';
+  // Highlight bouton sélectionné
+  document.querySelectorAll('.tip-btn').forEach(btn => {
+    btn.classList.toggle('selected', parseInt(btn.dataset.tip) === percent);
   });
-
-  try {
-    const results = await Promise.all(deletePromises);
-    console.log('Suppression OK', results);
-    localStorage.removeItem('cart');
-  } catch (error) {
-    console.error('Erreur suppression:', error);
-    throw error;
-  }
+  updateTipDisplay();
+  updateTotalDisplay();
 }
+
+function setCustomTip() {
+  const val = parseFloat(document.getElementById('tip-custom-input').value.replace(',', '.'));
+  tipAmount = isNaN(val) ? 0 : Math.max(0, val);
+  // Désélectionner tous les boutons
+  document.querySelectorAll('.tip-btn').forEach(btn => btn.classList.remove('selected'));
+  updateTipDisplay();
+  updateTotalDisplay();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Boutons pourboire %
+  document.querySelectorAll('.tip-btn').forEach(btn => {
+    btn.addEventListener('click', () => setTipPercent(parseInt(btn.dataset.tip)));
+  });
+  // Champ personnalisé
+  document.getElementById('tip-custom-input').addEventListener('input', setCustomTip);
+});
 
 window.onload = loadPaymentDetails;
 </script>
@@ -206,6 +284,20 @@ async function simulatePayment() {
           name: "Frais de livraison"
         },
         unit_amount: 500 // 5.00€ en centimes
+      },
+      quantity: 1
+    });
+  }
+
+  // Ajouter le pourboire si > 0
+  if (tipAmount > 0) {
+    items.push({
+      price_data: {
+        currency: "eur",
+        product_data: {
+          name: "Pourboire"
+        },
+        unit_amount: Math.round(tipAmount * 100)
       },
       quantity: 1
     });
