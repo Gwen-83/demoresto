@@ -655,23 +655,48 @@ function renderOrdersAdmin() {
 
 // Générer le HTML d'une carte de commande pour l'admin
 function orderAdminCardHTML(order, showActions) {
+  // Détermination du statut
   let statusLabel = order.status === 'en attente' ? 'En attente' :
                     order.status === 'validee' ? 'À préparer' :
                     order.status === 'refusee' ? 'Refusée' : order.status;
   let statusClass = order.status === 'en attente' ? 'pending' :
                     order.status === 'validee' ? 'validated' :
                     order.status === 'refusee' ? 'refused' : '';
-  // Ajout : fallback sur created_at si requested_date/heure absents
+
+  // Formatage de la date/heure demandée
   let dateDisplay = '';
   if (order.requested_date && order.requested_time) {
-    dateDisplay = `${order.requested_date} ${order.requested_time}`;
+    const d = new Date(order.requested_date + 'T' + order.requested_time);
+    dateDisplay = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' à ' + order.requested_time;
   } else if (order.requested_date) {
-    dateDisplay = order.requested_date;
+    const d = new Date(order.requested_date);
+    dateDisplay = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   } else if (order.created_at) {
-    // Formatage date/heure lisible
     const d = new Date(order.created_at);
     dateDisplay = d.toLocaleString('fr-FR');
   }
+
+  // Affichage des produits détaillés (nom, quantité, prix unitaire, total)
+  const itemsList = (order.items && order.items.length > 0)
+    ? order.items.map(item => `
+      <div style="display:flex;justify-content:space-between;padding:2px 0;">
+        <span>${item.quantity} x ${item.product && item.product.name ? item.product.name : 'Produit supprimé'}</span>
+        <span>${item.product && item.product.price ? Number(item.product.price).toFixed(2) : '0.00'}€</span>
+        <span>Total: ${(item.product && item.product.price ? item.product.price * item.quantity : 0).toFixed(2)}€</span>
+      </div>
+    `).join('')
+    : '<div><i>Aucun produit</i></div>';
+
+  // Informations livraison/retrait si présentes
+  let deliveryOrPickupInfo = '';
+  if (order.requested_date && order.requested_time) {
+    deliveryOrPickupInfo = `
+      <div style="margin-top:0.5rem;">
+        <span style="font-weight:500;">Prévu le ${order.requested_date} à ${order.requested_time}</span>
+      </div>
+    `;
+  }
+
   return `
     <div class="order-admin-card">
       <div class="order-header">
@@ -681,16 +706,11 @@ function orderAdminCardHTML(order, showActions) {
       <div class="order-details">
         <div><b>Client :</b> ${order.user_email || '-'}</div>
         <div><b>Date :</b> ${dateDisplay}</div>
-        <ul class="order-items-list">
-          ${
-            (order.items && order.items.length > 0)
-              ? order.items.map(i =>
-                  `<li>${i.quantity} x ${i.product && i.product.name ? i.product.name : 'Produit supprimé'} <span style="color:#888;">(${i.product && i.product.price ? Number(i.product.price).toFixed(2) : '0.00'}€)</span></li>`
-                ).join('')
-              : '<li><i>Aucun produit</i></li>'
-          }
-        </ul>
-        <div class="order-total">Total : ${order.total ? order.total.toFixed(2) : '0.00'}€</div>
+        ${deliveryOrPickupInfo}
+        <div style="margin-top:0.5rem;">
+          ${itemsList}
+        </div>
+        <div class="order-total" style="margin-top:0.5rem;font-weight:bold;">Total : ${order.total ? order.total.toFixed(2) : '0.00'}€</div>
       </div>
       ${showActions ? `
       <div class="order-actions">
