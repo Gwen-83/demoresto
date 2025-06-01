@@ -150,6 +150,11 @@
 <div id="orders-tab" class="tab-content">
   <div class="orders-admin-container">
     <h2>Gestion des commandes</h2>
+    <div class="orders-subtabs">
+      <button class="orders-subtab-button active" onclick="switchOrdersSubtab('pending')">En attente</button>
+      <button class="orders-subtab-button" onclick="switchOrdersSubtab('validated')">Validées</button>
+      <button class="orders-subtab-button" onclick="switchOrdersSubtab('rejected')">Refusées</button>
+    </div>
     <div id="orders-list"></div>
   </div>
 </div>
@@ -240,6 +245,7 @@ function switchTab(tabName) {
     loadReservations();
   } else if (tabName === 'orders') {
     loadOrdersAdmin();
+    switchOrdersSubtab('pending');
   }
 }
 
@@ -524,6 +530,20 @@ async function confirmReject() {
 
 // Ajout pour l'onglet Commandes
 let orders = [];
+let currentOrdersSubtab = 'pending';
+
+function switchOrdersSubtab(subtab) {
+  currentOrdersSubtab = subtab;
+  document.querySelectorAll('.orders-subtab-button').forEach(btn => btn.classList.remove('active'));
+  if (subtab === 'pending') {
+    document.querySelector('.orders-subtab-button:nth-child(1)').classList.add('active');
+  } else if (subtab === 'validated') {
+    document.querySelector('.orders-subtab-button:nth-child(2)').classList.add('active');
+  } else if (subtab === 'rejected') {
+    document.querySelector('.orders-subtab-button:nth-child(3)').classList.add('active');
+  }
+  renderOrdersAdmin();
+}
 
 async function loadOrdersAdmin() {
   const token = localStorage.getItem('token');
@@ -550,19 +570,19 @@ function renderOrdersAdmin() {
     ordersList.innerHTML = "<p>Aucune commande.</p>";
     return;
   }
-  // Tri des commandes par statut : en attente, validée, refusée (dans cet ordre)
-  const statusOrder = { 'en attente': 0, 'validee': 1, 'refusee': 2 };
-  const sortedOrders = [...orders].sort((a, b) => {
-    const aStatus = a.status && a.status.toLowerCase();
-    const bStatus = b.status && b.status.toLowerCase();
-    const aVal = statusOrder[aStatus] !== undefined ? statusOrder[aStatus] : 99;
-    const bVal = statusOrder[bStatus] !== undefined ? statusOrder[bStatus] : 99;
-    if (aVal !== bVal) return aVal - bVal;
-    // Si même statut, trier par date décroissante (plus récent d'abord)
-    return (b.id || 0) - (a.id || 0);
-  });
-
-  ordersList.innerHTML = sortedOrders.map(order => {
+  let filteredOrders = [];
+  if (currentOrdersSubtab === 'pending') {
+    filteredOrders = orders.filter(order => order.status === 'en attente');
+  } else if (currentOrdersSubtab === 'validated') {
+    filteredOrders = orders.filter(order => order.status === 'validee');
+  } else if (currentOrdersSubtab === 'rejected') {
+    filteredOrders = orders.filter(order => order.status === 'refusee');
+  }
+  if (filteredOrders.length === 0) {
+    ordersList.innerHTML = "<p>Aucune commande.</p>";
+    return;
+  }
+  ordersList.innerHTML = filteredOrders.map(order => {
     let statusLabel = order.status === 'en attente' ? 'En attente' :
                       order.status === 'validee' ? 'Validée' :
                       order.status === 'refusee' ? 'Refusée' : order.status;
