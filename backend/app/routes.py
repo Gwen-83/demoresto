@@ -1055,6 +1055,7 @@ def get_all_orders():
         return jsonify({"error": "Accès interdit"}), 403
 
     orders = Order.query.order_by(Order.created_at.desc()).all()
+    # Correction : chaque order.to_dict() inclut bien items, dates, produits, etc.
     result = [order.to_dict() for order in orders]
     return jsonify(result), 200
 

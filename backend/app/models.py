@@ -36,9 +36,9 @@ class CartItem(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'product': self.product.to_dict(),
+            'product': self.product.to_dict() if self.product else None,
             'quantity': self.quantity,
-            'total_price': round(self.quantity * self.product.price, 2)
+            'total_price': round(self.quantity * self.product.price, 2) if self.product else 0
         }
 
 class Order(db.Model):
