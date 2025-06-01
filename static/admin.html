@@ -422,85 +422,57 @@ function renderOrderCard(order, showActions) {
   let produits = '';
   let total = 0;
 
-  if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+  if (order.items && Array.isArray(order.items)) {
     produits = order.items.map(item => {
-      // Gère les deux structures possibles : {product: {...}} ou {product_name, unit_price}
-      let productName = '';
-      let productPrice = 0;
-      let quantity = item.quantity || 0;
-      let totalPrice = 0;
+      const product = item.product;
+      if (!product) return '';
+      
+      const quantity = item.quantity || 0;
+      const price = product.price || 0;
+      const itemTotal = quantity * price;
+      total += itemTotal;
 
-      if (item.product && typeof item.product === 'object') {
-        productName = item.product.name || 'Produit supprimé';
-        productPrice = typeof item.product.price === 'number' ? item.product.price : 0;
-        totalPrice = typeof item.total_price === 'number' ? item.total_price : (quantity * productPrice);
-      } else if (item.product_name) {
-        productName = item.product_name;
-        productPrice = typeof item.unit_price === 'number' ? item.unit_price : 0;
-        totalPrice = typeof item.total_price === 'number' ? item.total_price : (quantity * productPrice);
-      } else {
-        productName = 'Produit supprimé';
-        productPrice = 0;
-        totalPrice = 0;
-      }
-
-      total += totalPrice;
-
-      return `<li>${quantity} x ${productName} (${productPrice.toFixed(2)}€) = <b>${totalPrice.toFixed(2)}€</b></li>`;
+      return `
+        <div class="order-item">
+          <span class="item-name">${product.name}</span>
+          <span class="item-quantity">x${quantity}</span>
+          <span class="item-price">${price.toFixed(2)}€</span>
+          <span class="item-total">${itemTotal.toFixed(2)}€</span>
+        </div>
+      `;
     }).join('');
-  } else {
-    produits = '<li>Aucun produit dans cette commande</li>';
   }
 
-  // Utiliser le total calculé ou celui fourni par l'API
-  if (order.total && parseFloat(order.total) > 0) {
-    total = parseFloat(order.total);
-  }
-  
-  // Gestion de l'email
-  const email = order.user_email || 'Email non disponible';
-  
-  // Gestion du statut avec traduction
-  const statusTranslation = {
-    'en attente': 'En attente',
-    'validee': 'Validée',
-    'refusee': 'Refusée'
-  };
-  const statusDisplay = statusTranslation[order.status] || order.status;
-  
-  // Déterminer la classe CSS pour le statut
-  const statusClass = order.status === 'en attente' ? 'pending' : 
-                     order.status === 'validee' ? 'validated' : 'rejected';
-  
+   // Utiliser le total calculé ou celui fourni par l'API
+  const finalTotal = order.total || total;
+
   return `
-    <div class="order-card ${statusClass}">
+    <div class="order-card ${order.status === 'en attente' ? 'pending' : order.status === 'validee' ? 'validated' : 'rejected'}">
       <div class="order-header">
         <div class="order-id">#${order.id}</div>
-        <div class="order-status status-${statusClass}">${statusDisplay}</div>
+        <div class="order-status">${order.status}</div>
       </div>
       <div class="order-details">
-        <div class="detail-item">
-          <span class="detail-label">📅</span>
-          <span class="detail-value">Date: ${dateStr}${heureStr !== 'Heure non disponible' ? ' à ' + heureStr : ''}</span>
+        <div class="detail-row">
+          <span class="detail-label">📅 Date:</span>
+          <span class="detail-value">${order.requested_date} à ${order.requested_time}</span>
         </div>
-        <div class="detail-item">
-          <span class="detail-label">📧</span>
-          <span class="detail-value">Client: ${email}</span>
+        <div class="detail-row">
+          <span class="detail-label">📧 Client:</span>
+          <span class="detail-value">${order.user_email || 'Non spécifié'}</span>
         </div>
-        <div class="detail-item">
-          <span class="detail-label">🛒</span>
-          <span class="detail-value">Produits:</span>
+        <div class="order-items">
+          <h4>Produits commandés:</h4>
+          ${produits}
         </div>
-        <ul class="order-products">${produits}</ul>
         <div class="order-total">
-          <span class="detail-label">💰</span>
-          <span class="detail-value"><b>Total: ${total.toFixed(2)}€</b></span>
+          <strong>Total: ${finalTotal.toFixed(2)}€</strong>
         </div>
       </div>
       ${showActions ? `
         <div class="order-actions">
-          <button class="btn btn-accept" onclick="acceptOrder(${order.id})">✓ Accepter</button>
-          <button class="btn btn-reject" onclick="openOrderRejectModal(${order.id})">✗ Refuser</button>
+          <button onclick="acceptOrder(${order.id})" class="btn-accept">Accepter</button>
+          <button onclick="openOrderRejectModal(${order.id})" class="btn-reject">Refuser</button>
         </div>
       ` : ''}
     </div>
