@@ -56,6 +56,7 @@
   <button class="tab-button" onclick="switchTab('products')">Produits</button>
   <button class="tab-button" onclick="switchTab('schedules')">Horaires</button>
   <button class="tab-button" onclick="switchTab('newsletter')">Newsletter</button>
+  <button class="tab-button" onclick="switchTab('orders')">Commandes</button>
 </div>
 
 <!-- Onglet Réservations -->
@@ -184,6 +185,22 @@
   </div>
 </div>
 
+<!-- Onglet Commandes -->
+<div id="orders-tab" class="tab-content">
+  <div class="orders-admin-container">
+    <h2>Gestion des commandes</h2>
+    <div class="orders-section">
+      <h3>Commandes en attente</h3>
+      <div id="orders-pending-list"></div>
+    </div>
+    <hr style="margin:2rem 0;">
+    <div class="orders-section">
+      <h3>Commandes à venir (validées)</h3>
+      <div id="orders-upcoming-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de refus de réservation -->
 <div id="rejectModal" class="modal">
   <div class="modal-content">
@@ -198,6 +215,24 @@
     <div class="modal-actions">
       <button class="btn-modal btn-cancel" onclick="closeRejectModal()">Annuler</button>
       <button class="btn-modal btn-confirm" onclick="confirmReject()">Confirmer le refus</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de refus de commande -->
+<div id="orderRejectModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Refuser la commande</h3>
+      <span class="close" onclick="closeOrderRejectModal()">&times;</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Motif du refus (optionnel) :</label>
+      <textarea class="form-control" id="orderRejectReason" rows="4" placeholder="Expliquez la raison du refus..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal btn-cancel" onclick="closeOrderRejectModal()">Annuler</button>
+      <button class="btn-modal btn-confirm" onclick="confirmOrderReject()">Confirmer le refus</button>
     </div>
   </div>
 </div>
@@ -224,6 +259,10 @@ let currentDate = new Date();
 let selectedDate = new Date();
 let reservations = [];
 let currentReservationId = null;
+
+// --- Commandes ADMIN ---
+let orders = [];
+let currentOrderId = null;
 
 // Fonction utilitaire pour formater une date en YYYY-MM-DD (heure locale)
 function formatDateLocal(date) {
@@ -270,7 +309,88 @@ function switchTab(tabName) {
     loadReservations();
   } else if (tabName === 'newsletter') {
     loadNewsletterSubscribers();
+  } else if (tabName === 'orders') {
+    loadOrders();
   }
+}
+
+// Charger toutes les commandes (admin)
+async function loadOrders() {
+  const token = localStorage.getItem('token');
+  const pendingList = document.getElementById('orders-pending-list');
+  const upcomingList = document.getElementById('orders-upcoming-list');
+  if (!pendingList || !upcomingList) return;
+  pendingList.innerHTML = "Chargement...";
+  upcomingList.innerHTML = "Chargement...";
+  try {
+    const res = await fetch('/api/admin/orders', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) {
+      pendingList.innerHTML = "Erreur lors du chargement.";
+      upcomingList.innerHTML = "";
+      return;
+    }
+    orders = await res.json();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    // Séparer les commandes en attente et à venir
+    const pendingOrders = orders.filter(o => o.status === 'en attente');
+    const upcomingOrders = orders.filter(o =>
+      o.status === 'validee' &&
+      (o.requested_date && o.requested_date >= todayStr)
+    );
+
+    // Affichage commandes en attente
+    if (pendingOrders.length === 0) {
+      pendingList.innerHTML = "<i>Aucune commande en attente.</i>";
+    } else {
+      pendingList.innerHTML = pendingOrders.map(order => renderOrderCard(order, true)).join('');
+    }
+
+    // Affichage commandes à venir
+    if (upcomingOrders.length === 0) {
+      upcomingList.innerHTML = "<i>Aucune commande à venir.</i>";
+    } else {
+      upcomingList.innerHTML = upcomingOrders.map(order => renderOrderCard(order, false)).join('');
+    }
+  } catch (e) {
+    pendingList.innerHTML = "Erreur réseau.";
+    upcomingList.innerHTML = "";
+  }
+}
+
+// Rendu d'une carte commande
+function renderOrderCard(order, showActions) {
+  const date = order.requested_date || (order.created_at ? new Date(order.created_at).toLocaleDateString('fr-FR') : '');
+  const heure = order.requested_time || (order.created_at ? new Date(order.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '');
+  const produits = order.items.map(item =>
+    `<li>${item.quantity} x ${item.product.name} (${item.product.price.toFixed(2)}€) = <b>${item.total_price.toFixed(2)}€</b></li>`
+  ).join('');
+  const total = order.total ? order.total.toFixed(2) : '0.00';
+  const email = order.user_email || '';
+  return `
+    <div class="order-card">
+      <div class="order-header">
+        <div class="order-id">#${order.id}</div>
+        <div class="order-status">${order.status === 'en attente' ? 'En attente' : 'Validée'}</div>
+      </div>
+      <div class="order-details">
+        <div><b>Date :</b> ${date} ${heure ? 'à ' + heure : ''}</div>
+        <div><b>Email client :</b> ${email}</div>
+        <div><b>Produits :</b>
+          <ul>${produits}</ul>
+        </div>
+        <div><b>Total :</b> ${total}€</div>
+      </div>
+      ${showActions ? `
+        <div class="order-actions">
+          <button class="btn btn-accept" onclick="acceptOrder(${order.id})">✓ Accepter</button>
+          <button class="btn btn-reject" onclick="openOrderRejectModal(${order.id})">✗ Refuser</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
 }
 
 // Charger les réservations depuis l'API
@@ -552,6 +672,64 @@ async function confirmReject() {
   }
 }
 
+// Accepter une commande
+async function acceptOrder(orderId) {
+  const token = localStorage.getItem('token');
+  try {
+    const res = await fetch(`/api/order/${orderId}/validate`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (res.ok) {
+      showNotification('Commande acceptée avec succès', 'success');
+      await loadOrders();
+    } else {
+      const error = await res.json();
+      showNotification(error.error || 'Erreur lors de l\'acceptation', 'error');
+    }
+  } catch (e) {
+    showNotification('Erreur de connexion', 'error');
+  }
+}
+
+// Modal de refus commande
+function openOrderRejectModal(orderId) {
+  currentOrderId = orderId;
+  document.getElementById('orderRejectModal').style.display = 'block';
+  document.getElementById('orderRejectReason').value = '';
+}
+function closeOrderRejectModal() {
+  document.getElementById('orderRejectModal').style.display = 'none';
+  currentOrderId = null;
+}
+async function confirmOrderReject() {
+  if (!currentOrderId) return;
+  const token = localStorage.getItem('token');
+  const reason = document.getElementById('orderRejectReason').value;
+  try {
+    const res = await fetch(`/api/order/${currentOrderId}/reject`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ reason })
+    });
+    if (res.ok) {
+      showNotification('Commande refusée', 'success');
+      closeOrderRejectModal();
+      // Supprimer la commande refusée de la liste côté client
+      orders = orders.filter(o => o.id !== currentOrderId);
+      await loadOrders();
+    } else {
+      const error = await res.json();
+      showNotification(error.error || 'Erreur lors du refus', 'error');
+    }
+  } catch (e) {
+    showNotification('Erreur de connexion', 'error');
+  }
+}
+
 // Newsletter admin logic
 async function loadNewsletterSubscribers() {
   const token = localStorage.getItem('token');
@@ -636,6 +814,10 @@ window.onclick = function(event) {
   const modal = document.getElementById('rejectModal');
   if (event.target === modal) {
     closeRejectModal();
+  }
+  const orderModal = document.getElementById('orderRejectModal');
+  if (event.target === orderModal) {
+    closeOrderRejectModal();
   }
 }
 
