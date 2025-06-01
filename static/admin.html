@@ -55,7 +55,6 @@
   <button class="tab-button active" onclick="switchTab('reservations')">Réservations</button>
   <button class="tab-button" onclick="switchTab('products')">Produits</button>
   <button class="tab-button" onclick="switchTab('schedules')">Horaires</button>
-  <button class="tab-button" onclick="switchTab('orders')">Commandes</button>
   <button class="tab-button" onclick="switchTab('newsletter')">Newsletter</button>
 </div>
 
@@ -167,19 +166,6 @@
   </div>
 </div>
 
-<!-- Onglet Commandes -->
-<div id="orders-tab" class="tab-content">
-  <div class="orders-admin-container">
-    <h2>Gestion des commandes</h2>
-    <div class="orders-subtabs">
-      <button class="order-subtab active" data-tab="pending" onclick="switchOrderSubtab('pending')">En attente</button>
-      <button class="order-subtab" data-tab="validated" onclick="switchOrderSubtab('validated')">À préparer</button>
-    </div>
-    <div id="orders-list-pending"></div>
-    <div id="orders-list-validated" style="display:none"></div>
-  </div>
-</div>
-
 <!-- Onglet Newsletter -->
 <div id="newsletter-tab" class="tab-content">
   <div class="newsletter-admin-container">
@@ -212,24 +198,6 @@
     <div class="modal-actions">
       <button class="btn-modal btn-cancel" onclick="closeRejectModal()">Annuler</button>
       <button class="btn-modal btn-confirm" onclick="confirmReject()">Confirmer le refus</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal de refus de commande -->
-<div id="orderRejectModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 class="modal-title">Refuser la commande</h3>
-      <span class="close" onclick="closeOrderRejectModal()">&times;</span>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Motif du refus (optionnel) :</label>
-      <textarea class="form-control" id="orderRejectReason" rows="4" placeholder="Expliquez la raison du refus..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-modal btn-cancel" onclick="closeOrderRejectModal()">Annuler</button>
-      <button class="btn-modal btn-confirm" onclick="confirmOrderReject()">Confirmer le refus</button>
     </div>
   </div>
 </div>
@@ -300,8 +268,6 @@ function switchTab(tabName) {
   // Charger les données spécifiques à l'onglet
   if (tabName === 'reservations') {
     loadReservations();
-  } else if (tabName === 'orders') {
-    loadOrdersAdmin();
   } else if (tabName === 'newsletter') {
     loadNewsletterSubscribers();
   }
@@ -586,177 +552,6 @@ async function confirmReject() {
   }
 }
 
-// Onglet Commandes - Variables globales
-let orders = [];
-let currentOrderId = null;
-
-// Fonction pour basculer entre les sous-onglets des commandes
-function switchOrderSubtab(tab) {
-  document.querySelectorAll('.order-subtab').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tab);
-  });
-  document.getElementById('orders-list-pending').style.display = tab === 'pending' ? '' : 'none';
-  document.getElementById('orders-list-validated').style.display = tab === 'validated' ? '' : 'none';
-}
-
-// Charger les commandes depuis l'API (admin)
-async function loadOrdersAdmin() {
-  const token = localStorage.getItem('token');
-  const pendingList = document.getElementById('orders-list-pending');
-  const validatedList = document.getElementById('orders-list-validated');
-  pendingList.innerHTML = "Chargement...";
-  validatedList.innerHTML = "";
-  try {
-    const res = await fetch('/api/admin/orders', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    if (!res.ok) {
-      pendingList.innerHTML = "Erreur lors du chargement des commandes.";
-      validatedList.innerHTML = "";
-      return;
-    }
-    orders = await res.json();
-    renderOrdersAdmin();
-  } catch (e) {
-    pendingList.innerHTML = "Erreur réseau.";
-    validatedList.innerHTML = "";
-  }
-}
-
-// Rendu des commandes dans l'admin
-function renderOrdersAdmin() {
-  const pendingList = document.getElementById('orders-list-pending');
-  const validatedList = document.getElementById('orders-list-validated');
-  if (!orders || orders.length === 0) {
-    pendingList.innerHTML = "<p>Aucune commande.</p>";
-    validatedList.innerHTML = "<p>Aucune commande.</p>";
-    return;
-  }
-  // Séparer les commandes
-  const pendingOrders = orders.filter(o => o.status === 'en attente');
-  const validatedOrders = orders.filter(o => o.status === 'validee');
-  // Trier par date demandée croissante (ou created_at si pas de date demandée)
-  const sortByDate = (a, b) => {
-    const ad = a.requested_date ? new Date(a.requested_date + 'T' + (a.requested_time || '00:00')) : new Date(a.created_at);
-    const bd = b.requested_date ? new Date(b.requested_date + 'T' + (b.requested_time || '00:00')) : new Date(b.created_at);
-    return ad - bd;
-  };
-  pendingOrders.sort(sortByDate);
-  validatedOrders.sort(sortByDate);
-
-  // Générer HTML pour chaque liste
-  pendingList.innerHTML = pendingOrders.length === 0
-    ? "<p>Aucune commande en attente.</p>"
-    : pendingOrders.map(order => orderAdminCardHTML(order, true)).join('');
-  validatedList.innerHTML = validatedOrders.length === 0
-    ? "<p>Aucune commande à préparer.</p>"
-    : validatedOrders.map(order => orderAdminCardHTML(order, false)).join('');
-}
-
-// Générer le HTML d'une carte de commande pour l'admin
-function orderAdminCardHTML(order, showActions) {
-  // Détermination du statut
-  let statusLabel = order.status === 'en attente' ? 'En attente' :
-                    order.status === 'validee' ? 'À préparer' :
-                    order.status === 'refusee' ? 'Refusée' : order.status;
-  let statusClass = order.status === 'en attente' ? 'pending' :
-                    order.status === 'validee' ? 'validated' :
-                    order.status === 'refusee' ? 'refused' : '';
-
-  // Formatage de la date/heure demandée
-  let dateDisplay = '';
-  if (order.requested_date && order.requested_time) {
-    const d = new Date(order.requested_date + 'T' + order.requested_time);
-    dateDisplay = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' à ' + order.requested_time;
-  } else if (order.requested_date) {
-    const d = new Date(order.requested_date);
-    dateDisplay = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } else if (order.created_at) {
-    const d = new Date(order.created_at);
-    dateDisplay = d.toLocaleString('fr-FR');
-  }
-
-  // Affichage des produits détaillés (nom, quantité, prix unitaire, total)
-  const itemsList = (order.items && order.items.length > 0)
-    ? order.items.map(item => `
-      <div style="display:flex;justify-content:space-between;padding:2px 0;">
-        <span>${item.quantity} x ${item.product && item.product.name ? item.product.name : 'Produit supprimé'}</span>
-        <span>${item.product && item.product.price ? Number(item.product.price).toFixed(2) : '0.00'}€</span>
-        <span>Total: ${(item.product && item.product.price ? item.product.price * item.quantity : 0).toFixed(2)}€</span>
-      </div>
-    `).join('')
-    : '<div><i>Aucun produit</i></div>';
-
-  // Informations livraison/retrait si présentes
-  let deliveryOrPickupInfo = '';
-  if (order.requested_date && order.requested_time) {
-    deliveryOrPickupInfo = `
-      <div style="margin-top:0.5rem;">
-        <span style="font-weight:500;">Prévu le ${order.requested_date} à ${order.requested_time}</span>
-      </div>
-    `;
-  }
-
-  return `
-    <div class="order-admin-card">
-      <div class="order-header">
-        <span class="order-id">Commande #${order.id}</span>
-        <span class="order-status ${statusClass}">${statusLabel}</span>
-      </div>
-      <div class="order-details">
-        <div><b>Client :</b> ${order.user_email || '-'}</div>
-        <div><b>Date :</b> ${dateDisplay}</div>
-        ${deliveryOrPickupInfo}
-        <div style="margin-top:0.5rem;">
-          ${itemsList}
-        </div>
-        <div class="order-total" style="margin-top:0.5rem;font-weight:bold;">Total : ${order.total ? order.total.toFixed(2) : '0.00'}€</div>
-      </div>
-      ${showActions ? `
-      <div class="order-actions">
-        <button class="order-action-btn validate" onclick="validateOrderAdmin(${order.id})">Valider</button>
-        <button class="order-action-btn reject" onclick="openRejectOrderModal(${order.id})">Refuser</button>
-      </div>
-      ` : ''}
-    </div>
-  `;
-}
-
-// Validation/refus commandes admin
-async function validateOrderAdmin(orderId) {
-  const token = localStorage.getItem('token');
-  if (!confirm("Valider cette commande ?")) return;
-  await fetch(`/api/order/${orderId}/validate`, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + token }
-  });
-  loadOrdersAdmin();
-}
-
-function openRejectOrderModal(orderId) {
-  currentOrderId = orderId;
-  document.getElementById('orderRejectModal').style.display = 'block';
-  document.getElementById('orderRejectReason').value = '';
-}
-
-function closeOrderRejectModal() {
-  document.getElementById('orderRejectModal').style.display = 'none';
-  currentOrderId = null;
-}
-
-async function confirmOrderReject() {
-  if (!currentOrderId) return;
-  const token = localStorage.getItem('token');
-  const reason = document.getElementById('orderRejectReason').value;
-  await fetch(`/api/order/${currentOrderId}/reject`, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reason })
-  });
-  loadOrdersAdmin();
-  closeOrderRejectModal();
-}
-
 // Newsletter admin logic
 async function loadNewsletterSubscribers() {
   const token = localStorage.getItem('token');
@@ -841,10 +636,6 @@ window.onclick = function(event) {
   const modal = document.getElementById('rejectModal');
   if (event.target === modal) {
     closeRejectModal();
-  }
-  const orderModal = document.getElementById('orderRejectModal');
-  if (event.target === orderModal) {
-    closeOrderRejectModal();
   }
 }
 
