@@ -150,12 +150,6 @@
 <div id="orders-tab" class="tab-content">
   <div class="orders-admin-container">
     <h2>Gestion des commandes</h2>
-    <!-- Sous-onglets pour filtrer les commandes -->
-    <div class="orders-subtabs" style="margin-bottom: 20px;">
-      <button class="orders-subtab-button active" onclick="switchOrdersSubtab('pending')">En attente</button>
-      <button class="orders-subtab-button" onclick="switchOrdersSubtab('validee')">Acceptées</button>
-      <button class="orders-subtab-button" onclick="switchOrdersSubtab('refusee')">Refusées</button>
-    </div>
     <div id="orders-list"></div>
   </div>
 </div>
@@ -530,27 +524,6 @@ async function confirmReject() {
 
 // Ajout pour l'onglet Commandes
 let orders = [];
-let currentOrdersSubtab = 'pending';
-
-// Fonction pour basculer entre les sous-onglets des commandes
-function switchOrdersSubtab(subtab) {
-  currentOrdersSubtab = subtab;
-  document.querySelectorAll('.orders-subtab-button').forEach(btn => btn.classList.remove('active'));
-  if (subtab === 'pending') document.querySelector('.orders-subtab-button:nth-child(1)').classList.add('active');
-  if (subtab === 'validee') document.querySelector('.orders-subtab-button:nth-child(2)').classList.add('active');
-  if (subtab === 'refusee') document.querySelector('.orders-subtab-button:nth-child(3)').classList.add('active');
-  renderOrdersAdmin();
-}
-
-// Filtre pour ne garder que les commandes à venir (date demandée >= aujourd'hui)
-function isOrderUpcoming(order) {
-  // Si pas de date demandée, on considère la commande comme "passée"
-  if (!order.requested_date) return false;
-  const today = new Date();
-  const orderDate = new Date(order.requested_date + 'T' + (order.requested_time || '00:00'));
-  // On garde les commandes dont la date demandée est aujourd'hui ou plus tard
-  return orderDate >= new Date(today.getFullYear(), today.getMonth(), today.getDate());
-}
 
 async function loadOrdersAdmin() {
   const token = localStorage.getItem('token');
@@ -573,25 +546,16 @@ async function loadOrdersAdmin() {
 
 function renderOrdersAdmin() {
   const ordersList = document.getElementById('orders-list');
-  if (!orders) {
+  if (!orders || orders.length === 0) {
     ordersList.innerHTML = "<p>Aucune commande.</p>";
     return;
   }
-  // Filtrer selon le sous-onglet et la date
-  const filtered = orders.filter(order => {
-    return order.status === currentOrdersSubtab && isOrderUpcoming(order);
-  });
-  if (filtered.length === 0) {
-    ordersList.innerHTML = "<p>Aucune commande.</p>";
-    return;
-  }
-  ordersList.innerHTML = filtered.map(order => {
+  ordersList.innerHTML = orders.map(order => {
     let statusLabel = order.status === 'en attente' ? 'En attente' :
                       order.status === 'validee' ? 'Validée' :
                       order.status === 'refusee' ? 'Refusée' : order.status;
     let actions = '';
-    // Actions seulement pour les commandes en attente
-    if (order.status === 'en attente' || order.status === 'pending') {
+    if (order.status === 'en attente') {
       actions = `
         <button onclick="validateOrderAdmin(${order.id})">Valider</button>
         <button onclick="openRejectOrderModal(${order.id})">Refuser</button>
@@ -618,7 +582,7 @@ async function validateOrderAdmin(orderId) {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token }
   });
-  await loadOrdersAdmin();
+  loadOrdersAdmin();
 }
 
 let currentOrderId = null;
@@ -634,7 +598,7 @@ async function rejectOrderAdmin(orderId, reason) {
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ reason })
   });
-  await loadOrdersAdmin();
+  loadOrdersAdmin();
 }
 
 // Fermer le modal en cliquant à l'extérieur
@@ -649,10 +613,6 @@ window.onclick = function(event) {
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('reservations-tab').classList.contains('active')) {
     loadReservations();
-  }
-  // Charger les commandes si l'onglet commandes est actif
-  if (document.getElementById('orders-tab').classList.contains('active')) {
-    loadOrdersAdmin();
   }
 });
 </script>
