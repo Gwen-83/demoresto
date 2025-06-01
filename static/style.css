@@ -2131,6 +2131,15 @@ form#register-form a:hover {
   background-color: #c82333;
 }
 
+.btn-confirm2 {
+  background-color: #00ff44;
+  color: white;
+}
+
+.btn-confirm2:hover {
+  background-color: #04ff00;
+}
+
 /* === ANIMATIONS === */
 @keyframes slideIn {
   from {
