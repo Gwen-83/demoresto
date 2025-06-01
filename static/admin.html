@@ -373,12 +373,11 @@ async function loadOrders() {
 
 // Rendu d'une carte commande
 function renderOrderCard(order, showActions) {
-  console.log('Order data:', order); // Debug
-  
   // Gestion de la date et heure
   let dateStr = '';
   let heureStr = '';
-  
+
+  // Correction : utiliser requested_date/requested_time si présents
   if (order.requested_date) {
     // Formater la date depuis le format YYYY-MM-DD vers DD/MM/YYYY
     const dateParts = order.requested_date.split('-');
@@ -390,7 +389,7 @@ function renderOrderCard(order, showActions) {
   } else if (order.created_at) {
     dateStr = new Date(order.created_at).toLocaleDateString('fr-FR');
   }
-  
+
   if (order.requested_time) {
     heureStr = order.requested_time;
   } else if (order.created_at) {
@@ -399,29 +398,31 @@ function renderOrderCard(order, showActions) {
       minute: '2-digit' 
     });
   }
-  
-  // Gestion des produits
+
+  // Correction : gestion des produits
   const produits = order.items && order.items.length > 0 
     ? order.items.map(item => {
-        const productName = item.product ? item.product.name : 'Produit supprimé';
-        const productPrice = item.product ? item.product.price : 0;
-        const totalPrice = item.total_price || (item.quantity * productPrice);
-        
+        // Correction ici : item.product peut être null si le produit a été supprimé
+        const productName = item.product && item.product.name ? item.product.name : 'Produit supprimé';
+        const productPrice = item.product && typeof item.product.price === 'number' ? item.product.price : 0;
+        const totalPrice = typeof item.total_price === 'number'
+          ? item.total_price
+          : (item.quantity * productPrice);
         return `<li>${item.quantity} x ${productName} (${productPrice.toFixed(2)}€) = <b>${totalPrice.toFixed(2)}€</b></li>`;
       }).join('')
     : '<li>Aucun produit</li>';
-  
-  // Gestion du total
-  const total = order.total || 0;
-  
-  // Gestion de l'email
+
+  // Correction : gestion du total
+  const total = typeof order.total === 'number' ? order.total : 0;
+
+  // Correction : gestion de l'email
   const email = order.user_email || 'Email non disponible';
-  
+
   return `
     <div class="order-card">
       <div class="order-header">
         <div class="order-id">#${order.id}</div>
-        <div class="order-status">${order.status === 'en attente' ? 'En attente' : 'Validée'}</div>
+        <div class="order-status">${order.status === 'en attente' ? 'En attente' : order.status === 'validee' ? 'Validée' : 'Refusée'}</div>
       </div>
       <div class="order-details">
         <div><b>Date :</b> ${dateStr} ${heureStr ? 'à ' + heureStr : ''}</div>
