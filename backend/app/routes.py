@@ -424,24 +424,15 @@ def get_reservations():
         if not user:
             return jsonify({"error": "Utilisateur introuvable"}), 404
 
-        # Ajouter des logs pour diagnostiquer
-        print(f"🔍 DEBUG - User ID: {user_id}")
-        print(f"🔍 DEBUG - User email: '{user.email}' (length: {len(user.email)})")
-        print(f"🔍 DEBUG - Is admin: {user.is_admin}")
-
         if user.is_admin:
             # Les admins voient toutes les réservations
             reservations = Reservation.query.order_by(Reservation.id.asc()).all()
-            print(f"🔍 DEBUG - Admin: récupération de {len(reservations)} réservations")
         else:
             # Les utilisateurs normaux voient seulement leurs réservations (par email)
             reservations = Reservation.query.filter_by(email=user.email).order_by(Reservation.id.asc()).all()
-            print(f"🔍 DEBUG - User: recherche réservations pour email '{user.email}'")
-            print(f"🔍 DEBUG - User: trouvé {len(reservations)} réservations")
             
             # Debug: afficher tous les emails des réservations existantes
             all_emails = [r.email for r in Reservation.query.all()]
-            print(f"🔍 DEBUG - Tous les emails dans la DB: {all_emails}")
 
         return jsonify([r.to_dict() for r in reservations]), 200
 
