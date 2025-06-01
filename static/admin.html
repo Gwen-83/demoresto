@@ -774,8 +774,10 @@ async function exportNewsletterCSV() {
 document.getElementById('newsletter-send-form').addEventListener('submit', async function(e) {
   e.preventDefault();
   const token = localStorage.getItem('token');
-  const subject = document.getElementById('newsletter-subject').value;
-  const content = document.getElementById('newsletter-content').value;
+  const subjectInput = document.getElementById('newsletter-subject');
+  const contentInput = document.getElementById('newsletter-content');
+  const subject = subjectInput.value;
+  const content = contentInput.value;
   try {
     const res = await fetch('/api/admin/newsletter/send', {
       method: 'POST',
@@ -787,6 +789,9 @@ document.getElementById('newsletter-send-form').addEventListener('submit', async
     });
     if (res.ok) {
       document.getElementById('newsletter-send-status').style.display = 'inline';
+      // Vider les champs après envoi réussi
+      subjectInput.value = '';
+      contentInput.value = '';
       setTimeout(() => {
         document.getElementById('newsletter-send-status').style.display = 'none';
       }, 2000);
