@@ -1055,12 +1055,7 @@ def get_all_orders():
         return jsonify({"error": "Accès interdit"}), 403
 
     orders = Order.query.order_by(Order.created_at.desc()).all()
-    result = []
-    for order in orders:
-        order_data = order.to_dict()
-        # Ajout de l'email utilisateur pour l'admin
-        order_data['user_email'] = order.user.email if order.user else None
-        result.append(order_data)
+    result = [order.to_dict() for order in orders]
     return jsonify(result), 200
 
 @bp.route('/api/order/<int:order_id>/validate', methods=['POST'])

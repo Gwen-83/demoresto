@@ -65,7 +65,8 @@ class Order(db.Model):
             'items': [item.to_dict() for item in self.items],
             'total': round(self.total(), 2),
             'requested_date': self.requested_date,
-            'requested_time': self.requested_time
+            'requested_time': self.requested_time,
+            'user_email': self.user.email if self.user else None  # Ajout pour l'admin
         }
 
 class TokenBlocklist(db.Model):
