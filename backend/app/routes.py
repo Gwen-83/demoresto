@@ -1231,6 +1231,24 @@ def newsletter_send():
             server.starttls()
             server.login(smtp_user, smtp_password)
             server.send_message(msg, to_addrs=emails)
+        
+        # Envoi d'un mail de confirmation à l'admin
+        try:
+            confirmation_subject = f"Confirmation d'envoi de la newsletter : {subject}"
+            confirmation_content = (
+                "<h2>La newsletter a bien été envoyée à tous les abonnés.</h2>"
+                f"<p><b>Sujet :</b> {subject}</p>"
+                f"<p><b>Nombre d'abonnés :</b> {len(emails)}</p>"
+                "<hr>"
+                "<div style='background:#f8f8f8;padding:10px;border-radius:6px;'>"
+                "<b>Contenu envoyé :</b><br>"
+                f"{content}"
+                "</div>"
+            )
+            # Utilise la fonction utilitaire d'envoi d'email déjà définie
+            send_email(smtp_user, confirmation_subject, confirmation_content)
+        except Exception as e:
+            current_app.logger.error(f"Erreur envoi email confirmation newsletter admin: {e}")
         return jsonify({"message": "Newsletter envoyée"}), 200
     except Exception as e:
         current_app.logger.error(f"Erreur envoi newsletter: {e}")
