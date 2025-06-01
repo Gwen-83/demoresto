@@ -661,6 +661,17 @@ function orderAdminCardHTML(order, showActions) {
   let statusClass = order.status === 'en attente' ? 'pending' :
                     order.status === 'validee' ? 'validated' :
                     order.status === 'refusee' ? 'refused' : '';
+  // Ajout : fallback sur created_at si requested_date/heure absents
+  let dateDisplay = '';
+  if (order.requested_date && order.requested_time) {
+    dateDisplay = `${order.requested_date} ${order.requested_time}`;
+  } else if (order.requested_date) {
+    dateDisplay = order.requested_date;
+  } else if (order.created_at) {
+    // Formatage date/heure lisible
+    const d = new Date(order.created_at);
+    dateDisplay = d.toLocaleString('fr-FR');
+  }
   return `
     <div class="order-admin-card">
       <div class="order-header">
@@ -669,11 +680,17 @@ function orderAdminCardHTML(order, showActions) {
       </div>
       <div class="order-details">
         <div><b>Client :</b> ${order.user_email || '-'}</div>
-        <div><b>Date :</b> ${order.requested_date || ''} ${order.requested_time || ''}</div>
+        <div><b>Date :</b> ${dateDisplay}</div>
         <ul class="order-items-list">
-          ${order.items.map(i => `<li>${i.quantity} x ${i.product && i.product.name ? i.product.name : 'Produit supprimé'} <span style="color:#888;">(${i.product && i.product.price ? i.product.price.toFixed(2) : '0.00'}€)</span></li>`).join('')}
+          ${
+            (order.items && order.items.length > 0)
+              ? order.items.map(i =>
+                  `<li>${i.quantity} x ${i.product && i.product.name ? i.product.name : 'Produit supprimé'} <span style="color:#888;">(${i.product && i.product.price ? Number(i.product.price).toFixed(2) : '0.00'}€)</span></li>`
+                ).join('')
+              : '<li><i>Aucun produit</i></li>'
+          }
         </ul>
-        <div class="order-total">Total : ${order.total.toFixed(2)}€</div>
+        <div class="order-total">Total : ${order.total ? order.total.toFixed(2) : '0.00'}€</div>
       </div>
       ${showActions ? `
       <div class="order-actions">
