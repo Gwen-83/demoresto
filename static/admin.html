@@ -319,48 +319,73 @@ async function loadOrders() {
   const token = localStorage.getItem('token');
   const pendingList = document.getElementById('orders-pending-list');
   const upcomingList = document.getElementById('orders-upcoming-list');
-  if (!pendingList || !upcomingList) return;
-  pendingList.innerHTML = "Chargement...";
+  
+  if (!pendingList || !upcomingList) {
+    console.error('Éléments DOM orders-pending-list ou orders-upcoming-list non trouvés');
+    return;
+  }
+  
+  pendingList.innerHTML = "Chargement des commandes...";
   upcomingList.innerHTML = "Chargement...";
+  
   try {
     const res = await fetch('/api/admin/orders', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
+    
     if (!res.ok) {
-      pendingList.innerHTML = "Erreur lors du chargement.";
+      const errorText = await res.text();
+      console.error('Erreur API:', res.status, errorText);
+      pendingList.innerHTML = `Erreur lors du chargement (${res.status}).`;
       upcomingList.innerHTML = "";
       return;
     }
+    
     orders = await res.json();
+    console.log('Commandes reçues:', orders);
+    
     const todayStr = new Date().toISOString().slice(0, 10);
 
     // Séparer les commandes en attente et à venir
     const pendingOrders = orders.filter(o => o.status === 'en attente');
     const upcomingOrders = orders.filter(o =>
       o.status === 'validee' &&
-      (o.requested_date && o.requested_date >= todayStr)
+      o.requested_date && 
+      o.requested_date >= todayStr
     );
+
+    console.log('Commandes en attente:', pendingOrders.length);
+    console.log('Commandes à venir:', upcomingOrders.length);
 
     // Affichage commandes en attente
     if (pendingOrders.length === 0) {
-      pendingList.innerHTML = "<i>Aucune commande en attente.</i>";
+      pendingList.innerHTML = "<div class='no-orders'><i>Aucune commande en attente.</i></div>";
     } else {
       pendingList.innerHTML = pendingOrders.map(order => renderOrderCard(order, true)).join('');
     }
 
     // Affichage commandes à venir
     if (upcomingOrders.length === 0) {
-      upcomingList.innerHTML = "<i>Aucune commande à venir.</i>";
+      upcomingList.innerHTML = "<div class='no-orders'><i>Aucune commande à venir.</i></div>";
     } else {
+      // Trier par date/heure pour les commandes à venir
+      upcomingOrders.sort((a, b) => {
+        const dateA = a.requested_date + ' ' + (a.requested_time || '00:00');
+        const dateB = b.requested_date + ' ' + (b.requested_time || '00:00');
+        return dateA.localeCompare(dateB);
+      });
       upcomingList.innerHTML = upcomingOrders.map(order => renderOrderCard(order, false)).join('');
     }
   } catch (e) {
-    pendingList.innerHTML = "Erreur réseau.";
+    console.error('Erreur réseau:', e);
+    pendingList.innerHTML = "Erreur réseau lors du chargement.";
     upcomingList.innerHTML = "";
   }
 }
 
 // Rendu d'une carte commande
+
+// Rendu d'une carte commande - VERSION CORRIGÉE
 function renderOrderCard(order, showActions) {
   console.log('Order data:', order); // Debug
   
@@ -377,48 +402,87 @@ function renderOrderCard(order, showActions) {
       dateStr = order.requested_date;
     }
   } else if (order.created_at) {
-    dateStr = new Date(order.created_at).toLocaleDateString('fr-FR');
+    const createdDate = new Date(order.created_at);
+    dateStr = createdDate.toLocaleDateString('fr-FR');
+  } else {
+    dateStr = 'Date non disponible';
   }
   
   if (order.requested_time) {
     heureStr = order.requested_time;
   } else if (order.created_at) {
-    heureStr = new Date(order.created_at).toLocaleTimeString('fr-FR', { 
+    const createdDate = new Date(order.created_at);
+    heureStr = createdDate.toLocaleTimeString('fr-FR', { 
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  } else {
+    heureStr = 'Heure non disponible';
   }
   
-  // Gestion des produits
-  const produits = order.items && order.items.length > 0 
-    ? order.items.map(item => {
-        const productName = item.product ? item.product.name : 'Produit supprimé';
-        const productPrice = item.product ? item.product.price : 0;
-        const totalPrice = item.total_price || (item.quantity * productPrice);
-        
-        return `<li>${item.quantity} x ${productName} (${productPrice.toFixed(2)}€) = <b>${totalPrice.toFixed(2)}€</b></li>`;
-      }).join('')
-    : '<li>Aucun produit</li>';
+  // Gestion des produits - FIX PRINCIPAL
+  let produits = '';
+  let total = 0;
   
-  // Gestion du total
-  const total = order.total || 0;
+  if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+    produits = order.items.map(item => {
+      const productName = item.product && item.product.name ? item.product.name : 'Produit supprimé';
+      const productPrice = item.product && item.product.price ? parseFloat(item.product.price) : 0;
+      const quantity = item.quantity || 0;
+      const totalPrice = item.total_price ? parseFloat(item.total_price) : (quantity * productPrice);
+      
+      total += totalPrice;
+      
+      return `<li>${quantity} x ${productName} (${productPrice.toFixed(2)}€) = <b>${totalPrice.toFixed(2)}€</b></li>`;
+    }).join('');
+  } else {
+    produits = '<li>Aucun produit dans cette commande</li>';
+  }
+  
+  // Utiliser le total calculé ou celui fourni par l'API
+  if (order.total && parseFloat(order.total) > 0) {
+    total = parseFloat(order.total);
+  }
   
   // Gestion de l'email
   const email = order.user_email || 'Email non disponible';
   
+  // Gestion du statut avec traduction
+  const statusTranslation = {
+    'en attente': 'En attente',
+    'validee': 'Validée',
+    'refusee': 'Refusée'
+  };
+  const statusDisplay = statusTranslation[order.status] || order.status;
+  
+  // Déterminer la classe CSS pour le statut
+  const statusClass = order.status === 'en attente' ? 'pending' : 
+                     order.status === 'validee' ? 'validated' : 'rejected';
+  
   return `
-    <div class="order-card">
+    <div class="order-card ${statusClass}">
       <div class="order-header">
         <div class="order-id">#${order.id}</div>
-        <div class="order-status">${order.status === 'en attente' ? 'En attente' : 'Validée'}</div>
+        <div class="order-status status-${statusClass}">${statusDisplay}</div>
       </div>
       <div class="order-details">
-        <div><b>Date :</b> ${dateStr} ${heureStr ? 'à ' + heureStr : ''}</div>
-        <div><b>Email client :</b> ${email}</div>
-        <div><b>Produits :</b>
-          <ul>${produits}</ul>
+        <div class="detail-item">
+          <span class="detail-label">📅</span>
+          <span class="detail-value">Date: ${dateStr}${heureStr !== 'Heure non disponible' ? ' à ' + heureStr : ''}</span>
         </div>
-        <div><b>Total :</b> ${total.toFixed(2)}€</div>
+        <div class="detail-item">
+          <span class="detail-label">📧</span>
+          <span class="detail-value">Client: ${email}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">🛒</span>
+          <span class="detail-value">Produits:</span>
+        </div>
+        <ul class="order-products">${produits}</ul>
+        <div class="order-total">
+          <span class="detail-label">💰</span>
+          <span class="detail-value"><b>Total: ${total.toFixed(2)}€</b></span>
+        </div>
       </div>
       ${showActions ? `
         <div class="order-actions">
