@@ -589,8 +589,8 @@ function renderOrdersAdmin() {
     let actions = '';
     if (order.status === 'en attente') {
       actions = `
-        <button onclick="validateOrderAdmin(${order.id})">Valider</button>
-        <button onclick="openRejectOrderModal(${order.id})">Refuser</button>
+        <button class="order-btn-validate" onclick="validateOrderAdmin(${order.id})">Valider</button>
+        <button class="order-btn-reject" onclick="openRejectOrderModal(${order.id})">Refuser</button>
       `;
     }
     return `
