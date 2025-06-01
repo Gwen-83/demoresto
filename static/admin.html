@@ -150,11 +150,11 @@
 <div id="orders-tab" class="tab-content">
   <div class="orders-admin-container">
     <h2>Gestion des commandes</h2>
-    <!-- Sous-onglets commandes -->
-    <div class="order-subtabs" style="margin-bottom: 20px;">
-      <button class="order-subtab-btn active" onclick="switchOrderSubtab('pending')">En attente</button>
-      <button class="order-subtab-btn" onclick="switchOrderSubtab('accepted')">Acceptées</button>
-      <button class="order-subtab-btn" onclick="switchOrderSubtab('rejected')">Refusées</button>
+    <!-- Sous-onglets pour filtrer les commandes -->
+    <div class="orders-subtabs" style="margin-bottom: 20px;">
+      <button class="orders-subtab-button active" onclick="switchOrdersSubtab('pending')">En attente</button>
+      <button class="orders-subtab-button" onclick="switchOrdersSubtab('validee')">Acceptées</button>
+      <button class="orders-subtab-button" onclick="switchOrdersSubtab('refusee')">Refusées</button>
     </div>
     <div id="orders-list"></div>
   </div>
@@ -530,16 +530,26 @@ async function confirmReject() {
 
 // Ajout pour l'onglet Commandes
 let orders = [];
-let currentOrderSubtab = 'pending';
+let currentOrdersSubtab = 'pending';
 
-// Ajout : gestion des sous-onglets commandes
-function switchOrderSubtab(subtab) {
-  currentOrderSubtab = subtab;
-  document.querySelectorAll('.order-subtab-btn').forEach(btn => btn.classList.remove('active'));
-  if (subtab === 'pending') document.querySelector('.order-subtab-btn:nth-child(1)').classList.add('active');
-  if (subtab === 'accepted') document.querySelector('.order-subtab-btn:nth-child(2)').classList.add('active');
-  if (subtab === 'rejected') document.querySelector('.order-subtab-btn:nth-child(3)').classList.add('active');
+// Fonction pour basculer entre les sous-onglets des commandes
+function switchOrdersSubtab(subtab) {
+  currentOrdersSubtab = subtab;
+  document.querySelectorAll('.orders-subtab-button').forEach(btn => btn.classList.remove('active'));
+  if (subtab === 'pending') document.querySelector('.orders-subtab-button:nth-child(1)').classList.add('active');
+  if (subtab === 'validee') document.querySelector('.orders-subtab-button:nth-child(2)').classList.add('active');
+  if (subtab === 'refusee') document.querySelector('.orders-subtab-button:nth-child(3)').classList.add('active');
   renderOrdersAdmin();
+}
+
+// Filtre pour ne garder que les commandes à venir (date demandée >= aujourd'hui)
+function isOrderUpcoming(order) {
+  // Si pas de date demandée, on considère la commande comme "passée"
+  if (!order.requested_date) return false;
+  const today = new Date();
+  const orderDate = new Date(order.requested_date + 'T' + (order.requested_time || '00:00'));
+  // On garde les commandes dont la date demandée est aujourd'hui ou plus tard
+  return orderDate >= new Date(today.getFullYear(), today.getMonth(), today.getDate());
 }
 
 async function loadOrdersAdmin() {
@@ -561,49 +571,27 @@ async function loadOrdersAdmin() {
   }
 }
 
-// Helper pour savoir si une commande est à venir
-function isOrderUpcoming(order) {
-  // On considère la date et l'heure demandées
-  if (!order.requested_date) return false;
-  const today = new Date();
-  const orderDate = new Date(order.requested_date + (order.requested_time ? 'T' + order.requested_time : 'T23:59'));
-  // On garde les commandes dont la date est aujourd'hui ou dans le futur
-  return orderDate >= new Date(today.getFullYear(), today.getMonth(), today.getDate());
-}
-
-// Helper pour savoir si une commande est passée
-function isOrderPast(order) {
-  if (!order.requested_date) return true;
-  const today = new Date();
-  const orderDate = new Date(order.requested_date + (order.requested_time ? 'T' + order.requested_time : 'T23:59'));
-  return orderDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-}
-
 function renderOrdersAdmin() {
   const ordersList = document.getElementById('orders-list');
   if (!orders) {
     ordersList.innerHTML = "<p>Aucune commande.</p>";
     return;
   }
-  // Filtrage selon le sous-onglet
-  let filteredOrders = [];
-  if (currentOrderSubtab === 'pending') {
-    filteredOrders = orders.filter(order => (order.status === 'en attente' || order.status === 'pending') && isOrderUpcoming(order));
-  } else if (currentOrderSubtab === 'accepted') {
-    filteredOrders = orders.filter(order => (order.status === 'validee' || order.status === 'accepted') && isOrderUpcoming(order));
-  } else if (currentOrderSubtab === 'rejected') {
-    filteredOrders = orders.filter(order => (order.status === 'refusee' || order.status === 'rejected') && isOrderUpcoming(order));
-  }
-  if (filteredOrders.length === 0) {
-    ordersList.innerHTML = "<p>Aucune commande à venir.</p>";
+  // Filtrer selon le sous-onglet et la date
+  const filtered = orders.filter(order => {
+    return order.status === currentOrdersSubtab && isOrderUpcoming(order);
+  });
+  if (filtered.length === 0) {
+    ordersList.innerHTML = "<p>Aucune commande.</p>";
     return;
   }
-  ordersList.innerHTML = filteredOrders.map(order => {
-    let statusLabel = order.status === 'en attente' || order.status === 'pending' ? 'En attente' :
-                      order.status === 'validee' || order.status === 'accepted' ? 'Validée' :
-                      order.status === 'refusee' || order.status === 'rejected' ? 'Refusée' : order.status;
+  ordersList.innerHTML = filtered.map(order => {
+    let statusLabel = order.status === 'en attente' ? 'En attente' :
+                      order.status === 'validee' ? 'Validée' :
+                      order.status === 'refusee' ? 'Refusée' : order.status;
     let actions = '';
-    if (currentOrderSubtab === 'pending') {
+    // Actions seulement pour les commandes en attente
+    if (order.status === 'en attente' || order.status === 'pending') {
       actions = `
         <button onclick="validateOrderAdmin(${order.id})">Valider</button>
         <button onclick="openRejectOrderModal(${order.id})">Refuser</button>
@@ -620,47 +608,9 @@ function renderOrdersAdmin() {
       </div>
     `;
   }).join('');
-  // Ajout : afficher les commandes passées avec bouton suppression
-  renderPastOrdersAdmin();
 }
 
-// Affichage et suppression des commandes passées
-function renderPastOrdersAdmin() {
-  const ordersList = document.getElementById('orders-list');
-  let pastOrders = [];
-  if (currentOrderSubtab === 'pending') {
-    pastOrders = orders.filter(order => (order.status === 'en attente' || order.status === 'pending') && isOrderPast(order));
-  } else if (currentOrderSubtab === 'accepted') {
-    pastOrders = orders.filter(order => (order.status === 'validee' || order.status === 'accepted') && isOrderPast(order));
-  } else if (currentOrderSubtab === 'rejected') {
-    pastOrders = orders.filter(order => (order.status === 'refusee' || order.status === 'rejected') && isOrderPast(order));
-  }
-  if (pastOrders.length > 0) {
-    ordersList.innerHTML += `<h4 style="margin-top:2em;">Commandes passées</h4>`;
-    ordersList.innerHTML += pastOrders.map(order => `
-      <div class="order-admin-card" style="border:1px solid #eee;padding:1em;margin-bottom:1em;opacity:0.7;">
-        <div><b>Commande #${order.id}</b> - ${order.user_email || ''}</div>
-        <div>Date: ${order.requested_date || ''} ${order.requested_time || ''}</div>
-        <div>Status: <b>${order.status}</b></div>
-        <div>Total: ${order.total.toFixed(2)}€</div>
-        <div>Articles: ${order.items.map(i => \`${i.quantity} x ${i.product.name}\`).join(', ')}</div>
-        <button onclick="deleteOrderAdmin(${order.id})" style="background:#c00;color:#fff;">Supprimer</button>
-      </div>
-    `).join('');
-  }
-}
-
-// Suppression d'une commande passée
-async function deleteOrderAdmin(orderId) {
-  const token = localStorage.getItem('token');
-  if (!confirm("Supprimer cette commande définitivement ?")) return;
-  await fetch(`/api/order/${orderId}`, {
-    method: 'DELETE',
-    headers: { 'Authorization': 'Bearer ' + token }
-  });
-  loadOrdersAdmin();
-}
-
+// Validation/refus commandes admin
 async function validateOrderAdmin(orderId) {
   const token = localStorage.getItem('token');
   if (!confirm("Valider cette commande ?")) return;
@@ -668,7 +618,7 @@ async function validateOrderAdmin(orderId) {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token }
   });
-  loadOrdersAdmin();
+  await loadOrdersAdmin();
 }
 
 let currentOrderId = null;
@@ -684,7 +634,7 @@ async function rejectOrderAdmin(orderId, reason) {
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ reason })
   });
-  loadOrdersAdmin();
+  await loadOrdersAdmin();
 }
 
 // Fermer le modal en cliquant à l'extérieur
@@ -700,9 +650,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('reservations-tab').classList.contains('active')) {
     loadReservations();
   }
-  // Ajout : initialiser le sous-onglet commandes
+  // Charger les commandes si l'onglet commandes est actif
   if (document.getElementById('orders-tab').classList.contains('active')) {
-    switchOrderSubtab('pending');
     loadOrdersAdmin();
   }
 });
