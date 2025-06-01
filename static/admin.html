@@ -195,6 +195,23 @@
   </div>
 </div>
 
+<!-- Modal de validation commande (NOUVEAU) -->
+<div id="validateOrderModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Valider la commande</h3>
+      <span class="close" onclick="closeValidateOrderModal()">&times;</span>
+    </div>
+    <div class="form-group">
+      <p>Êtes-vous sûr de vouloir <b>valider</b> cette commande ?</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal btn-cancel" onclick="closeValidateOrderModal()">Annuler</button>
+      <button class="btn-modal btn-confirm" onclick="confirmValidateOrder()">Valider</button>
+    </div>
+  </div>
+</div>
+
 <footer>
   <div class="footer-logo">
     <img src="public/logo.png" alt="Logo Chez Mario">
@@ -607,7 +624,7 @@ function renderOrdersAdmin() {
     let actions = '';
     if (order.status === 'en attente') {
       actions = `
-        <button class="order-btn-validate" onclick="validateOrderAdmin(${order.id})">Valider</button>
+        <button class="order-btn-validate" onclick="openValidateOrderModal(${order.id})">Valider</button>
         <button class="order-btn-reject" onclick="openRejectOrderModal(${order.id})">Refuser</button>
       `;
     }
@@ -661,15 +678,42 @@ async function rejectOrderAdmin(orderId, reason) {
   loadOrdersAdmin();
 }
 
+// Validation commande avec modal personnalisé
+function openValidateOrderModal(orderId) {
+  currentOrderId = orderId;
+  document.getElementById('validateOrderModal').style.display = 'block';
+}
+function closeValidateOrderModal() {
+  document.getElementById('validateOrderModal').style.display = 'none';
+  currentOrderId = null;
+}
+async function confirmValidateOrder() {
+  if (!currentOrderId) return;
+  await validateOrderAdmin(currentOrderId);
+  closeValidateOrderModal();
+}
+async function validateOrderAdmin(orderId) {
+  const token = localStorage.getItem('token');
+  await fetch(`/api/order/${orderId}/validate`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  loadOrdersAdmin();
+}
+
 // Fermer les modals en cliquant à l'extérieur
 window.onclick = function(event) {
   const modal = document.getElementById('rejectModal');
   const orderModal = document.getElementById('rejectOrderModal');
+  const validateModal = document.getElementById('validateOrderModal');
   if (event.target === modal) {
     closeRejectModal();
   }
   if (event.target === orderModal) {
     closeRejectOrderModal();
+  }
+  if (event.target === validateModal) {
+    closeValidateOrderModal();
   }
 }
 
