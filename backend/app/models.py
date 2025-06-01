@@ -62,7 +62,23 @@ class Order(db.Model):
             'id': self.id,
             'created_at': self.created_at.isoformat(),
             'status': self.status,
-            'items': [item.to_dict() for item in self.items],
+            'items': [
+                {
+                    'id': item.id,
+                    'product': item.product.to_dict() if item.product else {
+                        "id": None,
+                        "name": "Produit supprimé",
+                        "description": "",
+                        "price": 0,
+                        "image": "",
+                        "category": "",
+                        "allergens": []
+                    },
+                    'quantity': item.quantity,
+                    'total_price': round(item.quantity * (item.product.price if item.product else 0), 2)
+                }
+                for item in self.items
+            ],
             'total': round(self.total(), 2),
             'requested_date': self.requested_date,
             'requested_time': self.requested_time,

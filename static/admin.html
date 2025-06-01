@@ -671,7 +671,7 @@ function orderAdminCardHTML(order, showActions) {
         <div><b>Client :</b> ${order.user_email || '-'}</div>
         <div><b>Date :</b> ${order.requested_date || ''} ${order.requested_time || ''}</div>
         <ul class="order-items-list">
-          ${order.items.map(i => `<li>${i.quantity} x ${i.product && i.product.name ? i.product.name : ''} <span style="color:#888;">(${i.product && i.product.price ? i.product.price.toFixed(2) : '0.00'}€)</span></li>`).join('')}
+          ${order.items.map(i => `<li>${i.quantity} x ${i.product && i.product.name ? i.product.name : 'Produit supprimé'} <span style="color:#888;">(${i.product && i.product.price ? i.product.price.toFixed(2) : '0.00'}€)</span></li>`).join('')}
         </ul>
         <div class="order-total">Total : ${order.total.toFixed(2)}€</div>
       </div>
