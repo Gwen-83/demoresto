@@ -1046,8 +1046,12 @@ def get_all_orders():
         return jsonify({"error": "Accès interdit"}), 403
 
     orders = Order.query.order_by(Order.created_at.desc()).all()
-    # Correction : chaque order.to_dict() inclut bien items, dates, produits, etc.
-    result = [order.to_dict() for order in orders]
+    result = []
+    for order in orders:
+        order_data = order.to_dict()
+        # Ajout de l'email utilisateur pour l'admin
+        order_data['user_email'] = order.user.email if order.user else None
+        result.append(order_data)
     return jsonify(result), 200
 
 @bp.route('/api/order/<int:order_id>/validate', methods=['POST'])
@@ -1065,23 +1069,19 @@ def validate_order_admin(order_id):
     order.status = 'validee'
     db.session.commit()
 
-    # Envoi d'un email de confirmation à l'utilisateur (HTML)
+    # Envoi d'un email de confirmation à l'utilisateur
     if order.user and order.user.email:
         subject = "Votre commande a été validée"
-        items_html = ''.join(f"<li>{item.quantity} x {item.product.name} ({item.product.price:.2f}€)</li>" for item in order.items)
         html_content = f"""
-        <h2>Votre commande chez Chez Mario est validée !</h2>
         <p>Bonjour,</p>
         <p>Votre commande <b>#{order.id}</b> a été <b>validée</b> par le restaurant.</p>
+        <p>Merci pour votre confiance !</p>
         <hr>
         <h4>Détails de la commande :</h4>
         <ul>
-        {items_html}
+        {''.join(f"<li>{item.quantity} x {item.product.name} ({item.product.price:.2f}€)</li>" for item in order.items)}
         </ul>
         <p><b>Total :</b> {order.total():.2f}€</p>
-        <p>Merci pour votre confiance !</p>
-        <hr>
-        <p style="font-size:12px;color:#888;">Pour toute question, contactez-nous.<br>L'équipe Chez Mario</p>
         """
         send_email(order.user.email, subject, html_content)
     return jsonify({"message": "Commande validée."}), 200
@@ -1104,24 +1104,20 @@ def reject_order_admin(order_id):
     order.status = 'refusee'
     db.session.commit()
 
-    # Envoi d'un email de refus à l'utilisateur (HTML)
+    # Envoi d'un email de refus à l'utilisateur
     if order.user and order.user.email:
         subject = "Votre commande a été refusée"
-        items_html = ''.join(f"<li>{item.quantity} x {item.product.name} ({item.product.price:.2f}€)</li>" for item in order.items)
         html_content = f"""
-        <h2>Votre commande chez Chez Mario n'a pas pu être validée</h2>
         <p>Bonjour,</p>
         <p>Nous sommes désolés, votre commande <b>#{order.id}</b> a été <b>refusée</b> par le restaurant.</p>
-        {f"<p><b>Motif :</b> {reason}</p>" if reason else ""}
+        {f"<p>Motif : {reason}</p>" if reason else ""}
         <hr>
         <h4>Détails de la commande :</h4>
         <ul>
-        {items_html}
+        {''.join(f"<li>{item.quantity} x {item.product.name} ({item.product.price:.2f}€)</li>" for item in order.items)}
         </ul>
         <p><b>Total :</b> {order.total():.2f}€</p>
         <p>Pour toute question, contactez-nous.</p>
-        <hr>
-        <p style="font-size:12px;color:#888;">L'équipe Chez Mario</p>
         """
         send_email(order.user.email, subject, html_content)
     return jsonify({"message": "Commande refusée."}), 200

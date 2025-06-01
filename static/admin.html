@@ -6,26 +6,6 @@
   <link rel="stylesheet" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Raleway&display=swap" rel="stylesheet">
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TKH4D424FE"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-TKH4D424FE');
-  </script>
-  <!-- Hotjar Tracking Code for https://demoresto.onrender.com/ -->
-  <script>
-      (function(h,o,t,j,a,r){
-          h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
-          h._hjSettings={hjid:6421174,hjsv:6};
-          a=o.getElementsByTagName('head')[0];
-          r=o.createElement('script');r.async=1;
-          r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
-          a.appendChild(r);
-      })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
-  </script>
 </head>
 <body>
 <div id="notification" class="notification hidden">
@@ -55,7 +35,6 @@
   <button class="tab-button active" onclick="switchTab('reservations')">Réservations</button>
   <button class="tab-button" onclick="switchTab('products')">Produits</button>
   <button class="tab-button" onclick="switchTab('schedules')">Horaires</button>
-  <button class="tab-button" onclick="switchTab('newsletter')">Newsletter</button>
   <button class="tab-button" onclick="switchTab('orders')">Commandes</button>
 </div>
 
@@ -107,7 +86,7 @@
   </div>
 </div>
 
-<!-- Onglet Produits -->
+<!-- Onglet Produits (contenu existant) -->
 <div id="products-tab" class="tab-content">
   <section class="presentation">
     <div class="presentation-container" style="flex-direction: column; align-items: center;">
@@ -156,7 +135,7 @@
   </section>
 </div>
 
-<!-- Onglet Horaires -->
+<!-- Onglet Horaires (contenu existant) -->
 <div id="schedules-tab" class="tab-content">
   <div class="schedule-admin">
     <h2>Modifier les horaires d'ouverture</h2>
@@ -167,41 +146,15 @@
   </div>
 </div>
 
-<!-- Onglet Newsletter -->
-<div id="newsletter-tab" class="tab-content">
-  <div class="newsletter-admin-container">
-    <h2>Gestion de la newsletter</h2>
-    <div style="margin-bottom:1rem;">
-      <button onclick="exportNewsletterCSV()">Exporter les emails (CSV)</button>
-    </div>
-    <div id="newsletter-subscribers-list" style="margin-bottom:2rem;"></div>
-    <form id="newsletter-send-form" style="max-width:600px;">
-      <h3>Envoyer une newsletter</h3>
-      <input id="newsletter-subject" placeholder="Sujet" required style="width:100%;margin-bottom:0.5rem;">
-      <textarea id="newsletter-content" placeholder="Contenu HTML de la newsletter" rows="6" required style="width:100%;"></textarea>
-      <button type="submit" style="margin-top:0.5rem;">Envoyer à tous les abonnés</button>
-      <span id="newsletter-send-status" style="margin-left:1rem;color:green;display:none;">Newsletter envoyée !</span>
-    </form>
-  </div>
-</div>
-
-<!-- Onglet Commandes -->
+<!-- Onglet Commandes (NOUVEAU) -->
 <div id="orders-tab" class="tab-content">
   <div class="orders-admin-container">
     <h2>Gestion des commandes</h2>
-    <div class="orders-section">
-      <h3>Commandes en attente</h3>
-      <div id="orders-pending-list"></div>
-    </div>
-    <hr style="margin:2rem 0;">
-    <div class="orders-section">
-      <h3>Commandes à venir (validées)</h3>
-      <div id="orders-upcoming-list"></div>
-    </div>
+    <div id="orders-list"></div>
   </div>
 </div>
 
-<!-- Modal de refus de réservation -->
+<!-- Modal de refus -->
 <div id="rejectModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -215,24 +168,6 @@
     <div class="modal-actions">
       <button class="btn-modal btn-cancel" onclick="closeRejectModal()">Annuler</button>
       <button class="btn-modal btn-confirm" onclick="confirmReject()">Confirmer le refus</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal de refus de commande -->
-<div id="orderRejectModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 class="modal-title">Refuser la commande</h3>
-      <span class="close" onclick="closeOrderRejectModal()">&times;</span>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Motif du refus (optionnel) :</label>
-      <textarea class="form-control" id="orderRejectReason" rows="4" placeholder="Expliquez la raison du refus..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-modal btn-cancel" onclick="closeOrderRejectModal()">Annuler</button>
-      <button class="btn-modal btn-confirm" onclick="confirmOrderReject()">Confirmer le refus</button>
     </div>
   </div>
 </div>
@@ -259,10 +194,6 @@ let currentDate = new Date();
 let selectedDate = new Date();
 let reservations = [];
 let currentReservationId = null;
-
-// --- Commandes ADMIN ---
-let orders = [];
-let currentOrderId = null;
 
 // Fonction utilitaire pour formater une date en YYYY-MM-DD (heure locale)
 function formatDateLocal(date) {
@@ -307,176 +238,9 @@ function switchTab(tabName) {
   // Charger les données spécifiques à l'onglet
   if (tabName === 'reservations') {
     loadReservations();
-  } else if (tabName === 'newsletter') {
-    loadNewsletterSubscribers();
   } else if (tabName === 'orders') {
-    loadOrders();
+    loadOrdersAdmin();
   }
-}
-
-// Charger toutes les commandes (admin)
-async function loadOrders() {
-  const token = localStorage.getItem('token');
-  const pendingList = document.getElementById('orders-pending-list');
-  const upcomingList = document.getElementById('orders-upcoming-list');
-  
-  if (!pendingList || !upcomingList) {
-    console.error('Éléments DOM orders-pending-list ou orders-upcoming-list non trouvés');
-    return;
-  }
-  
-  pendingList.innerHTML = "Chargement des commandes...";
-  upcomingList.innerHTML = "Chargement...";
-  
-  try {
-    const res = await fetch('/api/admin/orders', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('Erreur API:', res.status, errorText);
-      pendingList.innerHTML = `Erreur lors du chargement (${res.status}).`;
-      upcomingList.innerHTML = "";
-      return;
-    }
-    
-    orders = await res.json();
-    console.log('Commandes reçues:', orders);
-    
-    const todayStr = new Date().toISOString().slice(0, 10);
-
-    // Séparer les commandes en attente et à venir
-    const pendingOrders = orders.filter(o => o.status === 'en attente');
-    const upcomingOrders = orders.filter(o =>
-      o.status === 'validee' &&
-      o.requested_date && 
-      o.requested_date >= todayStr
-    );
-
-    console.log('Commandes en attente:', pendingOrders.length);
-    console.log('Commandes à venir:', upcomingOrders.length);
-
-    // Affichage commandes en attente
-    if (pendingOrders.length === 0) {
-      pendingList.innerHTML = "<div class='no-orders'><i>Aucune commande en attente.</i></div>";
-    } else {
-      pendingList.innerHTML = pendingOrders.map(order => renderOrderCard(order, true)).join('');
-    }
-
-    // Affichage commandes à venir
-    if (upcomingOrders.length === 0) {
-      upcomingList.innerHTML = "<div class='no-orders'><i>Aucune commande à venir.</i></div>";
-    } else {
-      // Trier par date/heure pour les commandes à venir
-      upcomingOrders.sort((a, b) => {
-        const dateA = a.requested_date + ' ' + (a.requested_time || '00:00');
-        const dateB = b.requested_date + ' ' + (b.requested_time || '00:00');
-        return dateA.localeCompare(dateB);
-      });
-      upcomingList.innerHTML = upcomingOrders.map(order => renderOrderCard(order, false)).join('');
-    }
-  } catch (e) {
-    console.error('Erreur réseau:', e);
-    pendingList.innerHTML = "Erreur réseau lors du chargement.";
-    upcomingList.innerHTML = "";
-  }
-}
-
-// Rendu d'une carte commande
-
-// Rendu d'une carte commande - VERSION CORRIGÉE
-function renderOrderCard(order, showActions) {
-  // Gestion de la date et heure
-  let dateStr = '';
-  let heureStr = '';
-  
-  if (order.requested_date) {
-    // Formater la date depuis le format YYYY-MM-DD vers DD/MM/YYYY
-    const dateParts = order.requested_date.split('-');
-    if (dateParts.length === 3) {
-      dateStr = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-    } else {
-      dateStr = order.requested_date;
-    }
-  } else if (order.created_at) {
-    const createdDate = new Date(order.created_at);
-    dateStr = createdDate.toLocaleDateString('fr-FR');
-  } else {
-    dateStr = 'Date non disponible';
-  }
-  
-  if (order.requested_time) {
-    heureStr = order.requested_time;
-  } else if (order.created_at) {
-    const createdDate = new Date(order.created_at);
-    heureStr = createdDate.toLocaleTimeString('fr-FR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  } else {
-    heureStr = 'Heure non disponible';
-  }
-  
-  // Gestion des produits - FIX PRINCIPAL
-  let produits = '';
-  let total = 0;
-
-  if (order.items && Array.isArray(order.items)) {
-    produits = order.items.map(item => {
-      const product = item.product;
-      if (!product) return '';
-      
-      const quantity = item.quantity || 0;
-      const price = product.price || 0;
-      const itemTotal = quantity * price;
-      total += itemTotal;
-
-      return `
-        <div class="order-item">
-          <span class="item-name">${product.name}</span>
-          <span class="item-quantity">x${quantity}</span>
-          <span class="item-price">${price.toFixed(2)}€</span>
-          <span class="item-total">${itemTotal.toFixed(2)}€</span>
-        </div>
-      `;
-    }).join('');
-  }
-
-   // Utiliser le total calculé ou celui fourni par l'API
-  const finalTotal = order.total || total;
-
-  return `
-    <div class="order-card ${order.status === 'en attente' ? 'pending' : order.status === 'validee' ? 'validated' : 'rejected'}">
-      <div class="order-header">
-        <div class="order-id">#${order.id}</div>
-        <div class="order-status">${order.status}</div>
-      </div>
-      <div class="order-details">
-        <div class="detail-row">
-          <span class="detail-label">📅 Date:</span>
-          <span class="detail-value">${order.requested_date} à ${order.requested_time}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">📧 Client:</span>
-          <span class="detail-value">${order.user_email || 'Non spécifié'}</span>
-        </div>
-        <div class="order-items">
-          <h4>Produits commandés:</h4>
-          ${produits}
-        </div>
-        <div class="order-total">
-          <strong>Total: ${finalTotal.toFixed(2)}€</strong>
-        </div>
-      </div>
-      ${showActions ? `
-        <div class="order-actions">
-          <button onclick="acceptOrder(${order.id})" class="btn-accept">Accepter</button>
-          <button onclick="openOrderRejectModal(${order.id})" class="btn-reject">Refuser</button>
-        </div>
-      ` : ''}
-    </div>
-  `;
 }
 
 // Charger les réservations depuis l'API
@@ -758,152 +522,90 @@ async function confirmReject() {
   }
 }
 
-// Accepter une commande
-async function acceptOrder(orderId) {
+// Ajout pour l'onglet Commandes
+let orders = [];
+
+async function loadOrdersAdmin() {
   const token = localStorage.getItem('token');
+  const ordersList = document.getElementById('orders-list');
+  ordersList.innerHTML = "Chargement...";
   try {
-    const res = await fetch(`/api/order/${orderId}/validate`, {
-      method: 'POST',
+    const res = await fetch('/api/admin/orders', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
-    if (res.ok) {
-      showNotification('Commande acceptée avec succès', 'success');
-      await loadOrders();
-    } else {
-      const error = await res.json();
-      showNotification(error.error || 'Erreur lors de l\'acceptation', 'error');
+    if (!res.ok) {
+      ordersList.innerHTML = "Erreur lors du chargement des commandes.";
+      return;
     }
+    orders = await res.json();
+    renderOrdersAdmin();
   } catch (e) {
-    showNotification('Erreur de connexion', 'error');
+    ordersList.innerHTML = "Erreur réseau.";
   }
 }
 
-// Modal de refus commande
-function openOrderRejectModal(orderId) {
+function renderOrdersAdmin() {
+  const ordersList = document.getElementById('orders-list');
+  if (!orders || orders.length === 0) {
+    ordersList.innerHTML = "<p>Aucune commande.</p>";
+    return;
+  }
+  ordersList.innerHTML = orders.map(order => {
+    let statusLabel = order.status === 'en attente' ? 'En attente' :
+                      order.status === 'validee' ? 'Validée' :
+                      order.status === 'refusee' ? 'Refusée' : order.status;
+    let actions = '';
+    if (order.status === 'en attente') {
+      actions = `
+        <button onclick="validateOrderAdmin(${order.id})">Valider</button>
+        <button onclick="openRejectOrderModal(${order.id})">Refuser</button>
+      `;
+    }
+    return `
+      <div class="order-admin-card" style="border:1px solid #ccc;padding:1em;margin-bottom:1em;">
+        <div><b>Commande #${order.id}</b> - ${order.user_email || ''}</div>
+        <div>Date: ${order.requested_date || ''} ${order.requested_time || ''}</div>
+        <div>Status: <b>${statusLabel}</b></div>
+        <div>Total: ${order.total.toFixed(2)}€</div>
+        <div>Articles: ${order.items.map(i => `${i.quantity} x ${i.product.name}`).join(', ')}</div>
+        <div>${actions}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Validation/refus commandes admin
+async function validateOrderAdmin(orderId) {
+  const token = localStorage.getItem('token');
+  if (!confirm("Valider cette commande ?")) return;
+  await fetch(`/api/order/${orderId}/validate`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  loadOrdersAdmin();
+}
+
+let currentOrderId = null;
+function openRejectOrderModal(orderId) {
   currentOrderId = orderId;
-  document.getElementById('orderRejectModal').style.display = 'block';
-  document.getElementById('orderRejectReason').value = '';
+  const reason = prompt("Motif du refus (optionnel) :");
+  rejectOrderAdmin(orderId, reason);
 }
-function closeOrderRejectModal() {
-  document.getElementById('orderRejectModal').style.display = 'none';
-  currentOrderId = null;
-}
-async function confirmOrderReject() {
-  if (!currentOrderId) return;
+async function rejectOrderAdmin(orderId, reason) {
   const token = localStorage.getItem('token');
-  const reason = document.getElementById('orderRejectReason').value;
-  try {
-    const res = await fetch(`/api/order/${currentOrderId}/reject`, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ reason })
-    });
-    if (res.ok) {
-      showNotification('Commande refusée', 'success');
-      closeOrderRejectModal();
-      // Supprimer la commande refusée de la liste côté client
-      orders = orders.filter(o => o.id !== currentOrderId);
-      await loadOrders();
-    } else {
-      const error = await res.json();
-      showNotification(error.error || 'Erreur lors du refus', 'error');
-    }
-  } catch (e) {
-    showNotification('Erreur de connexion', 'error');
-  }
+  await fetch(`/api/order/${orderId}/reject`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason })
+  });
+  loadOrdersAdmin();
 }
 
-// Newsletter admin logic
-async function loadNewsletterSubscribers() {
-  const token = localStorage.getItem('token');
-  const listDiv = document.getElementById('newsletter-subscribers-list');
-  if (!listDiv) return;
-  listDiv.innerHTML = "Chargement...";
-  try {
-    const res = await fetch('/api/admin/newsletter/subscribers', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    if (!res.ok) {
-      listDiv.innerHTML = "Erreur lors du chargement.";
-      return;
-    }
-    const subs = await res.json();
-    if (!subs.length) {
-      listDiv.innerHTML = "<i>Aucun abonné à la newsletter.</i>";
-      return;
-    }
-    listDiv.innerHTML = `<b>${subs.length} abonnés :</b><ul style="margin-top:0.5rem;">` +
-      subs.map(s => `<li>${s.email} <span style="color:#888;">(${new Date(s.subscribed_at).toLocaleDateString('fr-FR')})</span></li>`).join('') +
-      "</ul>";
-  } catch (e) {
-    listDiv.innerHTML = "Erreur réseau.";
-  }
-}
-async function exportNewsletterCSV() {
-  const token = localStorage.getItem('token');
-  try {
-    const res = await fetch('/api/admin/newsletter/export', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    if (!res.ok) {
-      alert("Erreur lors de l'export CSV.");
-      return;
-    }
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'newsletter_subscribers.csv';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      window.URL.revokeObjectURL(url);
-      a.remove();
-    }, 100);
-  } catch (e) {
-    alert("Erreur réseau lors de l'export CSV.");
-  }
-}
-document.getElementById('newsletter-send-form').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const token = localStorage.getItem('token');
-  const subjectInput = document.getElementById('newsletter-subject');
-  const contentInput = document.getElementById('newsletter-content');
-  const subject = subjectInput.value;
-  const content = contentInput.value;
-  try {
-    const res = await fetch('/api/admin/newsletter/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ subject, content })
-    });
-    if (res.ok) {
-      document.getElementById('newsletter-send-status').style.display = 'inline';
-      // Vider les champs après envoi réussi
-      subjectInput.value = '';
-      contentInput.value = '';
-      setTimeout(() => {
-        document.getElementById('newsletter-send-status').style.display = 'none';
-      }, 2000);
-    }
-  } catch (e) {}
-});
-
-// Fermer les modals en cliquant à l'extérieur
+// Fermer le modal en cliquant à l'extérieur
 window.onclick = function(event) {
   const modal = document.getElementById('rejectModal');
   if (event.target === modal) {
     closeRejectModal();
-  }
-  const orderModal = document.getElementById('orderRejectModal');
-  if (event.target === orderModal) {
-    closeOrderRejectModal();
   }
 }
 
