@@ -19,7 +19,7 @@
   <script>
       (function(h,o,t,j,a,r){
           h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
-          h._hjSettings={hjid:6421174,hjsv:6};
+          h._hjSettings={hjid=6421174,hjsv=6};
           a=o.getElementsByTagName('head')[0];
           r=o.createElement('script');r.async=1;
           r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
@@ -387,8 +387,6 @@ async function loadOrders() {
 
 // Rendu d'une carte commande - VERSION CORRIGÉE
 function renderOrderCard(order, showActions) {
-  console.log('Order data:', order); // Debug
-  
   // Gestion de la date et heure
   let dateStr = '';
   let heureStr = '';
@@ -423,22 +421,37 @@ function renderOrderCard(order, showActions) {
   // Gestion des produits - FIX PRINCIPAL
   let produits = '';
   let total = 0;
-  
+
   if (order.items && Array.isArray(order.items) && order.items.length > 0) {
     produits = order.items.map(item => {
-      const productName = item.product && item.product.name ? item.product.name : 'Produit supprimé';
-      const productPrice = item.product && item.product.price ? parseFloat(item.product.price) : 0;
-      const quantity = item.quantity || 0;
-      const totalPrice = item.total_price ? parseFloat(item.total_price) : (quantity * productPrice);
-      
+      // Gère les deux structures possibles : {product: {...}} ou {product_name, unit_price}
+      let productName = '';
+      let productPrice = 0;
+      let quantity = item.quantity || 0;
+      let totalPrice = 0;
+
+      if (item.product && typeof item.product === 'object') {
+        productName = item.product.name || 'Produit supprimé';
+        productPrice = typeof item.product.price === 'number' ? item.product.price : 0;
+        totalPrice = typeof item.total_price === 'number' ? item.total_price : (quantity * productPrice);
+      } else if (item.product_name) {
+        productName = item.product_name;
+        productPrice = typeof item.unit_price === 'number' ? item.unit_price : 0;
+        totalPrice = typeof item.total_price === 'number' ? item.total_price : (quantity * productPrice);
+      } else {
+        productName = 'Produit supprimé';
+        productPrice = 0;
+        totalPrice = 0;
+      }
+
       total += totalPrice;
-      
+
       return `<li>${quantity} x ${productName} (${productPrice.toFixed(2)}€) = <b>${totalPrice.toFixed(2)}€</b></li>`;
     }).join('');
   } else {
     produits = '<li>Aucun produit dans cette commande</li>';
   }
-  
+
   // Utiliser le total calculé ou celui fourni par l'API
   if (order.total && parseFloat(order.total) > 0) {
     total = parseFloat(order.total);
