@@ -550,7 +550,19 @@ function renderOrdersAdmin() {
     ordersList.innerHTML = "<p>Aucune commande.</p>";
     return;
   }
-  ordersList.innerHTML = orders.map(order => {
+  // Tri des commandes par statut : en attente, validée, refusée (dans cet ordre)
+  const statusOrder = { 'en attente': 0, 'validee': 1, 'refusee': 2 };
+  const sortedOrders = [...orders].sort((a, b) => {
+    const aStatus = a.status && a.status.toLowerCase();
+    const bStatus = b.status && b.status.toLowerCase();
+    const aVal = statusOrder[aStatus] !== undefined ? statusOrder[aStatus] : 99;
+    const bVal = statusOrder[bStatus] !== undefined ? statusOrder[bStatus] : 99;
+    if (aVal !== bVal) return aVal - bVal;
+    // Si même statut, trier par date décroissante (plus récent d'abord)
+    return (b.id || 0) - (a.id || 0);
+  });
+
+  ordersList.innerHTML = sortedOrders.map(order => {
     let statusLabel = order.status === 'en attente' ? 'En attente' :
                       order.status === 'validee' ? 'Validée' :
                       order.status === 'refusee' ? 'Refusée' : order.status;
