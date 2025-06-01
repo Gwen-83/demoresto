@@ -58,31 +58,46 @@ class Order(db.Model):
         return sum(item.quantity * item.product.price for item in self.items)
 
     def to_dict(self):
+        # Calculer le total à partir des items
+        total_amount = 0
+        items_data = []
+        
+        for item in self.items:
+            product_data = None
+            if item.product:
+                product_data = item.product.to_dict()
+                item_total = round(item.quantity * item.product.price, 2)
+            else:
+                # Produit supprimé
+                product_data = {
+                    "id": None,
+                    "name": "Produit supprimé",
+                    "description": "",
+                    "price": 0,
+                    "image": "",
+                    "category": "",
+                    "allergens": []
+                }
+                item_total = 0
+            
+            total_amount += item_total
+            
+            items_data.append({
+                'id': item.id,
+                'product': product_data,
+                'quantity': item.quantity,
+                'total_price': item_total
+            })
+        
         return {
             'id': self.id,
-            'created_at': self.created_at.isoformat(),
+            'created_at': self.created_at.isoformat() if self.created_at else None,
             'status': self.status,
-            'items': [
-                {
-                    'id': item.id,
-                    'product': item.product.to_dict() if item.product else {
-                        "id": None,
-                        "name": "Produit supprimé",
-                        "description": "",
-                        "price": 0,
-                        "image": "",
-                        "category": "",
-                        "allergens": []
-                    },
-                    'quantity': item.quantity,
-                    'total_price': round(item.quantity * (item.product.price if item.product else 0), 2)
-                }
-                for item in self.items
-            ],
-            'total': round(self.total(), 2),
+            'items': items_data,
+            'total': round(total_amount, 2),
             'requested_date': self.requested_date,
             'requested_time': self.requested_time,
-            'user_email': self.user.email if self.user else None  # Ajout pour l'admin
+            'user_email': self.user.email if self.user else None
         }
 
 class TokenBlocklist(db.Model):

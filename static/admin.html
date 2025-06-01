@@ -316,6 +316,17 @@ function switchTab(tabName) {
 
 // Charger toutes les commandes (admin)
 async function loadOrders() {
+  console.log('Orders loaded:', orders);
+  orders.forEach(order => {
+    console.log('Order details:', {
+      id: order.id,
+      requested_date: order.requested_date,
+      requested_time: order.requested_time,
+      items: order.items,
+      total: order.total,
+      user_email: order.user_email
+    });
+  });
   const token = localStorage.getItem('token');
   const pendingList = document.getElementById('orders-pending-list');
   const upcomingList = document.getElementById('orders-upcoming-list');
@@ -362,13 +373,50 @@ async function loadOrders() {
 
 // Rendu d'une carte commande
 function renderOrderCard(order, showActions) {
-  const date = order.requested_date || (order.created_at ? new Date(order.created_at).toLocaleDateString('fr-FR') : '');
-  const heure = order.requested_time || (order.created_at ? new Date(order.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '');
-  const produits = order.items.map(item =>
-    `<li>${item.quantity} x ${item.product.name} (${item.product.price.toFixed(2)}€) = <b>${item.total_price.toFixed(2)}€</b></li>`
-  ).join('');
-  const total = order.total ? order.total.toFixed(2) : '0.00';
-  const email = order.user_email || '';
+  console.log('Order data:', order); // Debug
+  
+  // Gestion de la date et heure
+  let dateStr = '';
+  let heureStr = '';
+  
+  if (order.requested_date) {
+    // Formater la date depuis le format YYYY-MM-DD vers DD/MM/YYYY
+    const dateParts = order.requested_date.split('-');
+    if (dateParts.length === 3) {
+      dateStr = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+    } else {
+      dateStr = order.requested_date;
+    }
+  } else if (order.created_at) {
+    dateStr = new Date(order.created_at).toLocaleDateString('fr-FR');
+  }
+  
+  if (order.requested_time) {
+    heureStr = order.requested_time;
+  } else if (order.created_at) {
+    heureStr = new Date(order.created_at).toLocaleTimeString('fr-FR', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  }
+  
+  // Gestion des produits
+  const produits = order.items && order.items.length > 0 
+    ? order.items.map(item => {
+        const productName = item.product ? item.product.name : 'Produit supprimé';
+        const productPrice = item.product ? item.product.price : 0;
+        const totalPrice = item.total_price || (item.quantity * productPrice);
+        
+        return `<li>${item.quantity} x ${productName} (${productPrice.toFixed(2)}€) = <b>${totalPrice.toFixed(2)}€</b></li>`;
+      }).join('')
+    : '<li>Aucun produit</li>';
+  
+  // Gestion du total
+  const total = order.total || 0;
+  
+  // Gestion de l'email
+  const email = order.user_email || 'Email non disponible';
+  
   return `
     <div class="order-card">
       <div class="order-header">
@@ -376,12 +424,12 @@ function renderOrderCard(order, showActions) {
         <div class="order-status">${order.status === 'en attente' ? 'En attente' : 'Validée'}</div>
       </div>
       <div class="order-details">
-        <div><b>Date :</b> ${date} ${heure ? 'à ' + heure : ''}</div>
+        <div><b>Date :</b> ${dateStr} ${heureStr ? 'à ' + heureStr : ''}</div>
         <div><b>Email client :</b> ${email}</div>
         <div><b>Produits :</b>
           <ul>${produits}</ul>
         </div>
-        <div><b>Total :</b> ${total}€</div>
+        <div><b>Total :</b> ${total.toFixed(2)}€</div>
       </div>
       ${showActions ? `
         <div class="order-actions">
