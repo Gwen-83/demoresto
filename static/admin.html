@@ -159,7 +159,7 @@
   </div>
 </div>
 
-<!-- Modal de refus -->
+<!-- Modal de refus réservation (déjà existant) -->
 <div id="rejectModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -173,6 +173,24 @@
     <div class="modal-actions">
       <button class="btn-modal btn-cancel" onclick="closeRejectModal()">Annuler</button>
       <button class="btn-modal btn-confirm" onclick="confirmReject()">Confirmer le refus</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de refus commande (NOUVEAU) -->
+<div id="rejectOrderModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Refuser la commande</h3>
+      <span class="close" onclick="closeRejectOrderModal()">&times;</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Motif du refus (optionnel) :</label>
+      <textarea class="form-control" id="rejectOrderReason" rows="4" placeholder="Expliquez la raison du refus..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal btn-cancel" onclick="closeRejectOrderModal()">Annuler</button>
+      <button class="btn-modal btn-confirm" onclick="confirmRejectOrder()">Confirmer le refus</button>
     </div>
   </div>
 </div>
@@ -620,8 +638,18 @@ async function validateOrderAdmin(orderId) {
 let currentOrderId = null;
 function openRejectOrderModal(orderId) {
   currentOrderId = orderId;
-  const reason = prompt("Motif du refus (optionnel) :");
-  rejectOrderAdmin(orderId, reason);
+  document.getElementById('rejectOrderModal').style.display = 'block';
+  document.getElementById('rejectOrderReason').value = '';
+}
+function closeRejectOrderModal() {
+  document.getElementById('rejectOrderModal').style.display = 'none';
+  currentOrderId = null;
+}
+async function confirmRejectOrder() {
+  if (!currentOrderId) return;
+  const reason = document.getElementById('rejectOrderReason').value;
+  await rejectOrderAdmin(currentOrderId, reason);
+  closeRejectOrderModal();
 }
 async function rejectOrderAdmin(orderId, reason) {
   const token = localStorage.getItem('token');
@@ -633,11 +661,15 @@ async function rejectOrderAdmin(orderId, reason) {
   loadOrdersAdmin();
 }
 
-// Fermer le modal en cliquant à l'extérieur
+// Fermer les modals en cliquant à l'extérieur
 window.onclick = function(event) {
   const modal = document.getElementById('rejectModal');
+  const orderModal = document.getElementById('rejectOrderModal');
   if (event.target === modal) {
     closeRejectModal();
+  }
+  if (event.target === orderModal) {
+    closeRejectOrderModal();
   }
 }
 
