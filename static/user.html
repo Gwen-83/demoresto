@@ -514,6 +514,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         displayUserProfileInformation();
         loadUserReservations();
         loadOrderHistory(); // Appel simplifié
+        loadUserAllergenesPreferences(); // <-- Ajouté ici pour afficher les cases à cocher
       }
     } catch (error) {
       console.error('Erreur lors de l\'initialisation:', error);
