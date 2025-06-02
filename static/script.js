@@ -899,7 +899,9 @@ function setupDeliveryPickupDateListeners() {
   if (deliveryDate && deliveryTime) {
     deliveryDate.addEventListener('change', () => {
       filterTimeOptions('delivery-date', 'delivery-time', 'delivery-date-info');
+      updateTimeOptions('delivery-date', 'delivery-time');
     });
+    deliveryTime.addEventListener('focus', () => updateTimeOptions('delivery-date', 'delivery-time'));
     // Ajout d'un message info sous la date livraison
     if (!document.getElementById('delivery-date-info')) {
       const info = document.createElement('div');
@@ -909,6 +911,7 @@ function setupDeliveryPickupDateListeners() {
     }
     // Initialiser au chargement
     filterTimeOptions('delivery-date', 'delivery-time', 'delivery-date-info');
+    updateTimeOptions('delivery-date', 'delivery-time');
   }
   // Retrait
   const pickupDate = document.getElementById('pickup-date');
@@ -916,7 +919,9 @@ function setupDeliveryPickupDateListeners() {
   if (pickupDate && pickupTime) {
     pickupDate.addEventListener('change', () => {
       filterTimeOptions('pickup-date', 'pickup-time', 'pickup-date-info');
+      updateTimeOptions('pickup-date', 'pickup-time');
     });
+    pickupTime.addEventListener('focus', () => updateTimeOptions('pickup-date', 'pickup-time'));
     if (!document.getElementById('pickup-date-info')) {
       const info = document.createElement('div');
       info.id = 'pickup-date-info';
@@ -924,10 +929,141 @@ function setupDeliveryPickupDateListeners() {
       pickupDate.parentNode.appendChild(info);
     }
     filterTimeOptions('pickup-date', 'pickup-time', 'pickup-date-info');
+    updateTimeOptions('pickup-date', 'pickup-time');
   }
 }
 
-// Validation combinée livraison/retrait avant commande
+// --- QUOTA COMMANDES/HEURE (ADMIN) ---
+document.addEventListener('DOMContentLoaded', function () {
+  const quotaForm = document.getElementById('order-quota-form');
+  const quotaInput = document.getElementById('max-orders-per-hour');
+  const quotaMsg = document.getElementById('order-quota-message');
+  if (quotaForm && quotaInput) {
+    // Charger la valeur actuelle
+    fetch('/api/order-quota', {
+      headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }
+    })
+      .then(res => res.json())
+      .then(data => {
+        quotaInput.value = data.max_orders_per_hour || 3;
+      });
+    quotaForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      fetch('/api/order-quota', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
+        },
+        body: JSON.stringify({ max_orders_per_hour: quotaInput.value })
+      })
+        .then(res => res.json())
+        .then(data => {
+          quotaMsg.textContent = "Quota enregistré : " + data.max_orders_per_hour + " commandes/heure";
+          setTimeout(() => quotaMsg.textContent = "", 3000);
+        });
+    });
+  }
+});
+
+// --- QUOTA COMMANDES/HEURE (PANIER) ---
+let maxOrdersPerHour = 3; // Valeur par défaut, sera chargée dynamiquement
+
+async function fetchMaxOrdersPerHour() {
+  try {
+    const res = await fetch('/api/order-quota', {
+      headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      maxOrdersPerHour = data.max_orders_per_hour || 3;
+    }
+  } catch (e) {}
+}
+
+// Désactive les heures pleines pour une date donnée (livraison ou retrait)
+async function updateTimeOptions(dateInputId, timeSelectId) {
+  await fetchMaxOrdersPerHour();
+  const dateInput = document.getElementById(dateInputId);
+  const timeSelect = document.getElementById(timeSelectId);
+  if (!dateInput || !timeSelect || !dateInput.value) return;
+  const options = Array.from(timeSelect.options).filter(opt => opt.value);
+  await Promise.all(options.map(async opt => {
+    try {
+      const res = await fetch(`/api/orders/count?date=${encodeURIComponent(dateInput.value)}&time=${encodeURIComponent(opt.value)}`, {
+        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        opt.disabled = (data.count >= maxOrdersPerHour);
+        // Optionnel : indiquer "complet" dans le texte
+        if (opt.disabled && !opt.textContent.includes(' (complet)')) {
+          opt.textContent = opt.textContent.replace(' (complet)', '') + ' (complet)';
+        } else if (!opt.disabled) {
+          opt.textContent = opt.textContent.replace(' (complet)', '');
+        }
+      }
+    } catch (e) {}
+  }));
+}
+
+// --- Ajout dans setupDeliveryPickupDateListeners ---
+function setupDeliveryPickupDateListeners() {
+  // Livraison
+  const deliveryDate = document.getElementById('delivery-date');
+  const deliveryTime = document.getElementById('delivery-time');
+  if (deliveryDate && deliveryTime) {
+    deliveryDate.addEventListener('change', () => {
+      filterTimeOptions('delivery-date', 'delivery-time', 'delivery-date-info');
+      updateTimeOptions('delivery-date', 'delivery-time');
+    });
+    deliveryTime.addEventListener('focus', () => updateTimeOptions('delivery-date', 'delivery-time'));
+    // Ajout d'un message info sous la date livraison
+    if (!document.getElementById('delivery-date-info')) {
+      const info = document.createElement('div');
+      info.id = 'delivery-date-info';
+      info.className = 'horaires-info';
+      deliveryDate.parentNode.appendChild(info);
+    }
+    // Initialiser au chargement
+    filterTimeOptions('delivery-date', 'delivery-time', 'delivery-date-info');
+    updateTimeOptions('delivery-date', 'delivery-time');
+  }
+  // Retrait
+  const pickupDate = document.getElementById('pickup-date');
+  const pickupTime = document.getElementById('pickup-time');
+  if (pickupDate && pickupTime) {
+    pickupDate.addEventListener('change', () => {
+      filterTimeOptions('pickup-date', 'pickup-time', 'pickup-date-info');
+      updateTimeOptions('pickup-date', 'pickup-time');
+    });
+    pickupTime.addEventListener('focus', () => updateTimeOptions('pickup-date', 'pickup-time'));
+    if (!document.getElementById('pickup-date-info')) {
+      const info = document.createElement('div');
+      info.id = 'pickup-date-info';
+      info.className = 'horaires-info';
+      pickupDate.parentNode.appendChild(info);
+    }
+    filterTimeOptions('pickup-date', 'pickup-time', 'pickup-date-info');
+    updateTimeOptions('pickup-date', 'pickup-time');
+  }
+}
+
+// --- Ajout d'une vérification lors de la validation de commande ---
+function isTimeSlotAvailable(date, time, cb) {
+  fetchMaxOrdersPerHour().then(() => {
+    fetch(`/api/orders/count?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`, {
+      headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }
+    })
+      .then(res => res.json())
+      .then(data => {
+        cb(data.count < maxOrdersPerHour);
+      })
+      .catch(() => cb(true));
+  });
+}
+
+// --- Modification de validateOrderChoice pour empêcher la validation si quota atteint ---
 function validateOrderChoice() {
   const deliveryChecked = document.getElementById('delivery-option').checked;
   const pickupChecked = document.getElementById('pickup-option').checked;
@@ -936,28 +1072,9 @@ function validateOrderChoice() {
     return false;
   }
   if (deliveryChecked) {
-    // Validation des horaires d'ouverture pour livraison
     const date = document.getElementById('delivery-date').value;
     const time = document.getElementById('delivery-time').value;
-    if (!date) {
-      showNotification("Veuillez choisir une date de livraison", "error");
-      document.getElementById('delivery-date').focus();
-      return false;
-    }
-    if (!time) {
-      showNotification("Veuillez choisir une heure de livraison", "error");
-      document.getElementById('delivery-time').focus();
-      return false;
-    }
-    // Date pas dans le passé
-    const selectedDate = new Date(date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (selectedDate < today) {
-      showNotification("La date de livraison ne peut pas être dans le passé", "error");
-      document.getElementById('delivery-date').focus();
-      return false;
-    }
+    // ...existing code...
     // Vérification horaires ouverture
     const horaireCheck = isTimeInOpeningHours(date, time);
     if (!horaireCheck.valid) {
@@ -965,31 +1082,26 @@ function validateOrderChoice() {
       document.getElementById('delivery-time').focus();
       return false;
     }
-    return validateDeliveryForm();
+    // Vérification du quota commandes/heure
+    // --- AJOUT ---
+    let valid = false;
+    isTimeSlotAvailable(date, time, function (ok) {
+      if (!ok) {
+        showNotification("Le nombre maximum de commandes pour cette heure a été atteint. Veuillez choisir une autre heure.", "error");
+        document.getElementById('delivery-time').focus();
+        valid = false;
+      } else {
+        valid = validateDeliveryForm();
+      }
+    });
+    // On retourne false pour bloquer la validation synchrone, la suite sera gérée dans le bouton de confirmation
+    return false;
+    // --- FIN AJOUT ---
   }
   if (pickupChecked) {
-    // Validation des champs de retrait
     const date = document.getElementById('pickup-date').value;
     const time = document.getElementById('pickup-time').value;
-    if (!date) {
-      showNotification("Veuillez choisir une date de retrait", "error");
-      document.getElementById('pickup-date').focus();
-      return false;
-    }
-    if (!time) {
-      showNotification("Veuillez choisir une heure de retrait", "error");
-      document.getElementById('pickup-time').focus();
-      return false;
-    }
-    // Date pas dans le passé
-    const selectedDate = new Date(date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (selectedDate < today) {
-      showNotification("La date de retrait ne peut pas être dans le passé", "error");
-      document.getElementById('pickup-date').focus();
-      return false;
-    }
+    // ...existing code...
     // Vérification horaires ouverture
     const horaireCheck = isTimeInOpeningHours(date, time);
     if (!horaireCheck.valid) {
@@ -997,77 +1109,85 @@ function validateOrderChoice() {
       document.getElementById('pickup-time').focus();
       return false;
     }
-    return true;
+    // Vérification du quota commandes/heure
+    // --- AJOUT ---
+    let valid = false;
+    isTimeSlotAvailable(date, time, function (ok) {
+      if (!ok) {
+        showNotification("Le nombre maximum de commandes pour cette heure a été atteint. Veuillez choisir une autre heure.", "error");
+        document.getElementById('pickup-time').focus();
+        valid = false;
+      } else {
+        valid = true;
+      }
+    });
+    return false;
+    // --- FIN AJOUT ---
   }
   return false;
 }
 
-function getPickupInfo() {
-  const pickupChecked = document.getElementById('pickup-option').checked;
-  if (!pickupChecked) return null;
-  return {
-    date: document.getElementById('pickup-date').value,
-    time: document.getElementById('pickup-time').value
-  };
-}
-
-function getDeliveryInfo() {
-  // Récupère les infos du formulaire de livraison
-  return {
-    email: document.getElementById('delivery-email').value.trim(),
-    phone: document.getElementById('delivery-phone').value.trim(),
-    address: document.getElementById('delivery-address').value.trim(),
-    postal: document.getElementById('delivery-postal').value.trim(),
-    city: document.getElementById('delivery-city').value.trim(),
-    date: document.getElementById('delivery-date').value,
-    time: document.getElementById('delivery-time').value,
-    instructions: document.getElementById('delivery-instructions').value.trim()
-  };
-}
-
-// --- CONFIRMATION DE COMMANDE ---
-// Validation du panier et redirection vers paiement
+// --- Modification du bouton de confirmation pour gérer l'asynchronicité du quota ---
 const confirmButton = document.getElementById("confirm-order-button");
 if (confirmButton) {
   confirmButton.addEventListener("click", () => {
-    // Nouvelle validation combinée
-    if (!validateOrderChoice()) {
+    const deliveryChecked = document.getElementById('delivery-option').checked;
+    const pickupChecked = document.getElementById('pickup-option').checked;
+    let date = "", time = "";
+    if (deliveryChecked) {
+      date = document.getElementById('delivery-date').value;
+      time = document.getElementById('delivery-time').value;
+    } else if (pickupChecked) {
+      date = document.getElementById('pickup-date').value;
+      time = document.getElementById('pickup-time').value;
+    }
+    if (!date || !time) {
+      showNotification("Veuillez choisir une date et une heure.", "error");
       return;
     }
-    fetch('https://demoresto.onrender.com/api/cart', {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Bearer ' + getToken()
+    isTimeSlotAvailable(date, time, function (ok) {
+      if (!ok) {
+        showNotification("Le nombre maximum de commandes pour cette heure a été atteint. Veuillez choisir une autre heure.", "error");
+        return;
       }
-    })
-    .then(res => res.json())
-    .then(cart => {
-      if (!cart || cart.length === 0) {
-        showNotification("Votre panier est vide", "error");
-      } else {
-        const deliveryChecked = document.getElementById('delivery-option').checked;
-        const pickupChecked = document.getElementById('pickup-option').checked;
-        const baseTotal = window.baseCartTotal || 0;
-        const deliveryFee = deliveryChecked ? 5.00 : 0;
-        // Préparer les données de commande
-        const orderData = {
-          cart: cart,
-          delivery: deliveryChecked ? getDeliveryInfo() : null,
-          pickup: pickupChecked ? getPickupInfo() : null,
-          baseTotal: baseTotal,
-          deliveryFee: deliveryFee,
-          finalTotal: baseTotal + deliveryFee
-        };
-        // Enregistrer les données pour la page paiement
-        localStorage.setItem("cart", JSON.stringify(cart));
-        localStorage.setItem("orderData", JSON.stringify(orderData));
-        
-        window.location.href = "paiement.html";
-      }
-    })
-    .catch(err => {
-      console.error("Erreur lors de la récupération du panier :", err);
-      showNotification("Impossible de vérifier le panier", "error");
+      // Nouvelle validation combinée
+      // On relance la validation classique (qui vérifiera aussi les autres champs)
+      let valid = true;
+      if (deliveryChecked) valid = validateDeliveryForm();
+      // Pour le retrait, pas de formulaire à valider
+      if (!valid) return;
+      fetch('https://demoresto.onrender.com/api/cart', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + getToken()
+        }
+      })
+      .then(res => res.json())
+      .then(cart => {
+        if (!cart || cart.length === 0) {
+          showNotification("Votre panier est vide", "error");
+        } else {
+          const baseTotal = window.baseCartTotal || 0;
+          const deliveryFee = deliveryChecked ? 5.00 : 0;
+          // Préparer les données de commande
+          const orderData = {
+            cart: cart,
+            delivery: deliveryChecked ? getDeliveryInfo() : null,
+            pickup: pickupChecked ? getPickupInfo() : null,
+            baseTotal: baseTotal,
+            deliveryFee: deliveryFee,
+            finalTotal: baseTotal + deliveryFee
+          };
+          // Enregistrer les données pour la page paiement
+          localStorage.setItem("cart", JSON.stringify(cart));
+          localStorage.setItem("orderData", JSON.stringify(orderData));
+          window.location.href = "paiement.html";
+        }
+      })
+      .catch(err => {
+        console.error("Erreur lors de la récupération du panier :", err);
+        showNotification("Impossible de vérifier le panier", "error");
+      });
     });
   });
 }

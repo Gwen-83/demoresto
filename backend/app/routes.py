@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app, Flask, send_from_directory
-from .models import Product, CartItem, User, TokenBlocklist, Reservation, Order, NewsletterSubscriber
+from .models import Product, CartItem, User, TokenBlocklist, Reservation, Order, NewsletterSubscriber, OrderQuota
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, create_access_token
@@ -1258,3 +1258,38 @@ def toggle_product_active(id):
     product.is_active = not product.is_active
     db.session.commit()
     return jsonify({"id": product.id, "is_active": product.is_active})
+
+@bp.route('/api/order-quota', methods=['GET', 'POST'])
+@jwt_required()
+def order_quota():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+
+    quota = OrderQuota.query.first()
+    if request.method == 'GET':
+        if not quota:
+            # Valeur par défaut si non configuré
+            return jsonify({"max_orders_per_hour": 3})
+        return jsonify(quota.to_dict())
+    else:
+        data = request.get_json() or {}
+        max_orders = int(data.get("max_orders_per_hour", 3))
+        if not quota:
+            quota = OrderQuota(max_orders_per_hour=max_orders)
+            db.session.add(quota)
+        else:
+            quota.max_orders_per_hour = max_orders
+        db.session.commit()
+        return jsonify(quota.to_dict())
+
+@bp.route('/api/orders/count', methods=['GET'])
+@jwt_required(optional=True)
+def count_orders_for_slot():
+    date = request.args.get('date')
+    time = request.args.get('time')
+    if not date or not time:
+        return jsonify({"error": "Date et heure requises"}), 400
+    count = Order.query.filter_by(requested_date=date, requested_time=time).count()
+    return jsonify({"count": count})

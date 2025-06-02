@@ -176,3 +176,10 @@ class NewsletterSubscriber(db.Model):
             "consent": self.consent,
             "subscribed_at": self.subscribed_at.isoformat() if self.subscribed_at else None
         }
+
+class OrderQuota(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    max_orders_per_hour = db.Column(db.Integer, default=3)
+
+    def to_dict(self):
+        return {"max_orders_per_hour": self.max_orders_per_hour}
