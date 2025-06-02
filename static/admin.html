@@ -150,18 +150,19 @@
 <!-- Onglet Commandes (NOUVEAU) -->
 <div id="orders-tab" class="tab-content">
   <!-- Début : quota commandes/heure déplacé ici -->
-  <div class="quota-container">
-    <h3 class="quota-title">Limiter les commandes</h3>
-    <form id="order-quota-form" class="quota-form">
+  <div class="order-quota-section">
+    <h3 class="section-title"><i class="fas fa-clock"></i> Quota de commandes par heure</h3>
+    <form id="order-quota-form">
       <div class="form-group">
-        <label for="max-orders-per-hour">Nombre maximum de commandes par heure <span class="required">*</span></label>
+        <label for="max-orders-per-hour">
+          Nombre maximum de commandes par heure <span class="required">*</span>
+        </label>
         <input type="number" id="max-orders-per-hour" min="1" max="50" required>
       </div>
       <button type="submit" class="primary-button">Enregistrer le quota</button>
+      <div id="order-quota-message" class="success-message"></div>
     </form>
-    <div id="order-quota-message" class="quota-message"></div>
   </div>
-  <!-- Fin : quota commandes/heure déplacé ici -->
 
   <div class="orders-admin-container">
     <h2>Gestion des commandes</h2>
