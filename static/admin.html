@@ -614,12 +614,21 @@ function renderOrdersAdmin() {
     return;
   }
   let filteredOrders = [];
+  const now = new Date();
+  function isFutureOrder(order) {
+    // Combine requested_date et requested_time pour comparer à maintenant
+    if (!order.requested_date || !order.requested_time) return false;
+    // Format attendu: YYYY-MM-DD et HH:MM
+    const dateTimeStr = `${order.requested_date}T${order.requested_time}`;
+    const orderDate = new Date(dateTimeStr);
+    return orderDate >= now;
+  }
   if (currentOrdersSubtab === 'pending') {
     filteredOrders = orders.filter(order => order.status === 'en attente');
   } else if (currentOrdersSubtab === 'validated') {
-    filteredOrders = orders.filter(order => order.status === 'validee');
+    filteredOrders = orders.filter(order => order.status === 'validee' && isFutureOrder(order));
   } else if (currentOrdersSubtab === 'rejected') {
-    filteredOrders = orders.filter(order => order.status === 'refusee');
+    filteredOrders = orders.filter(order => order.status === 'refusee' && isFutureOrder(order));
   }
   if (filteredOrders.length === 0) {
     ordersList.innerHTML = "<p>Aucune commande.</p>";
