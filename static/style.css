@@ -3249,3 +3249,48 @@ form#register-form a:hover {
 .order-btn-reject:hover {
   background: #a93226;
 }
+
+/* --- Boutons admin produits --- */
+.btn-delete, .btn-edit, .btn-toggle-active {
+  padding: 7px 18px;
+  border-radius: 6px;
+  border: none;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  margin-right: 8px;
+  margin-bottom: 4px;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  outline: none;
+  display: inline-block;
+}
+
+.btn-delete {
+  background: #dc3545;
+  color: #fff;
+}
+.btn-delete:hover {
+  background: #b91c1c;
+  transform: translateY(-2px) scale(1.04);
+}
+
+.btn-edit {
+  background: #f5b041;
+  color: #fff;
+}
+.btn-edit:hover {
+  background: #e67e22;
+  color: #fff;
+  transform: translateY(-2px) scale(1.04);
+}
+
+.btn-toggle-active {
+  background: #6c757d;
+  color: #fff;
+}
+.btn-toggle-active:hover {
+  background: #495057;
+  color: #fff;
+  transform: translateY(-2px) scale(1.04);
+}
