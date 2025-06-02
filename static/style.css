@@ -2954,13 +2954,25 @@ form#register-form a:hover {
 }
 
 .primary-button {
-  background-color: #2563eb;
-  color: white;
+  display: inline-block;
+  background-color: #900;
+  color: #fff;
+  padding: 10px 24px;
+  font-weight: bold;
+  font-size: 15px;
   border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .primary-button:hover {
-  background-color: #1d4ed8;
+  background-color: #b00;
+}
+
+.primary-button:active {
+  transform: scale(0.98);
 }
 
 .secondary-button {
