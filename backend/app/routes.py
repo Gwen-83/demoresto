@@ -27,8 +27,14 @@ bp = Blueprint("main", __name__)
 
 @bp.route("/api/products")
 @limiter.limit("5/minute")
+@jwt_required(optional=True)
 def get_products():
-    products = Product.query.all()
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id) if user_id else None
+    if user and user.is_admin:
+        products = Product.query.all()
+    else:
+        products = Product.query.filter_by(is_active=True).all()
     return jsonify([p.to_dict() for p in products])
 
 @bp.route("/api/products", methods=["POST"])
@@ -53,6 +59,7 @@ def add_product():
         image=data.get("image"),
         category=data.get("category"),
         allergens=','.join(data.get("allergens", [])),
+        is_active=data.get("is_active", True)  # Ajouté
     )
 
     db.session.add(product)
@@ -88,6 +95,9 @@ def update_product(id):
         product.allergens = allergens_data
     else:
         product.allergens = ""
+
+    if "is_active" in data:
+        product.is_active = bool(data["is_active"])
 
     db.session.commit()
     return jsonify(product.to_dict())

@@ -225,6 +225,7 @@ function fetchAndRenderProducts() {
       const categories = { entree: [], plat: [], dessert: [], boisson: [] };
       const filters = getActiveFilters();
       products.forEach(product => {
+        if (!product.is_active) return; // Ne pas afficher les produits inactifs
         if (!productMatchesFilters(product, filters)) return;
         const cat = product.category?.toLowerCase();
         if (cat && categories[cat]) categories[cat].push(product);
@@ -438,7 +439,11 @@ function loadProducts() {
     return;
   }
 
-  fetch('/api/products')
+  fetch('/api/products', {
+    headers: {
+      'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
+    }
+  })
     .then(res => {
       if (!res.ok) {
         throw new Error(`Erreur HTTP: ${res.status}`);
@@ -446,23 +451,26 @@ function loadProducts() {
       return res.json();
     })
     .then(data => {
-      table.innerHTML = `<tr><th>ID</th><th>Nom</th><th>Prix</th><th>Action</th></tr>`;
-      
-      // Vider la map et la remplir avec les nouveaux produits
+      table.innerHTML = `<tr><th>ID</th><th>Nom</th><th>Prix</th><th>Statut</th><th>Action</th></tr>`;
       productMap.clear();
-      
       data.forEach(p => {
-        // Stocker le produit dans la map
         productMap.set(p.id, p);
-        
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${p.id}</td>
           <td>${p.name}</td>
           <td>${p.price}€</td>
           <td>
+            <span style="color:${p.is_active ? '#2e7d32' : '#d32f2f'};font-weight:bold;">
+              ${p.is_active ? 'Actif' : 'Inactif'}
+            </span>
+          </td>
+          <td>
             <button class="btn-delete" onclick="deleteProduct(${p.id})">Supprimer</button>
             <button class="btn-edit" onclick="startEditFromMap(${p.id})">Modifier</button>
+            <button class="btn-toggle-active" onclick="toggleProductActive(${p.id})">
+              ${p.is_active ? 'Désactiver' : 'Réactiver'}
+            </button>
           </td>
         `;
         table.appendChild(tr);
@@ -471,8 +479,24 @@ function loadProducts() {
     .catch(error => {
       console.error('Erreur lors du chargement des produits:', error);
       if (table) {
-        table.innerHTML = `<tr><td colspan="4">Erreur lors du chargement des produits</td></tr>`;
+        table.innerHTML = `<tr><td colspan="5">Erreur lors du chargement des produits</td></tr>`;
       }
+    });
+}
+
+// Désactive/réactive un produit (admin)
+function toggleProductActive(id) {
+  const token = localStorage.getItem('token');
+  fetch(`/api/products/${id}/toggle-active`, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token
+    }
+  })
+    .then(res => res.json())
+    .then(() => loadProducts())
+    .catch(err => {
+      console.error('Erreur lors du changement de statut du produit :', err);
     });
 }
 
