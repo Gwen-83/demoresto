@@ -493,10 +493,23 @@ function toggleProductActive(id) {
       'Authorization': 'Bearer ' + token
     }
   })
-    .then(res => res.json())
-    .then(() => loadProducts())
+    .then(async res => {
+      if (!res.ok) {
+        // Affiche une erreur plus claire si la méthode n'est pas autorisée
+        const text = await res.text();
+        console.error('Erreur HTTP:', res.status, text);
+        showNotification("Erreur lors du changement de statut du produit", "error");
+        return;
+      }
+      // Essaye de parser le JSON, sinon recharge la liste
+      try {
+        await res.json();
+      } catch (e) {}
+      loadProducts();
+    })
     .catch(err => {
       console.error('Erreur lors du changement de statut du produit :', err);
+      showNotification("Erreur lors du changement de statut du produit", "error");
     });
 }
 

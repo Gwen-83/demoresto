@@ -1246,3 +1246,15 @@ def newsletter_send():
     except Exception as e:
         current_app.logger.error(f"Erreur envoi newsletter: {e}")
         return jsonify({"error": "Erreur lors de l'envoi"}), 500
+
+@bp.route("/api/products/<int:id>/toggle-active", methods=["POST"])
+@jwt_required()
+def toggle_product_active(id):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+    product = Product.query.get_or_404(id)
+    product.is_active = not product.is_active
+    db.session.commit()
+    return jsonify({"id": product.id, "is_active": product.is_active})
