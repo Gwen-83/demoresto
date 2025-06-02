@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app, Flask, send_from_directory
-from .models import Product, CartItem, User, TokenBlocklist, Reservation, Order, NewsletterSubscriber
+from .models import Product, CartItem, User, TokenBlocklist, Reservation, Order, NewsletterSubscriber, OrderQuota
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, create_access_token
@@ -864,16 +864,21 @@ def get_user_order_history():
 def validate_order():
     user_id = int(get_jwt_identity())
     data = request.get_json() or {}
-    # Récupérer tous les CartItems du panier de l'utilisateur (order_id=None)
     cart_items = CartItem.query.filter_by(user_id=user_id, order_id=None).all()
     if not cart_items:
         return jsonify({"error": "Panier vide"}), 400
 
-    # Ajout : récupérer la date/heure demandée depuis le frontend
     requested_date = data.get('requested_date')
     requested_time = data.get('requested_time')
 
-    # Créer la commande
+    # Vérification du quota
+    if requested_date and requested_time:
+        count = Order.query.filter_by(requested_date=requested_date, requested_time=requested_time).count()
+        quota = OrderQuota.query.first()
+        max_orders = quota.max_orders_per_hour if quota else 3
+        if count >= max_orders:
+            return jsonify({"error": "Le quota de commandes pour ce créneau est atteint."}), 400
+
     order = Order(
         user_id=user_id,
         status='en attente',
@@ -881,12 +886,9 @@ def validate_order():
         requested_time=requested_time
     )
     db.session.add(order)
-    db.session.flush()  # Pour obtenir l'id de la commande
-
-    # Associer les CartItems à la commande
+    db.session.flush()
     for item in cart_items:
         item.order_id = order.id
-
     db.session.commit()
     return jsonify({"message": "Commande validée", "order_id": order.id}), 201
 
@@ -1258,3 +1260,47 @@ def toggle_product_active(id):
     product.is_active = not product.is_active
     db.session.commit()
     return jsonify({"id": product.id, "is_active": product.is_active})
+
+@bp.route('/api/orders/quota', methods=['GET', 'POST'])
+@jwt_required()
+def orders_quota():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+
+    quota = OrderQuota.query.first()
+    if request.method == 'GET':
+        if not quota:
+            quota = OrderQuota(max_orders_per_hour=3)
+            db.session.add(quota)
+            db.session.commit()
+        return jsonify(quota.to_dict())
+    else:
+        data = request.get_json() or {}
+        max_orders = int(data.get('max_orders_per_hour', 3))
+        if not quota:
+            quota = OrderQuota(max_orders_per_hour=max_orders)
+            db.session.add(quota)
+        else:
+            quota.max_orders_per_hour = max_orders
+        db.session.commit()
+        return jsonify(quota.to_dict())
+
+@bp.route('/api/orders/slots', methods=['GET'])
+@jwt_required()
+def orders_slots():
+    # Params: date=YYYY-MM-DD
+    date = request.args.get('date')
+    if not date:
+        return jsonify({"error": "Date requise"}), 400
+    # Récupère toutes les commandes pour cette date
+    orders = Order.query.filter_by(requested_date=date).all()
+    slots = {}
+    for order in orders:
+        if order.requested_time:
+            slots.setdefault(order.requested_time, 0)
+            slots[order.requested_time] += 1
+    quota = OrderQuota.query.first()
+    max_orders = quota.max_orders_per_hour if quota else 3
+    return jsonify({"slots": slots, "max_orders_per_hour": max_orders})

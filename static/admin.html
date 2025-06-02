@@ -151,6 +151,12 @@
 <div id="orders-tab" class="tab-content">
   <div class="orders-admin-container">
     <h2>Gestion des commandes</h2>
+    <div style="margin-bottom:1em;">
+      <label for="max-orders-per-hour"><b>Nombre maximum de commandes par heure :</b></label>
+      <input type="number" id="max-orders-per-hour" min="1" style="width:60px;">
+      <button onclick="saveOrderQuota()" style="margin-left:8px;">Enregistrer</button>
+      <span id="quota-save-status" style="margin-left:10px;color:green;display:none;">✔️</span>
+    </div>
     <div class="orders-subtabs">
       <button class="orders-subtab-button active" onclick="switchOrdersSubtab('pending')">En attente</button>
       <button class="orders-subtab-button" onclick="switchOrdersSubtab('validated')">Validées</button>
