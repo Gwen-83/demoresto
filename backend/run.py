@@ -1,5 +1,5 @@
 import os
-from flask import Flask, send_from_directory, request
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from app import create_app
 
@@ -23,5 +23,7 @@ def serve_static_file(filename):
 def serve_public_file(filename):
     return send_from_directory(PUBLIC_DIR, filename)
 
+# 🔧 Seulement si exécuté localement (pas via Gunicorn)
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Render fournit le port via env
+    app.run(host="0.0.0.0", port=port, debug=True)
