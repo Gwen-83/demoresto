@@ -144,18 +144,20 @@
       <div id="schedule-fields"></div>
       <button type="submit">Enregistrer les horaires</button>
     </form>
-    <!-- Ajout du quota commandes/heure -->
-    <form id="order-quota-form" style="margin-top:2em; background:#f8f8f8; padding:1em; border-radius:8px;">
-      <label for="max-orders-per-hour"><b>Nombre maximum de commandes par heure :</b></label>
-      <input type="number" id="max-orders-per-hour" min="1" max="50" style="width:60px;" required>
-      <button type="submit">Enregistrer le quota</button>
-    </form>
-    <div id="order-quota-message" style="margin-top:0.5em;color:#2e7d32;"></div>
   </div>
 </div>
 
 <!-- Onglet Commandes (NOUVEAU) -->
 <div id="orders-tab" class="tab-content">
+  <!-- Début : quota commandes/heure déplacé ici -->
+  <form id="order-quota-form" style="margin-bottom:2em; background:#f8f8f8; padding:1em; border-radius:8px; max-width: 400px;">
+    <label for="max-orders-per-hour"><b>Nombre maximum de commandes par heure :</b></label>
+    <input type="number" id="max-orders-per-hour" min="1" max="50" style="width:60px;" required>
+    <button type="submit">Enregistrer le quota</button>
+  </form>
+  <div id="order-quota-message" style="margin-top:0.5em;color:#2e7d32;"></div>
+  <!-- Fin : quota commandes/heure déplacé ici -->
+
   <div class="orders-admin-container">
     <h2>Gestion des commandes</h2>
     <div class="orders-subtabs">
