@@ -3294,3 +3294,50 @@ form#register-form a:hover {
   color: #fff;
   transform: translateY(-2px) scale(1.04);
 }
+
+.quota-container {
+  background-color: #fffdf7;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  padding: 24px 28px;
+  margin: 30px auto;
+  max-width: 400px;
+}
+
+.quota-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quota-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.quota-form label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.quota-form input[type="number"] {
+  width: 100%;
+  max-width: 100px;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.quota-message {
+  margin-top: 1rem;
+  color: #166534;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
