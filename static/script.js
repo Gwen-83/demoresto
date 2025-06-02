@@ -1049,8 +1049,17 @@ function setupDeliveryPickupDateListeners() {
   }
 }
 
-// --- Ajout d'une vérification lors de la validation de commande ---
-function isTimeSlotAvailable(date, time, cb) {
+// --- AJOUTER CETTE FONCTION POUR CORRIGER L'ERREUR ---
+function getPickupInfo() {
+  return {
+    date: document.getElementById('pickup-date').value,
+    time: document.getElementById('pickup-time').value
+  };
+}
+
+// --- QUOTA COMMANDES/HEURE (PANIER) ---
+// Vérifie si un créneau horaire est disponible (nombre de commandes < quota)
+async function isTimeSlotAvailable(date, time, cb) {
   fetchMaxOrdersPerHour().then(() => {
     fetch(`/api/orders/count?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`, {
       headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }
@@ -1063,7 +1072,64 @@ function isTimeSlotAvailable(date, time, cb) {
   });
 }
 
-// --- Modification de validateOrderChoice pour empêcher la validation si quota atteint ---
+// --- VALIDATION FORMULAIRE LIVRAISON ---
+function validateDeliveryForm() {
+  const email = document.getElementById('delivery-email').value.trim();
+  const phone = document.getElementById('delivery-phone').value.trim();
+  const address = document.getElementById('delivery-address').value.trim();
+  const postal = document.getElementById('delivery-postal').value.trim();
+  const city = document.getElementById('delivery-city').value.trim();
+  const date = document.getElementById('delivery-date').value;
+  const time = document.getElementById('delivery-time').value;
+
+  if (!email) {
+    showNotification("Veuillez saisir votre email pour la livraison.", "error");
+    document.getElementById('delivery-email').focus();
+    return false;
+  }
+  if (!phone) {
+    showNotification("Veuillez saisir votre numéro de téléphone pour la livraison.", "error");
+    document.getElementById('delivery-phone').focus();
+    return false;
+  }
+  if (!address) {
+    showNotification("Veuillez saisir votre adresse (numéro et rue) pour la livraison.", "error");
+    document.getElementById('delivery-address').focus();
+    return false;
+  }
+  if (!postal) {
+    showNotification("Veuillez saisir votre code postal pour la livraison.", "error");
+    document.getElementById('delivery-postal').focus();
+    return false;
+  }
+  if (!city) {
+    showNotification("Veuillez saisir votre ville pour la livraison.", "error");
+    document.getElementById('delivery-city').focus();
+    return false;
+  }
+  if (!date) {
+    showNotification("Veuillez choisir une date de livraison.", "error");
+    document.getElementById('delivery-date').focus();
+    return false;
+  }
+  if (!time) {
+    showNotification("Veuillez choisir une heure de livraison.", "error");
+    document.getElementById('delivery-time').focus();
+    return false;
+  }
+  // Date pas dans le passé
+  const selectedDate = new Date(date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (selectedDate < today) {
+    showNotification("La date de livraison ne peut pas être dans le passé", "error");
+    document.getElementById('delivery-date').focus();
+    return false;
+  }
+  return true;
+}
+
+// --- VALIDATION COMMANDE ---
 function validateOrderChoice() {
   const deliveryChecked = document.getElementById('delivery-option').checked;
   const pickupChecked = document.getElementById('pickup-option').checked;
@@ -1074,7 +1140,6 @@ function validateOrderChoice() {
   if (deliveryChecked) {
     const date = document.getElementById('delivery-date').value;
     const time = document.getElementById('delivery-time').value;
-    // ...existing code...
     // Vérification horaires ouverture
     const horaireCheck = isTimeInOpeningHours(date, time);
     if (!horaireCheck.valid) {
@@ -1101,7 +1166,6 @@ function validateOrderChoice() {
   if (pickupChecked) {
     const date = document.getElementById('pickup-date').value;
     const time = document.getElementById('pickup-time').value;
-    // ...existing code...
     // Vérification horaires ouverture
     const horaireCheck = isTimeInOpeningHours(date, time);
     if (!horaireCheck.valid) {
