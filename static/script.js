@@ -198,23 +198,34 @@ async function loginUser(username, password, redirectAfterLogin = true) {
 }
 
 // --- FILTRES PRODUITS ---
-// Récupère les filtres actifs (tags, allergènes)
+// Récupère les filtres actifs (tags, allergènes, recherche)
 function getActiveFilters() {
   const filters = { tags: [], allergens: [] };
   document.querySelectorAll('.filter-tag:checked').forEach(cb => filters.tags.push(cb.value));
   document.querySelectorAll('.filter-allergen:checked').forEach(cb => filters.allergens.push(cb.value));
+  // Ajout : mot-clé de recherche
+  const searchInput = document.getElementById('menu-search-input');
+  filters.search = searchInput ? searchInput.value.trim().toLowerCase() : "";
   return filters;
 }
 
-// Vérifie si un produit correspond aux filtres actifs
+// Vérifie si un produit correspond aux filtres actifs (tags, allergènes, recherche)
 function productMatchesFilters(product, filters) {
+  // Recherche par mot-clé (dans le nom ou la description)
+  if (filters.search && filters.search.length > 0) {
+    const name = (product.name || "").toLowerCase();
+    const desc = (product.description || "").toLowerCase();
+    if (!name.includes(filters.search) && !desc.includes(filters.search)) {
+      return false;
+    }
+  }
   if (filters.tags.length === 0 && filters.allergens.length === 0) return true;
   if (filters.tags.length > 0 && !filters.tags.some(tag => (product.tags || []).includes(tag))) return false;
   if (filters.allergens.length > 0 && filters.allergens.some(allergen => (product.allergens || []).includes(allergen))) return false;
   return true;
 }
 
-// Rafraîchit la liste des produits selon les filtres
+// Rafraîchit la liste des produits selon les filtres et la recherche
 function fetchAndRenderProducts() {
   fetch('https://demoresto.onrender.com/api/products')
     .then(response => response.json())
@@ -395,6 +406,14 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.filter-tag, .filter-allergen').forEach(cb => {
     cb.addEventListener('change', fetchAndRenderProducts);
   });
+
+  // Ajout : gestion de la barre de recherche dynamique
+  const searchInput = document.getElementById('menu-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      fetchAndRenderProducts();
+    });
+  }
 
   // --- Allergènes auto : si connecté, coche les filtres selon le profil ---
   const token = localStorage.getItem('token');
