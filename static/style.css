@@ -3338,8 +3338,12 @@ form#register-form a:hover {
   border: 3px solid #900;
 }
 
+#admin-activity-export-btn{
+  background:#2d7b2d;
+  color:#fff;
+}
+
 .admin-activity-export {
-  text-align: center;
   margin: 2em 0 1em 0;
-  width: 100%;
+  text-align: center; /* Centrage horizontal */
 }
