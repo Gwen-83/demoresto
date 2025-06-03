@@ -471,28 +471,12 @@ let isEditing = false;
 let currentEditId = null;
 const productMap = new Map();
 
-// Ajout : stocke les quantités commandées sur 7 jours pour chaque produit
-let productOrderCounts7d = {};
-
 // Charge les produits dans le tableau admin
-async function loadProducts() {
+function loadProducts() {
   const table = document.getElementById('productTable');
   if (!table) {
     console.warn("❗ Élément #productTable non trouvé dans le DOM.");
     return;
-  }
-
-  // Récupère les quantités commandées sur 7 jours pour chaque produit
-  try {
-    const resCounts = await fetch('/api/products/top?with_counts=1');
-    if (resCounts.ok) {
-      const countsData = await resCounts.json();
-      productOrderCounts7d = countsData || {};
-    } else {
-      productOrderCounts7d = {};
-    }
-  } catch (e) {
-    productOrderCounts7d = {};
   }
 
   fetch('/api/products', {
@@ -507,19 +491,15 @@ async function loadProducts() {
       return res.json();
     })
     .then(data => {
-      // Ajout d'une colonne "Commandés (7j)"
-      table.innerHTML = `<tr><th>ID</th><th>Nom</th><th>Prix</th><th>Commandés (7j)</th><th>Statut</th><th>Action</th></tr>`;
+      table.innerHTML = `<tr><th>ID</th><th>Nom</th><th>Prix</th><th>Statut</th><th>Action</th></tr>`;
       productMap.clear();
       data.forEach(p => {
         productMap.set(p.id, p);
         const tr = document.createElement('tr');
-        // Ajout : nombre commandé sur 7j
-        const ordered7d = productOrderCounts7d && productOrderCounts7d[p.id] ? productOrderCounts7d[p.id] : 0;
         tr.innerHTML = `
           <td>${p.id}</td>
           <td>${p.name}</td>
           <td>${p.price}€</td>
-          <td>${ordered7d}</td>
           <td>
             <span style="color:${p.is_active ? '#2e7d32' : '#d32f2f'};font-weight:bold;">
               ${p.is_active ? 'Actif' : 'Inactif'}
@@ -539,7 +519,7 @@ async function loadProducts() {
     .catch(error => {
       console.error('Erreur lors du chargement des produits:', error);
       if (table) {
-        table.innerHTML = `<tr><td colspan="6">Erreur lors du chargement des produits</td></tr>`;
+        table.innerHTML = `<tr><td colspan="5">Erreur lors du chargement des produits</td></tr>`;
       }
     });
 }
