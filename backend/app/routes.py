@@ -15,6 +15,8 @@ import json
 from sqlalchemy import or_
 import csv
 from io import StringIO
+from datetime import datetime, timedelta
+from sqlalchemy import func
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -1293,3 +1295,24 @@ def count_orders_for_slot():
         return jsonify({"error": "Date et heure requises"}), 400
     count = Order.query.filter_by(requested_date=date, requested_time=time).count()
     return jsonify({"count": count})
+
+@bp.route("/api/products/top")
+def get_top_products():
+    # Calcule la date il y a 7 jours
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    # Jointure Order <-> CartItem, filtre sur les 7 derniers jours
+    top_products = (
+        db.session.query(
+            CartItem.product_id,
+            func.sum(CartItem.quantity).label('total_qty')
+        )
+        .join(Order, CartItem.order_id == Order.id)
+        .filter(Order.created_at >= seven_days_ago)
+        .group_by(CartItem.product_id)
+        .order_by(func.sum(CartItem.quantity).desc())
+        .limit(3)
+        .all()
+    )
+    # Retourne la liste des IDs des produits populaires
+    top_ids = [pid for pid, _ in top_products]
+    return jsonify(top_ids)

@@ -198,7 +198,7 @@ async function loginUser(username, password, redirectAfterLogin = true) {
 }
 
 // --- FILTRES PRODUITS ---
-// Récupère les filtres actifs (tags, allergènes, recherche)
+// Récupère les filtres actifs (tags, allergènes, recherche
 function getActiveFilters() {
   const filters = { tags: [], allergens: [] };
   document.querySelectorAll('.filter-tag:checked').forEach(cb => filters.tags.push(cb.value));
@@ -225,8 +225,24 @@ function productMatchesFilters(product, filters) {
   return true;
 }
 
+// --- TOP PRODUITS (populaires) ---
+let topProductIds = [];
+async function fetchTopProducts() {
+  try {
+    const res = await fetch('/api/products/top');
+    if (res.ok) {
+      topProductIds = await res.json();
+    } else {
+      topProductIds = [];
+    }
+  } catch (e) {
+    topProductIds = [];
+  }
+}
+
 // Rafraîchit la liste des produits selon les filtres et la recherche
-function fetchAndRenderProducts() {
+async function fetchAndRenderProducts() {
+  await fetchTopProducts();
   fetch('https://demoresto.onrender.com/api/products')
     .then(response => response.json())
     .then(products => {
@@ -265,7 +281,12 @@ function fetchAndRenderProducts() {
           img.alt = product.name;
           itemDiv.appendChild(img);
           const name = document.createElement('h3');
-          name.textContent = product.name;
+          // --- Ajout de l'icône "🔥" si produit populaire ---
+          if (topProductIds.includes(product.id)) {
+            name.innerHTML = `${product.name} <span title="Plat populaire" style="font-size:1.1em;">🔥</span>`;
+          } else {
+            name.textContent = product.name;
+          }
           itemDiv.appendChild(name);
           const desc = document.createElement('p');
           desc.textContent = product.description;
@@ -1066,14 +1087,6 @@ function setupDeliveryPickupDateListeners() {
     filterTimeOptions('pickup-date', 'pickup-time', 'pickup-date-info');
     updateTimeOptions('pickup-date', 'pickup-time');
   }
-}
-
-// --- AJOUTER CETTE FONCTION POUR CORRIGER L'ERREUR ---
-function getPickupInfo() {
-  return {
-    date: document.getElementById('pickup-date').value,
-    time: document.getElementById('pickup-time').value
-  };
 }
 
 // --- QUOTA COMMANDES/HEURE (PANIER) ---
