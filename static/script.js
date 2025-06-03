@@ -479,7 +479,8 @@ function loadProducts() {
     return;
   }
 
-  fetch('/api/products', {
+  // Utilise la nouvelle route qui inclut order_count
+  fetch('/api/products/with-order-count', {
     headers: {
       'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
     }
@@ -491,7 +492,8 @@ function loadProducts() {
       return res.json();
     })
     .then(data => {
-      table.innerHTML = `<tr><th>ID</th><th>Nom</th><th>Prix</th><th>Statut</th><th>Action</th></tr>`;
+      // Ajoute une colonne "Commandés"
+      table.innerHTML = `<tr><th>ID</th><th>Nom</th><th>Prix</th><th>Commandés</th><th>Statut</th><th>Action</th></tr>`;
       productMap.clear();
       data.forEach(p => {
         productMap.set(p.id, p);
@@ -500,6 +502,7 @@ function loadProducts() {
           <td>${p.id}</td>
           <td>${p.name}</td>
           <td>${p.price}€</td>
+          <td>${p.order_count || 0}</td>
           <td>
             <span style="color:${p.is_active ? '#2e7d32' : '#d32f2f'};font-weight:bold;">
               ${p.is_active ? 'Actif' : 'Inactif'}
@@ -519,7 +522,7 @@ function loadProducts() {
     .catch(error => {
       console.error('Erreur lors du chargement des produits:', error);
       if (table) {
-        table.innerHTML = `<tr><td colspan="5">Erreur lors du chargement des produits</td></tr>`;
+        table.innerHTML = `<tr><td colspan="6">Erreur lors du chargement des produits</td></tr>`;
       }
     });
 }
