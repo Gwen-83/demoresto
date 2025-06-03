@@ -1121,7 +1121,7 @@ def reject_order_admin(order_id):
         subject = "Votre commande a été refusée"
         html_content = f"""
         <p>Bonjour,</p>
-        <p>Nous sommes désolés, votre commande <b>#{order.id}</b> a été <b>refusée</b> par le restaurant.</p>
+        <p>Nous sommes désolés, votre commande <b>#{order.id}</b> a été <b>refusée</b> par le restaurant.<br> Veuillez nous contacter à l'adresse mail contact@chezmario.fr pour un remboursement.</p>
         {f"<p>Motif : {reason}</p>" if reason else ""}
         <hr>
         <h4>Détails de la commande :</h4>
