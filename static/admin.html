@@ -36,6 +36,7 @@
   <button class="tab-button" onclick="switchTab('products')">Produits</button>
   <button class="tab-button" onclick="switchTab('schedules')">Horaires</button>
   <button class="tab-button" onclick="switchTab('orders')">Commandes</button>
+  <button class="tab-button" onclick="switchTab('newsletter')">Newsletter</button>
 </div>
 
 <!-- Onglet Réservations -->
@@ -175,6 +176,31 @@
   </div>
 </div>
 
+<!-- Onglet Newsletter (NOUVEAU) -->
+<div id="newsletter-tab" class="tab-content">
+  <div class="newsletter-admin-container">
+    <h2>Gestion de la newsletter</h2>
+    <form id="newsletter-send-form" style="max-width:600px;margin:0 auto;">
+      <div class="form-group">
+        <label for="newsletter-subject">Sujet :</label>
+        <input type="text" id="newsletter-subject" required style="width:100%;">
+      </div>
+      <div class="form-group">
+        <label for="newsletter-content">Contenu (HTML autorisé) :</label>
+        <textarea id="newsletter-content" rows="7" required style="width:100%;"></textarea>
+      </div>
+      <button type="submit" class="primary-button">Envoyer la newsletter</button>
+      <span id="newsletter-send-status" style="margin-left:1rem;color:green;display:none;"></span>
+    </form>
+    <hr>
+    <div>
+      <h3>Abonnés à la newsletter</h3>
+      <button id="newsletter-export-btn" class="map-button">Télécharger la liste (CSV)</button>
+      <div id="newsletter-subscribers-list" style="margin-top:1em;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de refus réservation (déjà existant) -->
 <div id="rejectModal" class="modal">
   <div class="modal-content">
@@ -297,6 +323,8 @@ function switchTab(tabName) {
   } else if (tabName === 'orders') {
     loadOrdersAdmin();
     switchOrdersSubtab('pending');
+  } else if (tabName === 'newsletter') {
+    loadNewsletterSubscribers();
   }
 }
 
@@ -725,6 +753,124 @@ async function validateOrderAdmin(orderId) {
   });
   loadOrdersAdmin();
 }
+
+// Ajout : gestion de l'onglet newsletter
+function switchTab(tabName) {
+  // Masquer tous les onglets
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  
+  // Désactiver tous les boutons d'onglet
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.classList.remove('active');
+  });
+  
+  // Activer l'onglet sélectionné
+  document.getElementById(tabName + '-tab').classList.add('active');
+  event.target.classList.add('active');
+  
+  // Charger les données spécifiques à l'onglet
+  if (tabName === 'reservations') {
+    loadReservations();
+  } else if (tabName === 'orders') {
+    loadOrdersAdmin();
+    switchOrdersSubtab('pending');
+  } else if (tabName === 'newsletter') {
+    loadNewsletterSubscribers();
+  }
+}
+
+// --- NEWSLETTER ADMIN ---
+function loadNewsletterSubscribers() {
+  const token = localStorage.getItem('token');
+  const listDiv = document.getElementById('newsletter-subscribers-list');
+  if (!token || !listDiv) return;
+  fetch('/api/admin/newsletter/subscribers', {
+    headers: { 'Authorization': 'Bearer ' + token }
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (!Array.isArray(data)) {
+        listDiv.innerHTML = '<span style="color:red;">Erreur lors du chargement des abonnés.</span>';
+        return;
+      }
+      if (data.length === 0) {
+        listDiv.innerHTML = '<em>Aucun abonné à la newsletter.</em>';
+        return;
+      }
+      listDiv.innerHTML = `
+        <ul style="max-height:200px;overflow:auto;">
+          ${data.map(sub => `<li>${sub.email} <span style="color:#888;font-size:0.9em;">(${sub.subscribed_at ? new Date(sub.subscribed_at).toLocaleString('fr-FR') : ''})</span></li>`).join('')}
+        </ul>
+        <div style="margin-top:0.5em;font-size:0.95em;">Total : <b>${data.length}</b> abonnés</div>
+      `;
+    });
+}
+
+// Envoi de la newsletter
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('newsletter-send-form');
+  const status = document.getElementById('newsletter-send-status');
+  if (form) {
+    form.onsubmit = function(e) {
+      e.preventDefault();
+      const token = localStorage.getItem('token');
+      const subject = document.getElementById('newsletter-subject').value.trim();
+      const content = document.getElementById('newsletter-content').value.trim();
+      if (!subject || !content) return;
+      status.style.display = 'inline';
+      status.style.color = 'black';
+      status.textContent = 'Envoi en cours...';
+      fetch('/api/admin/newsletter/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ subject, content })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.message) {
+          status.style.color = 'green';
+          status.textContent = 'Newsletter envoyée !';
+          form.reset();
+        } else {
+          status.style.color = 'red';
+          status.textContent = data.error || 'Erreur lors de l\'envoi.';
+        }
+        setTimeout(() => { status.style.display = 'none'; }, 3000);
+      })
+      .catch(() => {
+        status.style.color = 'red';
+        status.textContent = 'Erreur lors de l\'envoi.';
+        setTimeout(() => { status.style.display = 'none'; }, 3000);
+      });
+    };
+  }
+  // Export CSV
+  const exportBtn = document.getElementById('newsletter-export-btn');
+  if (exportBtn) {
+    exportBtn.onclick = function() {
+      const token = localStorage.getItem('token');
+      fetch('/api/admin/newsletter/export', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      })
+      .then(res => res.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'newsletter_subscribers.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      });
+    };
+  }
+});
 
 // Fermer les modals en cliquant à l'extérieur
 window.onclick = function(event) {

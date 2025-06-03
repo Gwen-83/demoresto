@@ -614,30 +614,27 @@ async function updateNewsletterUI() {
   const checkbox = document.getElementById('newsletter-consent');
   if (!token || !btn || !checkbox) return;
   try {
-    const res = await fetch('/api/admin/newsletter/subscribers', {
+    // On demande au backend l'état d'abonnement de l'utilisateur courant
+    const res = await fetch('/api/user/profile', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     if (!res.ok) throw new Error();
-    const subs = await res.json();
-    const userRes = await fetch('https://demoresto.onrender.com/api/user/profile', {
+    const user = await res.json();
+    // On considère abonné si consent = true dans la table NewsletterSubscriber
+    const subRes = await fetch('/api/admin/newsletter/subscribers', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
-    const user = await userRes.json();
-    const isSubscribed = subs.some(s => s.email === user.email);
+    let isSubscribed = false;
+    if (subRes.ok) {
+      const subs = await subRes.json();
+      isSubscribed = subs.some(s => s.email === user.email);
+    }
     checkbox.checked = isSubscribed;
     btn.textContent = isSubscribed ? "Se désabonner" : "S'abonner à la newsletter";
   } catch (e) {
-    // Si erreur (pas admin), fallback : demander au backend l'état d'abonnement
-    const res = await fetch('/api/user/profile', { headers: { 'Authorization': 'Bearer ' + token } });
-    const user = await res.json();
-    fetch('/api/newsletter/subscribe', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ consent: false })
-    }).then(() => {
-      document.getElementById('newsletter-consent').checked = false;
-      document.getElementById('newsletter-btn').textContent = "S'abonner à la newsletter";
-    });
+    // Fallback : on tente l'abonnement, sinon on laisse décoché
+    checkbox.checked = false;
+    btn.textContent = "S'abonner à la newsletter";
   }
 }
 
@@ -662,6 +659,7 @@ document.getElementById('newsletter-form').addEventListener('submit', async func
       });
       if (res.ok) {
         btn.textContent = "Se désabonner";
+        checkbox.checked = true;
         document.getElementById('newsletter-status').textContent = "Abonnement réussi !";
         document.getElementById('newsletter-status').style.display = 'inline';
         setTimeout(() => {
@@ -682,6 +680,7 @@ document.getElementById('newsletter-form').addEventListener('submit', async func
       });
       if (res.ok) {
         btn.textContent = "S'abonner à la newsletter";
+        checkbox.checked = false;
         document.getElementById('newsletter-status').textContent = "Désabonnement effectué.";
         document.getElementById('newsletter-status').style.display = 'inline';
         setTimeout(() => {
