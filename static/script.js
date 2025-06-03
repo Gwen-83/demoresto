@@ -1731,3 +1731,10 @@ function validateDeliveryForm() {
   }
   return true;
 }
+
+function getPickupInfo() {
+  return {
+    date: document.getElementById('pickup-date').value,
+    time: document.getElementById('pickup-time').value
+  };
+}
