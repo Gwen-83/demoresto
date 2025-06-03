@@ -1310,34 +1310,12 @@ def get_top_products():
         .filter(Order.created_at >= seven_days_ago)
         .group_by(CartItem.product_id)
         .order_by(func.sum(CartItem.quantity).desc())
-        .limit(3)
         .all()
     )
+    # Ajout : retourne aussi les quantités par produit si demandé
+    if request.args.get("with_counts") == "1":
+        # Retourne un dict {product_id: total_qty}
+        return jsonify({pid: int(qty) for pid, qty in top_products})
     # Retourne la liste des IDs des produits populaires
     top_ids = [pid for pid, _ in top_products]
     return jsonify(top_ids)
-
-@bp.route("/api/products/with-order-count")
-@jwt_required()
-def get_products_with_order_count():
-    user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
-    if not user or not user.is_admin:
-        return jsonify({"error": "Accès interdit"}), 403
-
-    # Récupère tous les produits et le nombre total commandé pour chacun
-    products = (
-        db.session.query(
-            Product,
-            func.coalesce(func.sum(CartItem.quantity), 0).label('order_count')
-        )
-        .outerjoin(CartItem, (CartItem.product_id == Product.id) & (CartItem.order_id != None))
-        .group_by(Product.id)
-        .all()
-    )
-    result = []
-    for product, order_count in products:
-        prod_dict = product.to_dict()
-        prod_dict['order_count'] = int(order_count)
-        result.append(prod_dict)
-    return jsonify(result)
