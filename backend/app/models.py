@@ -12,7 +12,6 @@ class Product(db.Model):
     category = db.Column(db.String(50))  # entrée, plat, dessert, boisson
     allergens = db.Column(db.String(255))  # ex: "gluten,lactose"
     is_active = db.Column(db.Boolean, default=True)  # Ajouté
-    is_trending = db.Column(db.Boolean, default=False)  # Ajouté
 
     def to_dict(self):
         return {
@@ -24,7 +23,6 @@ class Product(db.Model):
             "category": self.category,
             "allergens": self.allergens.split(',') if self.allergens else [],
             "is_active": self.is_active,  # Ajouté
-            "is_trending": self.is_trending,  # Ajouté
         }
 
 class CartItem(db.Model):

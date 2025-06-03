@@ -15,8 +15,6 @@ import json
 from sqlalchemy import or_
 import csv
 from io import StringIO
-from datetime import datetime, timedelta
-from sqlalchemy import func
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -1295,34 +1293,3 @@ def count_orders_for_slot():
         return jsonify({"error": "Date et heure requises"}), 400
     count = Order.query.filter_by(requested_date=date, requested_time=time).count()
     return jsonify({"count": count})
-
-@bp.route("/api/products/trending", methods=["GET"])
-def get_trending_products():
-    trending_products = Product.query.filter_by(is_trending=True, is_active=True).all()
-    return jsonify([p.to_dict() for p in trending_products])
-
-def update_trending_products():
-    """Met à jour les 3 produits les plus commandés sur les 7 derniers jours."""
-    now = datetime.now()
-    week_ago = now - timedelta(days=7)
-    # Récupérer les commandes de la semaine
-    orders = Order.query.filter(Order.created_at >= week_ago).all()
-    product_counts = {}
-    for order in orders:
-        for item in order.items:
-            pid = item.product_id
-            product_counts[pid] = product_counts.get(pid, 0) + item.quantity
-    # Top 3
-    top3 = sorted(product_counts.items(), key=lambda x: x[1], reverse=True)[:3]
-    top3_ids = [pid for pid, _ in top3]
-    # Reset tous les produits
-    for p in Product.query.all():
-        p.is_trending = p.id in top3_ids
-    db.session.commit()
-
-# --- Pour automatiser la tâche, à placer dans un cron ou scheduler externe ---
-# from flask_apscheduler import APScheduler
-# scheduler = APScheduler()
-# scheduler.init_app(app)
-# scheduler.start()
-# scheduler.add_job(id='update_trending', func=update_trending_products, trigger='interval', weeks=1)
