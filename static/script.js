@@ -265,7 +265,8 @@ function fetchAndRenderProducts() {
           img.alt = product.name;
           itemDiv.appendChild(img);
           const name = document.createElement('h3');
-          name.textContent = product.name;
+          // --- Ajout de l'icône 🔥 si trending ---
+          name.textContent = product.name + (product.is_trending ? " 🔥" : "");
           itemDiv.appendChild(name);
           const desc = document.createElement('p');
           desc.textContent = product.description;
