@@ -183,3 +183,25 @@ class OrderQuota(db.Model):
 
     def to_dict(self):
         return {"max_orders_per_hour": self.max_orders_per_hour}
+
+class AdminActivity(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    action_type = db.Column(db.String(50), nullable=False)  # ajout, modification, suppression, etc.
+    target_type = db.Column(db.String(50), nullable=False)  # plat, réservation, client, etc.
+    target_id = db.Column(db.Integer, nullable=True)  # id de l'élément concerné
+    details = db.Column(db.Text)  # infos additionnelles (ex: nom du plat)
+
+    admin = db.relationship('User', backref='admin_activities')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'admin_id': self.admin_id,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'action_type': self.action_type,
+            'target_type': self.target_type,
+            'target_id': self.target_id,
+            'details': self.details
+        }

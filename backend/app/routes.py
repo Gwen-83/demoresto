@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app, Flask, send_from_directory
-from .models import Product, CartItem, User, TokenBlocklist, Reservation, Order, NewsletterSubscriber, OrderQuota
+from .models import Product, CartItem, User, TokenBlocklist, Reservation, Order, NewsletterSubscriber, OrderQuota, AdminActivity
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, create_access_token
@@ -66,6 +66,7 @@ def add_product():
 
     db.session.add(product)
     db.session.commit()
+    log_admin_activity(user.id, 'ajout', 'plat', product.id, f"{product.name}")
     return jsonify(product.to_dict()), 201
 
 @bp.route("/api/products/<int:id>", methods=["PUT"])
@@ -102,6 +103,7 @@ def update_product(id):
         product.is_active = bool(data["is_active"])
 
     db.session.commit()
+    log_admin_activity(user.id, 'modification', 'plat', product.id, f"{product.name}")
     return jsonify(product.to_dict())
 
 
@@ -118,6 +120,7 @@ def delete_product(id):
     product = Product.query.get_or_404(id)
     db.session.delete(product)
     db.session.commit()
+    log_admin_activity(user.id, 'suppression', 'plat', product.id, f"{product.name}")
     return jsonify({"message": "Produit supprimé"}), 200
 
 #Ajouter au panier
@@ -1044,7 +1047,8 @@ def delete_user_account():
         # Supprimer l'utilisateur
         db.session.delete(user)
         db.session.commit()
-        return jsonify({"message": "Compte supprimé avec succès."}), 200
+        log_admin_activity(user.id, 'suppression', 'utilisateur', user.id, f"Suppression compte utilisateur: {user.username}")
+        return jsonify({'message': 'Compte supprimé'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Erreur lors de la suppression du compte."}), 500
@@ -1080,7 +1084,7 @@ def validate_order_admin(order_id):
 
     order.status = 'validee'
     db.session.commit()
-
+    log_admin_activity(user.id, 'modification', 'commande', order.id, f"Validation commande #{order.id}")
     # Envoi d'un email de confirmation à l'utilisateur
     if order.user and order.user.email:
         subject = "Votre commande a été validée"
@@ -1115,7 +1119,7 @@ def reject_order_admin(order_id):
 
     order.status = 'refusee'
     db.session.commit()
-
+    log_admin_activity(user.id, 'modification', 'commande', order.id, f"Refus commande #{order.id} - Motif: {reason}")
     # Envoi d'un email de refus à l'utilisateur
     if order.user and order.user.email:
         subject = "Votre commande a été refusée"
@@ -1154,13 +1158,14 @@ def newsletter_subscribe():
         sub = NewsletterSubscriber(email=email, consent=True)
         db.session.add(sub)
         db.session.commit()
+        log_admin_activity(user.id, 'ajout', 'newsletter', sub.id, f"Abonnement newsletter: {sub.email}")
         return jsonify({"message": "Abonnement réussi"}), 201
     else:
         # Désabonnement
         if existing and existing.consent:
             existing.consent = False
             db.session.commit()
-            return jsonify({"message": "Désabonnement effectué"}), 200
+            log_admin_activity(user.id, 'suppression', 'newsletter', existing.id, f"Désabonnement newsletter: {existing.email}")
         return jsonify({"message": "Déjà désabonné"}), 200
 
 @bp.route('/api/admin/newsletter/subscribers', methods=['GET'])
@@ -1244,6 +1249,8 @@ def newsletter_send():
             send_email(smtp_user, confirmation_subject, confirmation_content)
         except Exception as e:
             current_app.logger.error(f"Erreur envoi email confirmation newsletter admin: {e}")
+        db.session.commit()
+        log_admin_activity(user.id, 'envoi', 'newsletter', None, f"Envoi newsletter: {subject}")
         return jsonify({"message": "Newsletter envoyée"}), 200
     except Exception as e:
         current_app.logger.error(f"Erreur envoi newsletter: {e}")
@@ -1259,6 +1266,7 @@ def toggle_product_active(id):
     product = Product.query.get_or_404(id)
     product.is_active = not product.is_active
     db.session.commit()
+    log_admin_activity(user.id, 'modification', 'plat', product.id, f"Activation {'oui' if product.is_active else 'non'}: {product.name}")
     return jsonify({"id": product.id, "is_active": product.is_active})
 
 @bp.route('/api/order-quota', methods=['GET', 'POST'])
@@ -1284,6 +1292,7 @@ def order_quota():
         else:
             quota.max_orders_per_hour = max_orders
         db.session.commit()
+        log_admin_activity(user.id, 'modification', 'quota', quota.id, f"Quota commandes/heure: {quota.max_orders_per_hour}")
         return jsonify(quota.to_dict())
 
 @bp.route('/api/orders/count', methods=['GET'])
@@ -1341,3 +1350,45 @@ def get_products_with_order_count():
         prod_dict['order_count'] = int(order_count)
         result.append(prod_dict)
     return jsonify(result)
+
+@bp.route('/api/admin/activities/export', methods=['GET'])
+@jwt_required()
+def export_admin_activities():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_admin:
+        return jsonify({"error": "Accès interdit"}), 403
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    activities = AdminActivity.query.filter(AdminActivity.timestamp >= seven_days_ago).order_by(AdminActivity.timestamp.desc()).all()
+    si = StringIO()
+    writer = csv.writer(si)
+    writer.writerow(['date', 'heure', 'action', 'cible', 'id_cible', 'détails', 'admin'])
+    for act in activities:
+        date_str = act.timestamp.strftime('%Y-%m-%d') if act.timestamp else ''
+        time_str = act.timestamp.strftime('%H:%M:%S') if act.timestamp else ''
+        writer.writerow([
+            date_str,
+            time_str,
+            act.action_type,
+            act.target_type,
+            act.target_id or '',
+            act.details or '',
+            act.admin.username if act.admin else ''
+        ])
+    output = si.getvalue()
+    return current_app.response_class(
+        output,
+        mimetype='text/csv',
+        headers={"Content-Disposition": "attachment;filename=admin_activities.csv"}
+    )
+
+def log_admin_activity(admin_id, action_type, target_type, target_id=None, details=None):
+    activity = AdminActivity(
+        admin_id=admin_id,
+        action_type=action_type,
+        target_type=target_type,
+        target_id=target_id,
+        details=details
+    )
+    db.session.add(activity)
+    db.session.commit()

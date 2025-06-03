@@ -255,6 +255,12 @@
   </div>
 </div>
 
+<div class="admin-activity-export" style="margin: 2em 0 1em 0; text-align: right;">
+  <button id="admin-activity-export-btn" class="map-button" style="background:#2d7b2d;color:#fff;">
+    Télécharger l'activité admin (7 jours, CSV)
+  </button>
+</div>
+
 <footer>
   <div class="footer-logo">
     <img src="public/logo.png" alt="Logo Chez Mario">
@@ -864,6 +870,27 @@ document.addEventListener('DOMContentLoaded', function() {
         const a = document.createElement('a');
         a.href = url;
         a.download = 'newsletter_subscribers.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      });
+    };
+  }
+  // Export activité admin (CSV)
+  const adminActivityBtn = document.getElementById('admin-activity-export-btn');
+  if (adminActivityBtn) {
+    adminActivityBtn.onclick = function() {
+      const token = localStorage.getItem('token');
+      fetch('/api/admin/activities/export', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      })
+      .then(res => res.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'admin_activities.csv';
         document.body.appendChild(a);
         a.click();
         a.remove();
