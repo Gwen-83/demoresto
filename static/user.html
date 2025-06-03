@@ -631,10 +631,12 @@ async function updateNewsletterUI() {
     }
     checkbox.checked = isSubscribed;
     btn.textContent = isSubscribed ? "Se désabonner" : "S'abonner à la newsletter";
+    // Désactive la case si déjà abonné (empêche de décocher sans passer par le bouton)
+    checkbox.disabled = isSubscribed;
   } catch (e) {
-    // Fallback : on tente l'abonnement, sinon on laisse décoché
     checkbox.checked = false;
     btn.textContent = "S'abonner à la newsletter";
+    checkbox.disabled = false;
   }
 }
 
@@ -646,6 +648,17 @@ document.getElementById('newsletter-form').addEventListener('submit', async func
   const btn = document.getElementById('newsletter-btn');
   const token = localStorage.getItem('token');
   if (!checkbox || !btn || !token) return;
+
+  if (!checkbox.checked && btn.textContent === "S'abonner à la newsletter") {
+    // L'utilisateur tente de s'abonner sans avoir coché la case
+    document.getElementById('newsletter-status').textContent = "Veuillez cocher la case pour accepter.";
+    document.getElementById('newsletter-status').style.display = 'inline';
+    setTimeout(() => {
+      document.getElementById('newsletter-status').style.display = 'none';
+    }, 2000);
+    return;
+  }
+
   if (checkbox.checked && btn.textContent === "S'abonner à la newsletter") {
     // Abonnement
     try {
@@ -660,6 +673,7 @@ document.getElementById('newsletter-form').addEventListener('submit', async func
       if (res.ok) {
         btn.textContent = "Se désabonner";
         checkbox.checked = true;
+        checkbox.disabled = true;
         document.getElementById('newsletter-status').textContent = "Abonnement réussi !";
         document.getElementById('newsletter-status').style.display = 'inline';
         setTimeout(() => {
@@ -667,7 +681,7 @@ document.getElementById('newsletter-form').addEventListener('submit', async func
         }, 2000);
       }
     } catch (e) {}
-  } else if (!checkbox.checked && btn.textContent === "Se désabonner") {
+  } else if (btn.textContent === "Se désabonner") {
     // Désabonnement
     try {
       const res = await fetch('/api/newsletter/subscribe', {
@@ -681,27 +695,7 @@ document.getElementById('newsletter-form').addEventListener('submit', async func
       if (res.ok) {
         btn.textContent = "S'abonner à la newsletter";
         checkbox.checked = false;
-        document.getElementById('newsletter-status').textContent = "Désabonnement effectué.";
-        document.getElementById('newsletter-status').style.display = 'inline';
-        setTimeout(() => {
-          document.getElementById('newsletter-status').style.display = 'none';
-        }, 2000);
-      }
-    } catch (e) {}
-  } else if (btn.textContent === "Se désabonner") {
-    // Si déjà abonné et clique sur le bouton (case cochée), on désabonne
-    try {
-      const res = await fetch('/api/newsletter/subscribe', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ consent: false })
-      });
-      if (res.ok) {
-        checkbox.checked = false;
-        btn.textContent = "S'abonner à la newsletter";
+        checkbox.disabled = false;
         document.getElementById('newsletter-status').textContent = "Désabonnement effectué.";
         document.getElementById('newsletter-status').style.display = 'inline';
         setTimeout(() => {
@@ -710,12 +704,6 @@ document.getElementById('newsletter-form').addEventListener('submit', async func
       }
     } catch (e) {}
   }
-});
-
-// Synchronise bouton/checkbox si on clique sur la case
-document.getElementById('newsletter-consent').addEventListener('change', function() {
-  const btn = document.getElementById('newsletter-btn');
-  btn.textContent = this.checked ? "Se désabonner" : "S'abonner à la newsletter";
 });
 </script>
 </body>
