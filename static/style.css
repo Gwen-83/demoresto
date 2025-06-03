@@ -3337,3 +3337,9 @@ form#register-form a:hover {
   border-radius: 8px;
   border: 3px solid #900;
 }
+
+.admin-activity-export {
+  text-align: center;
+  margin: 2em 0 1em 0;
+  width: 100%;
+}
