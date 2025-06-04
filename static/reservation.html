@@ -100,7 +100,6 @@ let horairesOuvertureReservation = {};
 // Charger les horaires d'ouverture au chargement de la page
 document.addEventListener('DOMContentLoaded', async () => {
   await loadHorairesReservation();
-  console.log("Horaires chargés :", horairesOuvertureReservation);
   updateHorairesInfo();
   autoFillUserEmail();
   setupReservationForm();
@@ -112,7 +111,6 @@ async function loadHorairesReservation() {
     const response = await fetch('https://demoresto.onrender.com/api/horaires.json');
     if (response.ok) {
       horairesOuvertureReservation = await response.json();
-      console.log("✅ Horaires chargés avec succès:", horairesOuvertureReservation);
     } else {
       console.error('❌ Erreur lors du chargement des horaires:', response.status);
     }
@@ -184,8 +182,6 @@ function isTimeInOpeningHours(selectedDate, selectedTime) {
   const dayName = getDayName(new Date(selectedDate));
   const horaireJour = horairesOuvertureReservation[dayName];
   
-  console.log(`🕐 Vérification pour ${dayName}:`, horaireJour);
-  
   if (!horaireJour || horaireJour === "Fermé") {
     return { valid: false, message: `Le restaurant est fermé le ${dayName.toLowerCase()}.` };
   }
@@ -215,9 +211,6 @@ function updateHorairesInfo() {
   const dateInput = document.getElementById('date');
   const horaireInfo = document.getElementById('opening-hours-info');
   
-  console.log("📅 Mise à jour des horaires, date sélectionnée:", dateInput.value);
-  console.log("📋 Horaires disponibles:", horairesOuvertureReservation);
-  
   if (!dateInput.value) {
     horaireInfo.textContent = 'Sélectionnez une date pour voir les horaires d\'ouverture.';
     horaireInfo.style.color = '#666';
@@ -228,15 +221,12 @@ function updateHorairesInfo() {
   if (!horairesOuvertureReservation || Object.keys(horairesOuvertureReservation).length === 0) {
     horaireInfo.textContent = 'Chargement des horaires...';
     horaireInfo.style.color = '#666';
-    console.log("⏳ Horaires pas encore chargés");
     return;
   }
 
   const selectedDate = new Date(dateInput.value);
   const dayName = getDayName(selectedDate);
   const horaireJour = horairesOuvertureReservation[dayName];
-  
-  console.log(`📊 Jour: ${dayName}, Horaire: ${horaireJour}`);
   
   if (!horaireJour || horaireJour === "Fermé") {
     horaireInfo.textContent = `Le restaurant est fermé le ${dayName.toLowerCase()}.`;
@@ -253,7 +243,6 @@ async function autoFillUserEmail() {
     const token = localStorage.getItem('token');
     
     if (!token) {
-      console.log('Utilisateur non connecté, email manuel requis');
       return;
     }
 
@@ -281,8 +270,6 @@ async function autoFillUserEmail() {
         infoMessage.style.fontSize = '0.8em';
         infoMessage.textContent = 'Email automatiquement rempli depuis votre compte';
         emailField.parentNode.insertBefore(infoMessage, emailField.nextSibling);
-        
-        console.log('✅ Email auto-rempli:', profile.email);
       }
     }
   } catch (error) {
@@ -294,7 +281,6 @@ async function autoFillUserEmail() {
 function setupReservationForm() {
   // Écouter les changements de date
   document.getElementById('date').addEventListener('change', () => {
-    console.log("📅 Date changée, mise à jour des horaires");
     updateHorairesInfo();
   });
 
@@ -384,7 +370,6 @@ function setupReservationForm() {
         if (profileResponse.ok) {
           const profile = await profileResponse.json();
           userEmail = profile.email;
-          console.log('📧 Email utilisé pour la réservation:', userEmail);
         }
       } catch (error) {
         console.error('Erreur lors de la récupération du profil:', error);
@@ -407,7 +392,6 @@ function setupReservationForm() {
       })
     })
     .then(res => res.json().then(data => {
-      console.log("Réponse serveur :", data);
       if (res.ok) {
         localStorage.setItem("lastReservationTime", Date.now().toString());
 

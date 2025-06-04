@@ -74,7 +74,6 @@
       try {
         await Promise.all(deletePromises);
         localStorage.removeItem('cart');
-        console.log("Panier vidé avec succès.");
       } catch (error) {
         console.error("Erreur lors du vidage du panier :", error);
       }

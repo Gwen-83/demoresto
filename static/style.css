@@ -4,9 +4,17 @@
   box-sizing: border-box;
 }
 
+html, body {
+  height: 100%;
+}
+
 body {
   font-family: 'Raleway', sans-serif;
   line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff; /* S'assurer que le fond est bien blanc partout */
 }
 
 header {
@@ -203,6 +211,7 @@ footer {
   color: #fff;
   padding: 30px 20px;
   text-align: center;
+  margin-top: auto;
 }
 
 .footer-logo img {
@@ -2649,7 +2658,7 @@ form#register-form a:hover {
   background: #fef3c7;
   color: #92400e;
 }
-.order-admin-card .order-status.refused {
+.order-admin-card .order-status.refusee {
   background: #fee2e2;
   color: #991b1b;
 }

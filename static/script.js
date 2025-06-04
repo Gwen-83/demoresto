@@ -1571,7 +1571,6 @@ async function verifyUserAuthentication() {
     }
 
     const userData = await response.json();
-    console.log("Réponse de vérification:", userData);
     
     // Stocker les données utilisateur
     currentUserData = {
@@ -1643,10 +1642,8 @@ function navigateToCart() {
 
 // Initialisation au chargement de la page
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Page chargée, vérification de l'authentification...");
   
   const isUserAuthenticated = await verifyUserAuthentication();
-  console.log("Utilisateur authentifié:", isUserAuthenticated);
   
   if (isUserAuthenticated) {
     document.getElementById('profile-loading-state').style.display = 'none';

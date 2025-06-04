@@ -234,12 +234,10 @@ async function loadOrderHistory() {
 
     if (!response.ok) {
       const txt = await response.text();
-      console.log('Réponse non OK:', txt);
       throw new Error(`Erreur ${response.status}: ${txt}`);
     }
 
     const orders = await response.json();
-    console.log('Commandes récupérées:', orders);
 
     displayOrderHistory(orders);
   } catch (error) {
@@ -256,7 +254,6 @@ async function loadOrderHistory() {
 // Fonction pour afficher l'historique des commandes (avec pagination)
 function displayOrderHistory(orders) {
   const container = document.getElementById('orders-grid');
-  console.log('Affichage des commandes:', orders);
 
   if (!orders || orders.length === 0) {
     container.innerHTML = `
@@ -705,6 +702,31 @@ document.getElementById('newsletter-form').addEventListener('submit', async func
     } catch (e) {}
   }
 });
+
+// Ajout : Fonction de suppression de compte utilisateur
+async function deleteAccount() {
+  if (!confirm("Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.")) {
+    return;
+  }
+  const token = localStorage.getItem('token');
+  try {
+    const res = await fetch('/api/user/delete', {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (res.ok) {
+      alert("Votre compte a été supprimé.");
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      window.location.href = "index.html";
+    } else {
+      const data = await res.json();
+      alert(data.error || "Erreur lors de la suppression du compte.");
+    }
+  } catch (e) {
+    alert("Erreur lors de la suppression du compte.");
+  }
+}
 </script>
 </body>
 </html>
