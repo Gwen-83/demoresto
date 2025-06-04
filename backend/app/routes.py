@@ -1035,7 +1035,7 @@ def delete_user_account():
 
     try:
         # Supprimer tous les CartItems de l'utilisateur (panier et commandes)
-        CartItem.query.filter_by(user_id=user_id).delete()
+        CartItem.query.filter_by(user_id=user_id).delete(synchronize_session=False)
         db.session.commit()
         # Supprimer les commandes (les CartItems sont supprimés via cascade)
         orders = Order.query.filter_by(user_id=user_id).all()
@@ -1044,7 +1044,7 @@ def delete_user_account():
         db.session.commit()
         # Supprimer les réservations associées à l'email utilisateur
         from .models import Reservation
-        Reservation.query.filter_by(email=user.email).delete()
+        Reservation.query.filter_by(email=user.email).delete(synchronize_session=False)
         db.session.commit()
         # Supprimer l'utilisateur
         db.session.delete(user)
