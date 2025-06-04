@@ -1047,7 +1047,9 @@ def delete_user_account():
         Reservation.query.filter_by(email=user.email).delete(synchronize_session=False)
         db.session.commit()
         # Logger l'activité AVANT de supprimer l'utilisateur
-        log_admin_activity(user.id, 'suppression', 'utilisateur', user.id, f"Suppression compte utilisateur: {user.username}")
+        # Correction : ne logger que si l'utilisateur est admin
+        if user.is_admin:
+            log_admin_activity(user.id, 'suppression', 'utilisateur', user.id, f"Suppression compte utilisateur: {user.username}")
         # Supprimer l'utilisateur
         db.session.delete(user)
         db.session.commit()
