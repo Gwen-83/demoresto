@@ -1046,10 +1046,11 @@ def delete_user_account():
         from .models import Reservation
         Reservation.query.filter_by(email=user.email).delete(synchronize_session=False)
         db.session.commit()
+        # Logger l'activité AVANT de supprimer l'utilisateur
+        log_admin_activity(user.id, 'suppression', 'utilisateur', user.id, f"Suppression compte utilisateur: {user.username}")
         # Supprimer l'utilisateur
         db.session.delete(user)
         db.session.commit()
-        log_admin_activity(user.id, 'suppression', 'utilisateur', user.id, f"Suppression compte utilisateur: {user.username}")
         return jsonify({'message': 'Compte supprimé'}), 200
     except Exception as e:
         db.session.rollback()
