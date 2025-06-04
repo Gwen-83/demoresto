@@ -1034,16 +1034,18 @@ def delete_user_account():
         return jsonify({"error": "Utilisateur introuvable"}), 404
 
     try:
-        # Supprimer les CartItems non commandés
+        # Supprimer tous les CartItems de l'utilisateur (panier et commandes)
         CartItem.query.filter_by(user_id=user_id).delete()
-        # Supprimer les commandes (et leurs items via cascade)
+        db.session.commit()
+        # Supprimer les commandes (les CartItems sont supprimés via cascade)
         orders = Order.query.filter_by(user_id=user_id).all()
         for order in orders:
-            CartItem.query.filter_by(order_id=order.id).delete()
             db.session.delete(order)
+        db.session.commit()
         # Supprimer les réservations associées à l'email utilisateur
         from .models import Reservation
         Reservation.query.filter_by(email=user.email).delete()
+        db.session.commit()
         # Supprimer l'utilisateur
         db.session.delete(user)
         db.session.commit()
@@ -1051,7 +1053,7 @@ def delete_user_account():
         return jsonify({'message': 'Compte supprimé'}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Erreur lors de la suppression du compte."}), 500
+        return jsonify({"error": f"Erreur lors de la suppression du compte: {str(e)}"}), 500
 
 @bp.route('/api/admin/orders', methods=['GET'])
 @jwt_required()

@@ -53,7 +53,7 @@ class Order(db.Model):
     requested_date = db.Column(db.String(20))  # format "YYYY-MM-DD"
     requested_time = db.Column(db.String(10))  # format "HH:MM"
 
-    items = db.relationship('CartItem', backref='order', lazy=True)
+    items = db.relationship('CartItem', backref='order', lazy=True, cascade="all, delete-orphan")
     user = db.relationship('User', backref='orders')  # Ajouté
 
     def total(self):
